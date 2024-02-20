@@ -90,6 +90,10 @@ select option {
     cursor: pointer;
 }
 
+.highlight {
+    background-color: yellow;
+}
+
 .book-section>p {
     margin: auto;
     padding: 20px;
@@ -124,7 +128,7 @@ select option {
 
 .text-paragraph>p {
     text-align: justify;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
@@ -176,13 +180,13 @@ select option {
 
 .input-search label {
     text-align: center;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     padding: 0.2rem 0;
 }
 
 .input-search input {
     margin: auto;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     padding: 0.5rem;
     width: 25%;
 }

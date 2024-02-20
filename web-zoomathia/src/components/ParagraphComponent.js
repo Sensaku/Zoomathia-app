@@ -15,7 +15,7 @@ const ParagraphDisplay = (props) => {
         const prefix = props.text.slice(0, start)
         const change = props.text.slice(start, end)
         const suffix = props.text.slice(end)
-        setTextContent(<p key={`content-${props.id}`}>{prefix}<mark>{change}</mark>{suffix}</p>)
+        setTextContent(<p key={`content-${props.id}`}>{prefix}<span className={styles["highlight"]}>{change}</span>{suffix}</p>)
     }, [props.text, props.id])
 
     const removeHighlight = useCallback((e) => {
