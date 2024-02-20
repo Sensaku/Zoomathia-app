@@ -88,7 +88,7 @@ const BookPage = () => {
                 workList.push(<option value={work.uri} onClick={getBookList}>{work.title}</option>)
             }
             setWorks(<section>
-                <h1>Choose a work</h1>
+                <h1>Select a work</h1>
                 <select>
                     {workList}
                 </select>
