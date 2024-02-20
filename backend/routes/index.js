@@ -121,7 +121,7 @@ const getWorksFromAuthor = (author) => {
 const getParagraphsWithConcept = (input) => {
   return `prefix schema: <http://schema.org/>
   prefix oa: <http://www.w3.org/ns/oa#>
-  SELECT DISTINCT ?uri ?oeuvre ?author ?title (xsd:integer(?book) as ?bookid) ?paragraph (xsd:integer(?id) as ?nb) ?text WHERE {
+  SELECT DISTINCT ?uri ?author ?title (xsd:integer(?book) as ?bookid) ?paragraph (xsd:integer(?id) as ?nb) ?text WHERE {
     ?annotation oa:hasBody ?concept;
       oa:hasTarget [
         oa:hasSource ?paragraph

@@ -98,7 +98,7 @@ const BookPage = () => {
     }, [getBookList])
 
     useLayoutEffect(() => {
-        const author_response = []
+        const author_response = [<option></option>]
         const callForData = async () => {
             const data = await fetch("http://localhost:3001/getAuthors").then(response => response.json())
             for (const author of data) {

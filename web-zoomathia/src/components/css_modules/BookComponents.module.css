@@ -97,7 +97,6 @@ select option {
 
 .paragraph-section {
     display: flex;
-    flex: 2;
     flex-direction: row;
     padding: 15px 0;
     min-height: 10rem;
