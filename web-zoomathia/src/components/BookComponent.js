@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState, useCallback } from 'react'
 import styles from "./css_modules/BookComponents.module.css"
 import ParagraphDisplay from './ParagraphComponent'
+import Select from 'react-select'
 
 const BookPage = () => {
 
@@ -11,6 +12,7 @@ const BookPage = () => {
     const [currentBookUri, setCurrentBookUri] = useState('')
     const [authorList, setAuthorList] = useState([])
     const [works, setWorks] = useState([]);
+    const [select, setSelect] = useState();
 
     const getParagraph = useCallback((e) => {
         const paras = []
@@ -30,7 +32,31 @@ const BookPage = () => {
         callForData()
     }, [])
 
+    const postParagraphWithConcepts = useCallback((e) => {
+
+        const callForData = async (e) => {
+            console.log(e)
+            const paras = []
+            const data = await fetch(
+                `http://localhost:3001/getParagraphWithConcept`,
+                { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ uri: currentBookUri, concepts: e }) }
+            ).then(response => response.json())
+            for (const paragraph of data) {
+                paras.push(<ParagraphDisplay key={paragraph.id} id={paragraph.id} text={paragraph.text} uri={paragraph.uri} />)
+            }
+            if (paras.length == 0) {
+                setParagraphs(<p className={styles["no-result"]}>No paragraphs</p>)
+            } else {
+                setParagraphs([])
+                setParagraphs(paras)
+            }
+
+        }
+        callForData(e)
+    }, [currentBookUri, setParagraphs])
+
     const getParagraphWithConcept = useCallback((e) => {
+        console.log(e)
         const callForData = async (e) => {
             const paras = []
             const data = await fetch(`http://localhost:3001/getParagraphWithConcept?concept=${e.target.value}&uri=${currentBookUri}`).then(response => response.json())
@@ -104,16 +130,18 @@ const BookPage = () => {
             for (const author of data) {
                 author_response.push(<option key={author.name} onClick={getWorks} name={author.name}>{author.name}</option>)
             }
+            const theso = await fetch('http://localhost:3001/getTheso').then(response => response.json())
+            setSelect(theso)
+
             setAuthorList(<section className={styles["author-section"]}>
                 <h1>Select author</h1>
                 <select>
                     {author_response}
                 </select>
-
             </section>)
         }
         callForData()
-    }, [getWorks])
+    }, [getWorks, postParagraphWithConcepts])
 
     return <div className={styles["box-content"]}>
         <header className={styles["selection-section"]}>
@@ -126,16 +154,21 @@ const BookPage = () => {
         <header className={styles["selected-book-title"]}>
             <h2>{title}</h2>
         </header>
-        {paragraphs.length > 0 ? <section className={styles["input-search"]}>
+        {currentBookUri != '' ? <section className={styles["input-search"]}>
+
             <label>Filter paragraph with concept</label>
-            <input list='concept_suggestion' onChange={searchConcepts} onKeyDown={getParagraphWithConcept} />
-            <datalist id='concept_suggestion'>
-                {searchConceptsList}
-            </datalist>
+            <Select className={styles["selection-input"]} options={select} isMulti onChange={postParagraphWithConcepts} />
         </section> : <></>}
 
         {paragraphs}
     </div>
 }
+
+/*
+<input list='concept_suggestion' onChange={searchConcepts} onKeyDown={getParagraphWithConcept} />
+            <datalist id='concept_suggestion'>
+                {searchConceptsList}
+            </datalist>
+*/
 
 export default BookPage;

@@ -145,6 +145,14 @@ const getParagraphsWithConcept = (input) => {
   `
 }
 
+const getTheso = () => {
+  return `SELECT DISTINCT ?concept ?label WHERE {
+    ?concept skos:prefLabel ?label
+    FILTER(lang(?label) = 'en')
+  }ORDER BY ?label
+  `
+}
+
 router.get('/getAuthors', async (req, res) => {
   console.log("Get author")
   const response = []
@@ -249,6 +257,55 @@ router.get('/searchConcepts', async (req, res) => {
   res.status(200).json(response)
 })
 
+const buildAnnotation = (labels) => {
+  const query = []
+  for (let i = 0; i < labels.length; i++) {
+    query.push(`?annotation${i} oa:hasBody <${labels[i].value}>;
+      oa:hasTarget [
+        oa:hasSource ?paragraph;
+      ].
+      `)
+  }
+  return query.join('\n')
+}
+
+const getParagraphsWithConcepts = (subpart, uri) => {
+  return `prefix schema: <http://schema.org/>
+  prefix oa: <http://www.w3.org/ns/oa#>
+  SELECT DISTINCT ?paragraph ?title ?id ?text WHERE {
+    ${subpart}
+    ?paragraph schema:text ?text;
+      schema:identifier ?id;
+      schema:isPartOf <${uri}>.
+
+    <${uri}> schema:title ?title.
+  }
+  `
+}
+
+router.post('/getParagraphWithConcept', async (req, res) => {
+  const result = await executeSPARQLRequest(endpoint, getParagraphsWithConcepts(buildAnnotation(req.body.concepts), req.body.uri))
+  let response = []
+  for (const elt of result.results.bindings) {
+    response.push({
+      uri: elt.paragraph.value,
+      text: elt.text.value,
+      title: elt.title.value,
+      id: parseInt(elt.id.value)
+    })
+  }
+  response = response.sort((a, b) => {
+    if (a.id > b.id) {
+      return 1
+    }
+    if (a.id < b.id) {
+      return -1
+    }
+    return 0
+  })
+  res.status(200).json(response)
+})
+
 router.get('/getParagraphsWithConcept', async (req, res) => {
   const result = await executeSPARQLRequest(endpoint, getParagraphsWithConcept(req.query.concept.replace("%20", ' ')))
   let response = []
@@ -265,6 +322,18 @@ router.get('/getParagraphsWithConcept', async (req, res) => {
     })
   }
 
+  res.status(200).json(response)
+})
+
+router.get('/getTheso', async (req, res) => {
+  const result = await executeSPARQLRequest(endpoint, getTheso())
+  const response = []
+  for (const elt of result.results.bindings) {
+    response.push({
+      label: elt.label.value,
+      value: elt.concept.value
+    })
+  }
   res.status(200).json(response)
 })
 
