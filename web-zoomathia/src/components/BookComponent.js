@@ -1,18 +1,16 @@
 import { useLayoutEffect, useState, useCallback } from 'react'
 import styles from "./css_modules/BookComponents.module.css"
 import ParagraphDisplay from './ParagraphComponent'
-import Select from 'react-select'
+import AsyncSelect from 'react-select/async'
 
 const BookPage = () => {
 
     const [books, setBooks] = useState([])
     const [paragraphs, setParagraphs] = useState([])
     const [title, setTitle] = useState()
-    const [searchConceptsList, setSearchConceptsList] = useState([])
     const [currentBookUri, setCurrentBookUri] = useState('')
     const [authorList, setAuthorList] = useState([])
     const [works, setWorks] = useState([]);
-    const [select, setSelect] = useState();
 
     const getParagraph = useCallback((e) => {
         const paras = []
@@ -35,7 +33,6 @@ const BookPage = () => {
     const postParagraphWithConcepts = useCallback((e) => {
 
         const callForData = async (e) => {
-            console.log(e)
             const paras = []
             const data = await fetch(
                 `http://localhost:3001/getParagraphWithConcept`,
@@ -44,7 +41,7 @@ const BookPage = () => {
             for (const paragraph of data) {
                 paras.push(<ParagraphDisplay key={paragraph.id} id={paragraph.id} text={paragraph.text} uri={paragraph.uri} />)
             }
-            if (paras.length == 0) {
+            if (paras.length === 0) {
                 setParagraphs(<p className={styles["no-result"]}>No paragraphs</p>)
             } else {
                 setParagraphs([])
@@ -55,37 +52,21 @@ const BookPage = () => {
         callForData(e)
     }, [currentBookUri, setParagraphs])
 
-    const getParagraphWithConcept = useCallback((e) => {
-        console.log(e)
-        const callForData = async (e) => {
-            const paras = []
-            const data = await fetch(`http://localhost:3001/getParagraphWithConcept?concept=${e.target.value}&uri=${currentBookUri}`).then(response => response.json())
-            for (const paragraph of data) {
-                paras.push(<ParagraphDisplay key={paragraph.id} id={paragraph.id} text={paragraph.text} uri={paragraph.uri} />)
-            }
-            setParagraphs([])
-            setParagraphs(paras)
-        }
-        if (e.key === 'Enter') {
-            callForData(e)
-        }
-    }, [currentBookUri])
-
-    const searchConcepts = useCallback((e) => {
+    const searchConcepts = async (input, callback) => {
         const retrieved_concept = []
-        const callForData = async () => {
-            if (e.target.value === '') {
-                setSearchConceptsList([])
+        const callForData = async (input) => {
+            if (input === '') {
+                return []
             } else {
-                const data = await fetch(`http://localhost:3001/searchConcepts?input=${e.target.value}`).then(response => response.json())
+                const data = await fetch(`http://localhost:3001/searchConcepts?input=${input}`).then(response => response.json())
                 for (const concept of data) {
-                    retrieved_concept.push(<option key={concept.uri} value={concept.label}>{concept.label}</option>)
+                    retrieved_concept.push({ value: concept.uri, label: concept.label })
                 }
-                setSearchConceptsList(retrieved_concept)
+                return retrieved_concept
             }
         }
-        callForData()
-    }, [])
+        return await callForData(input)
+    }
 
     const getBookList = useCallback(() => {
         let bookList = [<option></option>];
@@ -130,8 +111,6 @@ const BookPage = () => {
             for (const author of data) {
                 author_response.push(<option key={author.name} onClick={getWorks} name={author.name}>{author.name}</option>)
             }
-            const theso = await fetch('http://localhost:3001/getTheso').then(response => response.json())
-            setSelect(theso)
 
             setAuthorList(<section className={styles["author-section"]}>
                 <h1>Select author</h1>
@@ -154,21 +133,14 @@ const BookPage = () => {
         <header className={styles["selected-book-title"]}>
             <h2>{title}</h2>
         </header>
-        {currentBookUri != '' ? <section className={styles["input-search"]}>
+        {currentBookUri !== '' ? <section className={styles["input-search"]}>
 
             <label>Filter paragraph with concept</label>
-            <Select className={styles["selection-input"]} options={select} isMulti onChange={postParagraphWithConcepts} />
+            <AsyncSelect key={currentBookUri} className={styles["selection-input"]} loadOptions={searchConcepts} isMulti onChange={postParagraphWithConcepts} />
         </section> : <></>}
 
         {paragraphs}
     </div>
 }
-
-/*
-<input list='concept_suggestion' onChange={searchConcepts} onKeyDown={getParagraphWithConcept} />
-            <datalist id='concept_suggestion'>
-                {searchConceptsList}
-            </datalist>
-*/
 
 export default BookPage;
