@@ -25,11 +25,11 @@ const ParagraphDisplay = (props) => {
     useEffect(() => {
         const callForData = async () => {
             const conceptsList = []
-            const data = await fetch(`http://localhost:3001/getConcepts?uri=${props.uri}`).then(response => response.json())
+            const data = await fetch(`http://localhost:3001/getConcepts?uri=${props.uri}&lang=${props.lang}`).then(response => response.json())
             for (const annotation of data) {
                 conceptsList.push(
                     <li
-                        key={`concept_element_${annotation.annotation}${annotation.label}`}
+                        key={`concept_element_${annotation.annotation}${annotation.label}${props.lang}`}
                         uri={annotation.concept}
                         start={annotation.start} end={annotation.end}
                         onMouseEnter={highlight}
@@ -42,7 +42,7 @@ const ParagraphDisplay = (props) => {
             setConcepts(conceptsList)
         }
         callForData()
-    }, [props.text, props.id, props.uri, highlight, removeHighlight])
+    }, [props.text, props.id, props.uri, props.lang, highlight, removeHighlight])
 
     return <section key={`paragraph-section-${props.id}`} className={styles["paragraph-section"]}>
         <div key={`paragraph-${props.id}`} className={styles["id-paragraph"]}>

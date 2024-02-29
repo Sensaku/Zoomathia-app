@@ -49,7 +49,7 @@ const getParagraphQuery = (uri) => {
 }`
 }
 
-const getConceptsQuery = (uri) => {
+const getConceptsQuery = (uri, lang) => {
   return `prefix schema: <http://schema.org/>
   prefix oa: <http://www.w3.org/ns/oa#>
   SELECT DISTINCT ?annotation ?concept ?label ?start ?end ?exact WHERE {
@@ -62,17 +62,24 @@ const getConceptsQuery = (uri) => {
           oa:exact ?exact
         ]
       ].
-    ?concept skos:prefLabel ?label
-    FILTER(lang(?label) = "en")
+  
+  ?concept skos:prefLabel ?labelen
+  FILTER(lang(?labelen) = "en")
+  OPTIONAL {
+    ?concept skos:prefLabel ?labellang
+    FILTER(lang(?labellang) = "${lang}")
+  }
+  BIND(IF(BOUND(?labellang), ?labellang, ?labelen) AS ?label)
+  
   }`
 }
 
-const searchConceptsQuery = (input) => {
+const searchConceptsQuery = (input, lang) => {
   return `prefix schema: <http://schema.org/>
   prefix oa: <http://www.w3.org/ns/oa#>
   SELECT DISTINCT ?concept ?label WHERE {
     ?concept skos:prefLabel ?label
-    FILTER(lang(?label) = "en")
+    FILTER(lang(?label) = "${lang}")
     FILTER(contains(str(?label), "${input}"))
   }`
 }
@@ -202,9 +209,9 @@ router.get('/getParagraphs', async (req, res) => {
 })
 
 router.get('/getConcepts', async (req, res) => {
-  console.log(`Get Concepts for paragraph ${req.query.uri}`)
-  const result = await executeSPARQLRequest(endpoint, getConceptsQuery(req.query.uri))
+  const result = await executeSPARQLRequest(endpoint, getConceptsQuery(req.query.uri, req.query.lang))
   const response = []
+  console.log(req.query.lang)
   for (const elt of result.results.bindings) {
     response.push({
       annotation: elt.annotation.value,
@@ -244,7 +251,7 @@ router.get('/getParagraphWithConcept', async (req, res) => {
 
 router.get('/searchConcepts', async (req, res) => {
   console.log(`Search concept query for input: ${req.query.input}`)
-  const result = await executeSPARQLRequest(endpoint, searchConceptsQuery(req.query.input))
+  const result = await executeSPARQLRequest(endpoint, searchConceptsQuery(req.query.input, req.query.lang))
   const response = []
 
   for (const elt of result.results.bindings) {
@@ -260,7 +267,8 @@ router.get('/searchConcepts', async (req, res) => {
 const buildAnnotation = (labels) => {
   const query = []
   for (let i = 0; i < labels.length; i++) {
-    query.push(`?annotation${i} oa:hasBody <${labels[i].value}>;
+    query.push(
+      `?annotation${i} oa:hasBody <${labels[i].value}>;
       oa:hasTarget [
         oa:hasSource ?paragraph;
       ].
@@ -332,6 +340,26 @@ router.get('/getTheso', async (req, res) => {
     response.push({
       label: elt.label.value,
       value: elt.concept.value
+    })
+  }
+  res.status(200).json(response)
+})
+
+const getLang = () => {
+  return `PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+  prefix schema: <http://schema.org/>
+  prefix oa: <http://www.w3.org/ns/oa#>
+  SELECT DISTINCT (lang(?label) as ?lang) WHERE {
+    ?concept skos:prefLabel ?label
+  }`
+}
+
+router.get('/getLanguageConcept', async (req, res) => {
+  const result = await executeSPARQLRequest(endpoint, getLang())
+  const response = []
+  for (const elt of result.results.bindings) {
+    response.push({
+      value: elt.lang.value
     })
   }
   res.status(200).json(response)
