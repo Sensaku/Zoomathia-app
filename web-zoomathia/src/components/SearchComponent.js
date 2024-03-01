@@ -1,6 +1,7 @@
 import styles from "./css_modules/SearchComponent.module.css"
 import { useState, useCallback } from "react"
 import ParagraphDisplay from './ParagraphComponent'
+import SelectComponent from './SelectComponent'
 
 const BookSection = (props) => {
     return <>
@@ -12,32 +13,39 @@ const BookSection = (props) => {
 }
 
 const SearchComponent = () => {
-    const [searchConceptsList, setSearchConceptsList] = useState([])
     const [paragraphs, setParagraphs] = useState([])
+    const [currentLang, setCurrentLang] = useState("en")
 
-    const searchConcepts = useCallback((e) => {
+    const searchConcepts = async (input) => {
         const retrieved_concept = []
-        const callForData = async () => {
-            if (e.target.value === '') {
-                setSearchConceptsList([])
+        const callForData = async (input) => {
+            if (input === '') {
+                return []
             } else {
-                const data = await fetch(`http://localhost:3001/searchConcepts?input=${e.target.value}`).then(response => response.json())
+                const data = await fetch(`http://localhost:3001/searchConcepts?input=${input}&lang=${currentLang}`).then(response => response.json())
                 for (const concept of data) {
-                    retrieved_concept.push(<option key={concept.uri} value={concept.label}>{concept.label}</option>)
+                    retrieved_concept.push({ value: concept.uri, label: `${concept.label} @${currentLang}` })
                 }
-                setSearchConceptsList(retrieved_concept)
+                return retrieved_concept
             }
         }
-        callForData()
-    }, [])
+        return await callForData(input)
+    }
 
-    const getParagraphsWithConcept = useCallback((e) => {
+    const postParagraphWithConcepts = useCallback((e) => {
+
         const callForData = async (e) => {
-            const concept = document.querySelector("#input-search").value
             const paras = []
             const book_found = {}
-            const data = await fetch(`http://localhost:3001/getParagraphsWithConcept?concept=${concept}`)
-                .then(response => response.json())
+
+            const data = await fetch(
+                `http://localhost:3001/getParagraphsWithConcepts`,
+                {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ concepts: e })
+                }).then(response => response.json())
+
             for (const paragraph of data) {
                 if (!book_found.hasOwnProperty(paragraph.bookUri)) {
                     book_found[paragraph.bookUri] = {
@@ -53,6 +61,7 @@ const SearchComponent = () => {
                         id={paragraph.id}
                         text={paragraph.text}
                         uri={paragraph.uri}
+                        lang={currentLang}
                     />
                 )
             }
@@ -70,7 +79,7 @@ const SearchComponent = () => {
             if (data.length === 0) {
                 setParagraphs([])
                 setParagraphs(<section className={styles["not-found"]}>
-                    <p>No result for concept label: {concept}</p>
+                    <p>No result for concepts label</p>
                 </section>
                 )
             } else {
@@ -78,24 +87,19 @@ const SearchComponent = () => {
                 setParagraphs(paras)
             }
         }
-        if (e.key === 'Enter' || e.type === 'click') {
-            callForData(e)
-        }
-    }, [])
-
+        callForData(e)
+    }, [currentLang, setParagraphs])
 
     return <div className={styles["box-content"]}>
         <section className={styles["search-title"]}>
-            <h1>Search paragraphs for a given concepts</h1>
+            <h1>Search paragraphs for given concepts</h1>
         </section>
-        <section className={styles["input-search"]}>
-            <label>Concept input</label>
-            <input id="input-search" list='concept_suggestion' onChange={searchConcepts} onKeyDown={getParagraphsWithConcept} />
-            <button className={styles["button-search"]} onClick={getParagraphsWithConcept}>Search paragraphs</button>
-            <datalist id='concept_suggestion'>
-                {searchConceptsList}
-            </datalist>
-        </section>
+        <SelectComponent
+            execute_effect={postParagraphWithConcepts}
+            load={searchConcepts}
+            filter_title="Filter paragraphs with concepts"
+            setLanguage={setCurrentLang}
+        />
         {paragraphs}
     </div>
 

@@ -8,6 +8,15 @@ p {
     margin: 0
 }
 
+.select-lang {
+    margin: auto;
+}
+
+.selection-input {
+    margin: auto;
+    width: 50rem;
+}
+
 .box-content {
     margin: auto;
     width: 85%;

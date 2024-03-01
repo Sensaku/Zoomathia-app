@@ -1,7 +1,7 @@
 import { useLayoutEffect, useState, useCallback } from 'react'
 import styles from "./css_modules/BookComponents.module.css"
 import ParagraphDisplay from './ParagraphComponent'
-import AsyncSelect from 'react-select/async'
+import SelectComponent from './SelectComponent'
 
 const BookPage = () => {
 
@@ -11,7 +11,6 @@ const BookPage = () => {
     const [currentBookUri, setCurrentBookUri] = useState('')
     const [authorList, setAuthorList] = useState([])
     const [works, setWorks] = useState([]);
-    const [langs, setLangs] = useState([])
     const [currentLang, setCurrentLang] = useState('en')
 
     const getParagraph = useCallback((e) => {
@@ -77,7 +76,6 @@ const BookPage = () => {
 
     const getBookList = useCallback(() => {
         let bookList = [<option></option>];
-        console.log(currentLang)
         const callForData = async () => {
             const data = await fetch("http://localhost:3001/getBookList").then(response => response.json())
             for (const book of data) {
@@ -93,7 +91,7 @@ const BookPage = () => {
         }
 
         callForData()
-    }, [currentLang, getParagraph])
+    }, [getParagraph])
 
     const getWorks = useCallback((e) => {
         const workList = [<option></option>]
@@ -112,23 +110,16 @@ const BookPage = () => {
         callForData()
     }, [getBookList])
 
-    const changeLanguage = useCallback((e) => {
-        setCurrentLang(e.target.value)
-    }, [setCurrentLang])
+
+
     useLayoutEffect(() => {
         const author_response = [<option></option>]
-        const lang = []
         const callForData = async () => {
             const data = await fetch("http://localhost:3001/getAuthors").then(response => response.json())
             for (const author of data) {
                 author_response.push(<option key={author.name} onClick={getWorks} name={author.name}>{author.name}</option>)
             }
 
-            const data_lang = await fetch("http://localhost:3001/getLanguageConcept").then(response => response.json())
-            for (const language of data_lang) {
-                lang.push(<option key={language.value} onClick={changeLanguage} value={language.value}>{language.value}</option>)
-            }
-            setLangs(lang)
             setAuthorList(<section className={styles["author-section"]}>
                 <h1>Select author</h1>
                 <select>
@@ -137,7 +128,7 @@ const BookPage = () => {
             </section>)
         }
         callForData()
-    }, [getWorks, postParagraphWithConcepts, changeLanguage])
+    }, [getWorks, postParagraphWithConcepts])
 
     return <div className={styles["box-content"]}>
         <header className={styles["selection-section"]}>
@@ -150,15 +141,14 @@ const BookPage = () => {
         <header className={styles["selected-book-title"]}>
             <h2>{title}</h2>
         </header>
-        {currentBookUri !== '' ? <section className={styles["input-search"]}>
-            <label>Language of Concept</label>
-            <select className={styles["select-lang"]}>
-                {langs}
-            </select>
-            <label>Filter paragraph with concept</label>
-            <AsyncSelect key={currentBookUri} className={styles["selection-input"]} loadOptions={searchConcepts} isMulti onChange={postParagraphWithConcepts} />
-        </section> : <></>}
 
+        {currentBookUri !== '' ? <SelectComponent
+            key={currentBookUri}
+            execute_effect={postParagraphWithConcepts}
+            filter_title="Filter paragraph with concept"
+            load={searchConcepts}
+            setLanguage={setCurrentLang}
+        /> : <></>}
         {paragraphs}
     </div>
 }
