@@ -42,10 +42,11 @@ router.get('/getBookList', async (req, res) => {
 
 const getParagraphQuery = (uri) => {
   return `prefix schema: <http://schema.org/>
-  SELECT ?uri ?id ?text WHERE {
+  SELECT ?title ?uri ?id ?text WHERE {
     ?uri schema:isPartOf <${uri}>;
       schema:identifier ?id;
       schema:text ?text
+    <${uri}> schema:title ?title.
 }`
 }
 
@@ -181,6 +182,7 @@ router.get('/getParagraphs', async (req, res) => {
   const result = await executeSPARQLRequest(endpoint, getParagraphQuery(req.query.uri));
   for (const elt of result.results.bindings) {
     response.push({
+      title: elt.title.value,
       uri: elt.uri.value,
       text: elt.text.value,
       id: parseInt(elt.id.value)

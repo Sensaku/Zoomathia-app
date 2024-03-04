@@ -18,13 +18,14 @@ const BookPage = () => {
         setParagraphs([])
         const callForData = async () => {
             const data = await fetch(`http://localhost:3001/getParagraphs?uri=${e.target.id}`).then(response => response.json())
-
+            let title = ''
             for (const paragraph of data) {
+                title = paragraph.title
                 paras.push(
                     <ParagraphDisplay key={paragraph.id} id={paragraph.id} text={paragraph.text} uri={paragraph.uri} lang={currentLang} />
                 )
             }
-            setTitle(`Naturalis Historia - ${e.target.getAttribute('number')}`)
+            setTitle(`${title}`)
             setParagraphs(paras)
             setCurrentBookUri(e.target.id)
         }
