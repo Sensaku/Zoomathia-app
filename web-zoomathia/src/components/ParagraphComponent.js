@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react"
-import styles from "./css_modules/BookComponents.module.css"
+import styles from "./css_modules/ParagraphComponent.module.css"
 
 const ParagraphDisplay = (props) => {
     const [concepts, setConcepts] = useState([])
     const [text_content, setTextContent] = useState(<p key={`content-${props.id}`}>{props.text}</p>)
+    const [nbConcept, setNbConcept] = useState(0)
 
     const redirectToOpenTheso = (e) => {
         window.open(e.target.getAttribute("uri"), "_blank")
@@ -40,6 +41,7 @@ const ParagraphDisplay = (props) => {
                 )
             }
             setConcepts(conceptsList)
+            setNbConcept(data.length)
         }
         callForData()
     }, [props.text, props.id, props.uri, props.lang, highlight, removeHighlight])
@@ -52,6 +54,7 @@ const ParagraphDisplay = (props) => {
             {text_content}
         </div>
         <div key={`concept-${props.id}`} className={styles['concept-list']}>
+            <p>{nbConcept} concept{nbConcept > 1 ? 's' : ''}</p>
             <ul key={`concept-list-${props.id}`}>
                 {concepts}
             </ul>
