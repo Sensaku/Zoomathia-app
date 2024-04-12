@@ -22,7 +22,7 @@ const SearchComponent = () => {
             if (input === '') {
                 return []
             } else {
-                const data = await fetch(`http://localhost:3001/searchConcepts?input=${input}&lang=${currentLang}`).then(response => response.json())
+                const data = await fetch(`${process.env.BACKEND_URL}searchConcepts?input=${input}&lang=${currentLang}`).then(response => response.json())
                 for (const concept of data) {
                     retrieved_concept.push({ value: concept.uri, label: `${concept.label} @${currentLang}` })
                 }
@@ -39,7 +39,7 @@ const SearchComponent = () => {
             const book_found = {}
 
             const data = await fetch(
-                `http://localhost:3001/getParagraphsWithConcepts`,
+                `${process.env.BACKEND_URL}getParagraphsWithConcepts`,
                 {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
@@ -92,12 +92,12 @@ const SearchComponent = () => {
 
     return <div className={styles["box-content"]}>
         <section className={styles["search-title"]}>
-            <h1>Search paragraphs for given concepts</h1>
+            <h2>Select concepts</h2>
         </section>
         <SelectComponent
             execute_effect={postParagraphWithConcepts}
             load={searchConcepts}
-            filter_title="Filter paragraphs with concepts"
+            filter_title=""
             setLanguage={setCurrentLang}
         />
         {paragraphs}

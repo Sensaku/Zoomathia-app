@@ -17,7 +17,7 @@ const BookPage = () => {
         const paras = []
         setParagraphs([])
         const callForData = async () => {
-            const data = await fetch(`http://localhost:3001/getParagraphs?uri=${e.target.id}`).then(response => response.json())
+            const data = await fetch(`${process.env.BACKEND_URL}getParagraphs?uri=${e.target.id}`).then(response => response.json())
             let title = ''
             for (const paragraph of data) {
                 title = paragraph.title
@@ -37,7 +37,7 @@ const BookPage = () => {
         const callForData = async (e) => {
             const paras = []
             const data = await fetch(
-                `http://localhost:3001/getParagraphWithConcept`,
+                `${process.env.BACKEND_URL}getParagraphWithConcept`,
                 {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
@@ -65,7 +65,7 @@ const BookPage = () => {
             if (input === '') {
                 return []
             } else {
-                const data = await fetch(`http://localhost:3001/searchConcepts?input=${input}&lang=${currentLang}`).then(response => response.json())
+                const data = await fetch(`${process.env.BACKEND_URL}searchConcepts?input=${input}&lang=${currentLang}`).then(response => response.json())
                 for (const concept of data) {
                     retrieved_concept.push({ value: concept.uri, label: `${concept.label}@${currentLang}` })
                 }
@@ -78,13 +78,13 @@ const BookPage = () => {
     const getBookList = useCallback(() => {
         let bookList = [<option></option>];
         const callForData = async () => {
-            const data = await fetch("http://localhost:3001/getBookList").then(response => response.json())
+            const data = await fetch(`${process.env.BACKEND_URL}getBookList`).then(response => response.json())
             for (const book of data) {
                 bookList.push(<option key={book.uri} id={book.uri} onClick={getParagraph} number={book.id}>{book.id}</option>)
             }
             //setBooks(bookList)
             setBooks(<section className={styles["book-section"]}>
-                <h1>Select book</h1>
+                <h2>Select book</h2>
                 <select>
                     {bookList}
                 </select>
@@ -97,12 +97,12 @@ const BookPage = () => {
     const getWorks = useCallback((e) => {
         const workList = [<option></option>]
         const callForData = async () => {
-            const data = await fetch(`http://localhost:3001/getWorks?author=${e.target.getAttribute("name")}`).then(response => response.json())
+            const data = await fetch(`${process.env.BACKEND_URL}getWorks?author=${e.target.getAttribute("name")}`).then(response => response.json())
             for (const work of data) {
                 workList.push(<option value={work.uri} onClick={getBookList}>{work.title}</option>)
             }
             setWorks(<section>
-                <h1>Select a work</h1>
+                <h2>Work</h2>
                 <select>
                     {workList}
                 </select>
@@ -116,13 +116,13 @@ const BookPage = () => {
     useLayoutEffect(() => {
         const author_response = [<option></option>]
         const callForData = async () => {
-            const data = await fetch("http://localhost:3001/getAuthors").then(response => response.json())
+            const data = await fetch(`${process.env.BACKEND_URL}getAuthors`).then(response => response.json())
             for (const author of data) {
                 author_response.push(<option key={author.name} onClick={getWorks} name={author.name}>{author.name}</option>)
             }
 
             setAuthorList(<section className={styles["author-section"]}>
-                <h1>Select author</h1>
+                <h2>Author</h2>
                 <select>
                     {author_response}
                 </select>

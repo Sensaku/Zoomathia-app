@@ -7,6 +7,11 @@ p {
     margin: 0
 }
 
+
+h1 {
+    font-size: 1.3rem;
+}
+
 .box-content {
     margin: auto;
     width: 85%;

@@ -9,8 +9,9 @@ const Navbar = () => {
             </div>
             <div className={styles["menu-box"]}>
                 <Link to='/' >Home</Link>
-                <Link to='/Search'>Search</Link>
-                <Link to='/Book'>Book</Link>
+                <Link to='/Search'>Explore the corpus</Link>
+                <Link to='/Book'>Explore a work</Link>
+                <Link to='/CompetencyQuestion'>Competency question</Link>
             </div>
         </nav>
 

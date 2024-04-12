@@ -1,7 +1,21 @@
 .input-search {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     margin: auto;
+}
+
+.concept-input {
+    margin-left: auto;
+}
+
+.concept-lang {
+    margin-left: 2rem;
+    margin-right: auto;
+    margin-top: auto;
+}
+
+div {
+    text-align: center;
 }
 
 
@@ -13,7 +27,9 @@
 
 
 .select-lang {
-    margin: auto;
+    /*margin: auto;*/
+    width: 5rem;
+    margin-left: 1rem;
 }
 
 .selection-input {

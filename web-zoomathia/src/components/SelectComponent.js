@@ -12,7 +12,7 @@ const SelectComponent = (props) => {
     useEffect(() => {
         const callForData = async () => {
             const lang = []
-            const data_lang = await fetch("http://localhost:3001/getLanguageConcept").then(response => response.json())
+            const data_lang = await fetch(`${process.env.BACKEND_URL}getLanguageConcept`).then(response => response.json())
             for (const language of data_lang) {
                 lang.push(<option key={language.value} onClick={changeLanguage} value={language.value}>{language.value}</option>)
             }
@@ -22,17 +22,21 @@ const SelectComponent = (props) => {
     }, [changeLanguage])
 
     return <section className={styles["input-search"]}>
-        <label>Language of Concept</label>
-        <select className={styles["select-lang"]}>
-            {langs}
-        </select>
-        <label>{props.filter_title}</label>
-        <AsyncSelect
-            key={props.key ? props.key : ''}
-            className={styles["selection-input"]}
-            loadOptions={props.load}
-            isMulti
-            onChange={props.execute_effect} />
+        <div className={styles["concept-input"]}>
+            {props.filter_title !== '' ? <label>{props.filter_title}</label> : ''}
+            <AsyncSelect
+                key={props.key ? props.key : ''}
+                className={styles["selection-input"]}
+                loadOptions={props.load}
+                isMulti
+                onChange={props.execute_effect} />
+        </div>
+        <div className={styles["concept-lang"]}>
+            <label>Lang</label>
+            <select className={styles["select-lang"]}>
+                {langs}
+            </select>
+        </div>
     </section>
 }
 
