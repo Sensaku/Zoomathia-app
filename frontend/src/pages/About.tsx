@@ -1,6 +1,7 @@
 import React from 'react'
 import { ExternalLink, Mail, Award, Globe } from 'lucide-react'
 import { useI18n } from '../i18n'
+import { BASE_URL } from '../api/client'
 
 export const About: React.FC = () => {
   const { t } = useI18n()
@@ -38,7 +39,7 @@ export const About: React.FC = () => {
             <ExternalLink className="w-4 h-4" />
           </a>
           <a
-            href="http://zoomathia.i3s.unice.fr/sparql"
+            href={`${BASE_URL}/docs`}
             target="_blank"
             rel="noreferrer"
             className="p-4 rounded-none bg-[#faf9f6] border border-[#ebe4d6] hover:border-[#9A6530] text-xs font-medium text-[#2c2724] hover:text-[#9A6530] flex items-center justify-between transition-colors"

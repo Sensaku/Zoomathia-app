@@ -1,16 +1,4 @@
 services:
-  corese:
-    image: wimmics/corese:4.5.0
-    ports:
-      - "8080:8080"
-    volumes:
-      - "${CORESE_DATA_DIR:-./dumps}:/usr/local/corese/data"
-      - corese-config:/usr/local/corese/config
-      - corese-logs:/usr/local/corese/log
-    environment:
-      JVM_XMX: "${CORESE_JVM_XMX:-16G}"
-    restart: always
-
   backend:
     image: zoomathia/backend-fastapi:latest
     build:
@@ -20,16 +8,27 @@ services:
     environment:
       HOST: "0.0.0.0"
       PORT: "3001"
-      SPARQL_ENDPOINT: "http://corese:8080/sparql"
+      SPARQL_ENDPOINT: "${SPARQL_ENDPOINT:-http://host.docker.internal:8080/sparql}"
       SPARQL_TIMEOUT: "${SPARQL_TIMEOUT:-30}"
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost","http://127.0.0.1","http://localhost:5173","http://127.0.0.1:5173"]}'
       STAGING_DB_PATH: "/app/storage/staging.db"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - backend-storage:/app/storage
+    restart: always
+
+  frontend:
+    image: zoomathia/frontend:latest
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: "${VITE_API_URL:-/api}"
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
     depends_on:
-      - corese
+      - backend
     restart: always
 
 volumes:
   backend-storage:
-  corese-config:
-  corese-logs:

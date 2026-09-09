@@ -15,32 +15,43 @@ Swagger permet de consulter les modèles, les paramètres et d'exécuter directe
 
 ## Lancement avec Docker Compose
 
-Le fichier `docker-compose.yml` situé à la racine démarre FastAPI et Corese ensemble :
+Le fichier `docker-compose.yml` situé à la racine démarre uniquement le frontend et FastAPI. Corese n'est pas inclus : le backend doit pouvoir joindre un endpoint SPARQL déjà installé sur le serveur ou sur une autre machine.
+
+Avant le premier démarrage, créer le fichier de configuration racine :
+
+```bash
+cp .env.example .env
+```
+
+Si Corese tourne directement sur le même serveur Ubuntu, conserver ou définir :
+
+```dotenv
+SPARQL_ENDPOINT=http://host.docker.internal:8080/sparql
+FRONTEND_PORT=80
+```
+
+Le changement de `FRONTEND_PORT` est nécessaire si Corese écoute lui aussi sur `8080` sur le même hôte.
+
+Si Corese est distant, remplacer cette valeur par son adresse IP ou DNS. Le dépôt ne contacte plus l'I3S par défaut.
+
+Démarrer les services :
 
 ```bash
 docker compose up -d --build
 docker compose ps
-docker compose logs -f backend corese
+docker compose logs -f backend frontend
 ```
 
 Ports publiés sur la machine hôte :
 
 | Service | Port | URL |
 | --- | ---: | --- |
+| Frontend | `8080` par défaut | <http://localhost:8080> |
 | FastAPI | `3001` | <http://localhost:3001> |
-| Corese | `8080` | <http://localhost:8080/sparql> |
 
-Dans le réseau Docker, FastAPI contacte Corese via `http://corese:8080/sparql`.
+Le frontend est publié sur le port `8080` par défaut afin de réutiliser le port ouvert de l'ancien service Corese. Il peut être changé avec `FRONTEND_PORT`. Nginx sert l'application React et transmet `/api/*` au backend en retirant le préfixe `/api` attendu uniquement par le frontend.
 
-Par défaut, Corese charge les fichiers RDF du dossier racine `dumps/`. Pour utiliser le répertoire historique du serveur, créer un fichier `.env` à la racine :
-
-```dotenv
-CORESE_DATA_DIR=/home/abarbe/Corese/Zoomathia
-CORESE_JVM_XMX=16G
-SPARQL_TIMEOUT=30
-```
-
-Corese génère sa configuration au premier démarrage. Après une modification de la liste des fichiers RDF, supprimer `corese-profile.ttl` dans le volume de configuration ou recréer uniquement ce volume pour forcer sa régénération.
+Si aucun endpoint SPARQL/Corese n'est accessible, l'API et Swagger démarreront, mais les endpoints dépendant des données échoueront.
 
 Arrêt des services :
 
@@ -65,19 +76,23 @@ uv sync
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 3001
 ```
 
+Pour personnaliser le lancement local, copier [`.env.example`](C:/Users/Mazuki/Desktop/zoomathia/web-app/backend-fastapi/.env.example) vers `backend-fastapi/.env`. FastAPI charge ce fichier via `pydantic-settings` lorsque la commande est exécutée depuis ce dossier.
+
 Variables principales :
 
 | Variable | Valeur locale par défaut | Description |
 | --- | --- | --- |
 | `HOST` | `0.0.0.0` | Adresse d'écoute de l'application |
 | `PORT` | `3001` | Port du backend |
-| `SPARQL_ENDPOINT` | endpoint Zoomathia distant | Endpoint Corese utilisé par l'API |
+| `SPARQL_ENDPOINT` | `http://127.0.0.1:8080/sparql` | Endpoint SPARQL utilisé par l'API |
 | `SPARQL_TIMEOUT` | `30` | Timeout SPARQL en secondes |
 | `STAGING_DB_PATH` | `data/staging.db` | Base SQLite des annotations et propositions |
 | `XML_DATA_DIR` | `data/files` | Corpus XML téléchargeable |
 | `QUERIES_DIR` | `data/queries` | Questions de compétence SPARQL |
 
-Pour travailler avec Corese lancé par Compose tout en exécutant FastAPI hors Docker :
+`CORS_ORIGINS` doit être écrit comme une liste JSON, par exemple `["http://localhost:5173","http://127.0.0.1:5173"]`.
+
+Pour travailler avec un Corese installé sur le même hôte que FastAPI lancé localement :
 
 ```dotenv
 SPARQL_ENDPOINT=http://127.0.0.1:8080/sparql

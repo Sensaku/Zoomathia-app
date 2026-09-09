@@ -5,3 +5,9 @@
 # Ressources locales non versionnées
 /scripts/
 /dumps/
+
+# Variables d'environnement locales
+.env
+.env.*
+!.env.example
+!**/.env.example

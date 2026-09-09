@@ -377,7 +377,7 @@ export const en: TranslationDictionary = {
     projectPresentationP2: 'It relies on the TheZoo thesaurus (OpenTheso / Huma-Num). The automatic annotation pipeline was developed within the AutomaZoo and HisINum projects, supported by IdEx UCA JEDI.',
     usefulLinksTitle: 'Useful Resources & Links',
     githubRepo: 'Project GitHub Repository',
-    sparqlEndpoint: 'I3S SPARQL Endpoint',
+    sparqlEndpoint: 'SPARQL API documentation',
     theZooThesaurus: 'TheZoo Thesaurus (Huma-Num)',
     supportPartnersTitle: 'Support & Partners',
     supportP1: 'This application was developed within the I3S and CEPAM laboratories, with support from the "Human, Ideas and Environments" Academy of Excellence of IdEx UCA JEDI (Université Côte d\'Azur).',
@@ -470,4 +470,3 @@ export const en: TranslationDictionary = {
     conceptCreatedSuccess: 'New concept proposed successfully and selected!',
   },
 };
-

@@ -1,7 +1,9 @@
 import httpx
+import os
 import time
 
 client = httpx.Client(timeout=45)
+sparql_endpoint = os.getenv("SPARQL_ENDPOINT", "http://127.0.0.1:8080/sparql")
 
 print("Testing Corese SPARQL performance...")
 
@@ -20,7 +22,7 @@ SELECT DISTINCT ?parent ?current ?type (xsd:integer(?id_t) as ?id) ?title ?file 
   BIND(IF(BOUND(?title_t), ?title_t, "") AS ?title)
 } ORDER BY ?id ?parent
 """
-r_sum = client.get("http://zoomathia.i3s.unice.fr/sparql", params={"query": q_sum, "format": "json"}, headers={"Accept": "application/sparql-results+json"})
+r_sum = client.get(sparql_endpoint, params={"query": q_sum, "format": "json"}, headers={"Accept": "application/sparql-results+json"})
 print(f"Summary query: {round(time.time() - t0, 2)}s, count: {len(r_sum.json().get('results', {}).get('bindings', []))}")
 
 # 2. Paragraphs query
@@ -35,7 +37,7 @@ SELECT DISTINCT (xsd:integer(?id_p) as ?id) ?title ?uri ?text WHERE {
     zoo:text ?text.
 } ORDER BY ?id
 """
-r_para = client.get("http://zoomathia.i3s.unice.fr/sparql", params={"query": q_para, "format": "json"}, headers={"Accept": "application/sparql-results+json"})
+r_para = client.get(sparql_endpoint, params={"query": q_para, "format": "json"}, headers={"Accept": "application/sparql-results+json"})
 print(f"Paragraphs query: {round(time.time() - t0, 2)}s, count: {len(r_para.json().get('results', {}).get('bindings', []))}")
 
 # 3. Section annotations query
@@ -75,7 +77,7 @@ SELECT DISTINCT ?paragraph ?annotation ?annotation_type ?concept ?label ?start ?
   BIND(IF(BOUND(?labellang), ?labellang, ?labelen) AS ?label)
 } ORDER BY ?paragraph ?label
 """
-r_annots = client.get("http://zoomathia.i3s.unice.fr/sparql", params={"query": q_section_annots, "format": "json"}, headers={"Accept": "application/sparql-results+json"})
+r_annots = client.get(sparql_endpoint, params={"query": q_section_annots, "format": "json"}, headers={"Accept": "application/sparql-results+json"})
 print(f"Section annots query: {round(time.time() - t0, 2)}s, status: {r_annots.status_code}, count: {len(r_annots.json().get('results', {}).get('bindings', []))}")
 
 # 4. Single paragraph query
@@ -113,5 +115,5 @@ SELECT DISTINCT ?annotation ?annotation_type ?concept ?label ?start ?end ?exact 
   BIND(IF(BOUND(?labellang), ?labellang, ?labelen) AS ?label)
 } ORDER BY ?label
 """
-r_single = client.get("http://zoomathia.i3s.unice.fr/sparql", params={"query": q_single, "format": "json"}, headers={"Accept": "application/sparql-results+json"})
+r_single = client.get(sparql_endpoint, params={"query": q_single, "format": "json"}, headers={"Accept": "application/sparql-results+json"})
 print(f"Single para query: {round(time.time() - t0, 2)}s, status: {r_single.status_code}, count: {len(r_single.json().get('results', {}).get('bindings', []))}")
