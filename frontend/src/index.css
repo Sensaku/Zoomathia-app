@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: "Cinzel", "Cardo", Georgia, serif;
+    --font-serif: "Cardo", "EB Garamond", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  /* Augmentation globale de la taille de base du texte pour l'ensemble de l'application */
+  html {
+    font-size: 17.5px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 18px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    html {
+      font-size: 18.5px;
+    }
+  }
+
+  body {
+    background-color: #fcfbf9;
+    color: #2c2724;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Typographie haute fidélité pour textes antiques (latin & grec polytonique) */
+  .ancient-text {
+    font-family: "Cardo", "EB Garamond", "Palatino Linotype", Georgia, serif;
+    font-feature-settings: "kern" 1, "liga" 1;
+    letter-spacing: 0.015em;
+    line-height: 1.85;
+    text-rendering: optimizeLegibility;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+/* Scrollbars fines et discrètes */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f7f3ec;
+  border-radius: 0;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #d8cebf;
+  border-radius: 0;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #9A6530;
+}

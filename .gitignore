@@ -1,0 +1,7 @@
+# Documentation générée par les agents à la racine
+/*.md
+!/README.md
+
+# Ressources locales non versionnées
+/scripts/
+/dumps/

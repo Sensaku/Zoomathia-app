@@ -1,0 +1,28 @@
+PREFIX oa:     <http://www.w3.org/ns/oa#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX schema:  <http://schema.org/>
+
+SELECT DISTINCT ?s ?o ("speech" as ?p) (?o as ?date) (CONCAT("http://zoomathia.i3s.unice.fr/ExploreAWork?uri=",str(?paragraph))  as ?url) ("fst" as ?style2) ("snd" as ?style1) WHERE {
+
+  ?annotation1 oa:hasBody ?animal;
+              oa:hasTarget [oa:hasSource ?s;
+                            oa:hasSelector [oa:exact ?mention_animal]].
+  ?animal a skos:Concept;
+       skos:prefLabel ?o.
+  <https://opentheso.huma-num.fr/?idg=MT_7&idt=th310> skos:member ?animal.
+
+  ?annotation2 oa:hasBody [skos:prefLabel "speech"@en];
+        oa:hasTarget [ oa:hasSource ?s;
+                       oa:hasSelector [ oa:exact ?mention_social]].
+
+  FILTER (lang(?o) = "en")
+  FILTER NOT EXISTS {
+    ?animal skos:prefLabel ?o2.
+    FILTER (lang(?o2) = "en")
+    FILTER (
+      STRLEN(?o2) < STRLEN(?o) ||
+      (STRLEN(?o2) = STRLEN(?o) && LCASE(STR(?o2)) < LCASE(STR(?o))) ||
+      (STRLEN(?o2) = STRLEN(?o) && LCASE(STR(?o2)) = LCASE(STR(?o)) && STR(?o2) > STR(?o))
+    )
+  }
+}

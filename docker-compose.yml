@@ -1,0 +1,35 @@
+services:
+  corese:
+    image: wimmics/corese:4.5.0
+    ports:
+      - "8080:8080"
+    volumes:
+      - "${CORESE_DATA_DIR:-./dumps}:/usr/local/corese/data"
+      - corese-config:/usr/local/corese/config
+      - corese-logs:/usr/local/corese/log
+    environment:
+      JVM_XMX: "${CORESE_JVM_XMX:-16G}"
+    restart: always
+
+  backend:
+    image: zoomathia/backend-fastapi:latest
+    build:
+      context: ./backend-fastapi
+    ports:
+      - "3001:3001"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3001"
+      SPARQL_ENDPOINT: "http://corese:8080/sparql"
+      SPARQL_TIMEOUT: "${SPARQL_TIMEOUT:-30}"
+      STAGING_DB_PATH: "/app/storage/staging.db"
+    volumes:
+      - backend-storage:/app/storage
+    depends_on:
+      - corese
+    restart: always
+
+volumes:
+  backend-storage:
+  corese-config:
+  corese-logs:

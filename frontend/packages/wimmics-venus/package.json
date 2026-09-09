@@ -1,0 +1,49 @@
+{
+  "name": "@wimmics/venus",
+  "version": "1.0.2",
+  "description": "Web Components for SPARQL/D3 visualizations",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": true,
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "rollup -c",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "d3": "^7.0.0",
+    "d3-sankey": "^0.12.3"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-terser": "^0.4.0",
+    "@wimmics/venus-core": "file:../core",
+    "@wimmics/venus-encoding": "file:../encoding",
+    "@wimmics/venus-import": "file:../import",
+    "@wimmics/venus-rendering": "file:../rendering",
+    "@wimmics/venus-transform": "file:../transform",
+    "@wimmics/venus-visual-mapping": "file:../visual-mapping",
+    "rollup": "^4.0.0",
+    "rollup-plugin-string": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "knowledge-graph",
+    "visualization",
+    "web-components",
+    "sparql",
+    "semantic-web"
+  ]
+}
