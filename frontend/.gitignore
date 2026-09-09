@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# VENUS is consumed as a local package and ships only its compiled dist.
+!packages/wimmics-venus/dist/
+!packages/wimmics-venus/dist/**
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
