@@ -495,7 +495,7 @@ export const ExploreCorpus: React.FC = () => {
                               />
                               <div className="min-w-0">
                                 <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                                  <span className="font-semibold text-sm block truncate">{item.label}</span>
+                                  <span className="font-semibold text-sm block whitespace-normal break-words">{item.label}</span>
                                   <ConceptCategoryBadge
                                     category={item.category}
                                     collection={item.collection}
@@ -1151,7 +1151,7 @@ export const ExploreCorpus: React.FC = () => {
                               </div>
                               <div className="relative group/label min-w-0 flex-1">
                                 <span
-                                  className="font-semibold text-sm sm:text-base text-[#2c2724] leading-snug break-words block group-hover/label:text-[#9A6530] transition-colors"
+                                  className="font-semibold text-sm sm:text-base text-[#2c2724] leading-snug whitespace-normal break-words overflow-visible block group-hover/label:text-[#9A6530] transition-colors"
                                   title={item.label}
                                 >
                                   {displayLabel}

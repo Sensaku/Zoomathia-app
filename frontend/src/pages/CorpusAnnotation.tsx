@@ -1213,29 +1213,31 @@ export const CorpusAnnotation: React.FC = () => {
                       }`}
                     >
                       {/* Concept & Badge Statut */}
-                      <div className="flex items-start justify-between gap-1.5">
-                        <div className="flex items-start space-x-1.5 min-w-0 flex-1">
+                      <div className="space-y-1.5">
+                        <div className="flex items-start space-x-1.5 min-w-0">
                           <ConceptCategoryIcon
                             label={item.concept_label}
                             uri={item.concept_uri}
                             className="w-4 h-4 shrink-0"
                           />
-                          <strong className="font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug text-[#2c2724]">
+                          <strong className="font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug overflow-visible text-[#2c2724]">
                             {item.concept_label}
                           </strong>
                           {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
                         </div>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                            isValidated
-                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                              : isRejected
-                                ? 'bg-rose-100 text-rose-800 border-rose-300'
-                                : 'bg-amber-100 text-amber-800 border-amber-300'
-                          }`}
-                        >
-                          {item.status}
-                        </span>
+                        <div className="flex justify-end">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              isValidated
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : isRejected
+                                  ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                  : 'bg-amber-100 text-amber-800 border-amber-300'
+                            }`}
+                          >
+                            {item.status}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Granularité et extrait */}
@@ -1341,22 +1343,24 @@ export const CorpusAnnotation: React.FC = () => {
                             : 'border-[#ded5c6] bg-[#faf8f4] hover:bg-white'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-1.5">
-                        <div className="flex items-start space-x-1.5 min-w-0 flex-1">
+                      <div className="space-y-1.5">
+                        <div className="flex items-start space-x-1.5 min-w-0">
                           <ConceptCategoryIcon
                             label={item.label}
                             uri={item.concept}
                             category={item.category as any}
                             className="w-3.5 h-3.5 shrink-0"
                           />
-                          <strong className="font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug text-[#2c2724]">
+                          <strong className="font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug overflow-visible text-[#2c2724]">
                             {item.label}
                           </strong>
                           {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-[#7a4f21] border border-amber-300">
-                          {t.annotate.statusReference}
-                        </span>
+                        <div className="flex justify-end">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-[#7a4f21] border border-amber-300">
+                            {t.annotate.statusReference}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="mt-2 pt-2 border-t border-[#ede4d4] flex items-center justify-between text-[10px] text-[#736a5f]">

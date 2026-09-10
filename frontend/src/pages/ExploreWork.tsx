@@ -995,19 +995,19 @@ export const ExploreWork: React.FC = () => {
                                   : 'border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/40'
                             }`}
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-start space-x-1.5 min-w-0 flex-1">
+                            <div className="space-y-1.5">
+                              <div className="flex items-start space-x-1.5 min-w-0">
                                 <ConceptCategoryIcon
                                   label={item.concept_label}
                                   uri={item.concept_uri}
                                   className="w-3.5 h-3.5 shrink-0"
                                 />
-                                <strong className="text-emerald-950 font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug">
+                                <strong className="text-emerald-950 font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug overflow-visible">
                                   {item.concept_label}
                                 </strong>
                                 {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
                               </div>
-                              <div className="flex items-center space-x-1.5 shrink-0">
+                              <div className="flex items-center justify-end space-x-1.5">
                                 <ConceptCategoryBadge
                                   label={item.concept_label}
                                   uri={item.concept_uri}
@@ -1121,8 +1121,8 @@ export const ExploreWork: React.FC = () => {
                                   : 'border-[#ebe4d6] bg-[#faf9f6] hover:border-[#cfc5b4] hover:bg-white'
                             }`}
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-start space-x-1.5 min-w-0 flex-1">
+                            <div className="space-y-1.5">
+                              <div className="flex items-start space-x-1.5 min-w-0">
                                 <ConceptCategoryIcon
                                   category={item.category}
                                   collection={item.collection}
@@ -1130,12 +1130,12 @@ export const ExploreWork: React.FC = () => {
                                   uri={item.concept}
                                   className="w-3.5 h-3.5 shrink-0"
                                 />
-                                <strong className="text-[#2c2724] font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug">
+                                <strong className="text-[#2c2724] font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug overflow-visible">
                                   {item.label.toLowerCase()}
                                 </strong>
                                 {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
                               </div>
-                              <div className="flex items-center space-x-1.5 shrink-0">
+                              <div className="flex items-center justify-end space-x-1.5">
                                 <ConceptCategoryBadge
                                   category={item.category}
                                   collection={item.collection}

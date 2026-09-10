@@ -60,11 +60,11 @@ export const PinnedConceptBanner: React.FC<PinnedConceptBannerProps> = ({
           📌
         </span>
         <div className="min-w-0">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold text-[#2c2724] truncate flex items-center space-x-1.5">
+          <div className="flex items-start flex-wrap gap-x-2 gap-y-1">
+            <span className="text-xs font-bold text-[#2c2724] flex items-center flex-wrap gap-1.5 min-w-0">
               <span>{bannerTitle}</span>
               <span
-                className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-none text-xs font-bold ${
+                className={`inline-flex items-center flex-wrap gap-x-1 px-2 py-0.5 rounded-none text-xs font-bold whitespace-normal break-words ${
                   CATEGORY_PINNED_STYLES[pinnedConceptCategory] || CATEGORY_PINNED_STYLES.general
                 }`}
               >

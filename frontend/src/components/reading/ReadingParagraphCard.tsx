@@ -124,14 +124,14 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
 
           {hasInspectedConcept && (
             <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full select-none flex items-center space-x-1 ${
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full select-none flex items-center flex-wrap gap-x-1 min-w-0 ${
                 isHoveredSpanPara
                   ? (CATEGORY_TAG_HOVER[activeInspectionCategory] || CATEGORY_TAG_HOVER.general)
                   : (CATEGORY_TAG_PINNED[activeInspectionCategory] || CATEGORY_TAG_PINNED.general)
               }`}
             >
               {isHoveredSpanPara ? <Layers className="w-2.5 h-2.5 shrink-0" /> : <span className="shrink-0">📌</span>}
-              <span className="truncate max-w-[220px]">
+              <span className="whitespace-normal break-words">
                 {isCurrentPara
                   ? `${presentHereTagText} ${activeInspectionLabel ? `(« ${activeInspectionLabel} »)` : ''}`
                   : isHoveredSpanPara
