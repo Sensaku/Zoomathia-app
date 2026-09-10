@@ -665,6 +665,8 @@ export const CorpusAnnotation: React.FC = () => {
     pinnedConceptLabel,
     pinnedConceptCategory,
     pinnedParagraphsList,
+    pinnedParagraphUris,
+    hoveredParagraphUris,
     handleFocusParagraph
   } = inspectionState
 
@@ -729,10 +731,8 @@ export const CorpusAnnotation: React.FC = () => {
         <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto scrollbar-thin pr-0.5 pt-0.5">
           {filteredTocParagraphs.map((p) => {
             const isParaActive = activeParagraphUri === p.uri
-            const isHovering = hoveredConcept !== null
-            const hasInspectedP = activeInspectionConcept !== null && activeInspectionParagraphUris.has(p.uri)
-            const isParaHovered = isHovering && hasInspectedP
-            const isParaPinned = !isHovering && !!pinnedConcept && hasInspectedP
+            const isParaHovered = !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
+            const isParaPinned = !!pinnedConcept && (pinnedParagraphUris?.has(p.uri) ?? false)
             const annotCount = paragraphAnnotCounts[p.uri] || 0
 
             return (
@@ -743,10 +743,10 @@ export const CorpusAnnotation: React.FC = () => {
                 className={`px-2 py-1 rounded-none text-xs font-mono font-bold transition-colors cursor-pointer border inline-flex items-center space-x-1 ${
                   isParaActive
                     ? 'bg-[#9A6530] text-white border-[#855424] shadow-xs ring-1 ring-[#9A6530]/40'
-                    : isParaPinned
-                      ? (CATEGORY_TOC_PINNED[activeInspectionCategory] || CATEGORY_TOC_PINNED.general)
-                      : isParaHovered
-                        ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
+                    : isParaHovered
+                      ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
+                      : isParaPinned
+                        ? (CATEGORY_TOC_PINNED[pinnedConceptCategory] || CATEGORY_TOC_PINNED.general)
                         : annotCount > 0
                           ? 'bg-amber-50 text-[#543b22] border-amber-200/90 hover:bg-amber-100/70 hover:border-amber-300'
                           : 'bg-white text-[#543b22] border-[#ded5c6] hover:bg-[#f4ede2] hover:border-[#9A6530]/50'

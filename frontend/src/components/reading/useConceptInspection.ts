@@ -28,7 +28,9 @@ export function useConceptInspection({
     activeInspectionCategory,
     pinnedConceptLabel,
     pinnedConceptCategory,
-    pinnedParagraphsList
+    pinnedParagraphsList,
+    pinnedParagraphUris,
+    hoveredParagraphUris
   } = useMemo(() => {
     if (!activeInspectionConcept && !pinnedConcept) {
       return {
@@ -37,11 +39,14 @@ export function useConceptInspection({
         activeInspectionCategory: 'general' as ConceptCategory,
         pinnedConceptLabel: null,
         pinnedConceptCategory: 'general' as ConceptCategory,
-        pinnedParagraphsList: []
+        pinnedParagraphsList: [],
+        pinnedParagraphUris: new Set<string>(),
+        hoveredParagraphUris: new Set<string>()
       }
     }
 
-    const set = new Set<string>()
+    const pinnedSet = new Set<string>()
+    const hoveredSet = new Set<string>()
     let activeLabel: string | null = null
     let activeCat: ConceptCategory = 'general'
     let pinnedLabel: string | null = null
@@ -50,62 +55,59 @@ export function useConceptInspection({
     // 1. Références Corese
     for (const [pUri, annotMap] of Object.entries(referenceAnnotations)) {
       for (const item of Object.values(annotMap || {})) {
-        if (activeInspectionConcept && item.concept === activeInspectionConcept) {
-          set.add(pUri)
-          if (!activeLabel) activeLabel = item.label
-          activeCat = getConceptCategoryInfo(item.category, item.collection, item.label, item.concept).category
+        if (hoveredConcept && item.concept === hoveredConcept) {
+          hoveredSet.add(pUri)
         }
         if (pinnedConcept && item.concept === pinnedConcept) {
+          pinnedSet.add(pUri)
           if (!pinnedLabel) pinnedLabel = item.label
           pinnedCat = getConceptCategoryInfo(item.category, item.collection, item.label, item.concept).category
+        }
+        if (activeInspectionConcept && item.concept === activeInspectionConcept) {
+          if (!activeLabel) activeLabel = item.label
+          activeCat = getConceptCategoryInfo(item.category, item.collection, item.label, item.concept).category
         }
       }
     }
 
     // 2. Propositions Staging
     for (const s of stagedAnnotations) {
-      if (activeInspectionConcept && s.concept_uri === activeInspectionConcept) {
-        set.add(s.paragraph_uri)
-        if (s.target_paragraphs && s.target_paragraphs.length > 0) {
-          for (const tUri of s.target_paragraphs) {
-            set.add(tUri)
-          }
-        }
-        if (s.end_paragraph_uri) {
-          set.add(s.end_paragraph_uri)
-        }
-        if (!activeLabel) activeLabel = s.concept_label
-        activeCat = getConceptCategoryInfo((s as any).category, (s as any).collection, s.concept_label, s.concept_uri).category
+      const touchesParas =
+        s.target_paragraphs && s.target_paragraphs.length > 0
+          ? s.target_paragraphs
+          : ([s.paragraph_uri, s.end_paragraph_uri].filter(Boolean) as string[])
+
+      if (hoveredConcept && s.concept_uri === hoveredConcept) {
+        for (const tUri of touchesParas) hoveredSet.add(tUri)
       }
 
       if (pinnedConcept && s.concept_uri === pinnedConcept) {
+        for (const tUri of touchesParas) pinnedSet.add(tUri)
         if (!pinnedLabel) pinnedLabel = s.concept_label
         pinnedCat = getConceptCategoryInfo((s as any).category, (s as any).collection, s.concept_label, s.concept_uri).category
+      }
+
+      if (activeInspectionConcept && s.concept_uri === activeInspectionConcept) {
+        if (!activeLabel) activeLabel = s.concept_label
+        activeCat = getConceptCategoryInfo((s as any).category, (s as any).collection, s.concept_label, s.concept_uri).category
       }
     }
 
     const pList = pinnedConcept
-      ? paragraphs.filter((p) => {
-          // Un paragraphe fait partie des passages couverts s'il est dans le set associé au concept épinglé
-          let hasPinned = false
-          const pMap = referenceAnnotations[p.uri] || {}
-          if (Object.values(pMap).some((a) => a.concept === pinnedConcept)) hasPinned = true
-          if (stagedAnnotations.some((s) => s.concept_uri === pinnedConcept && (s.paragraph_uri === p.uri || (s.target_paragraphs && s.target_paragraphs.includes(p.uri)) || s.end_paragraph_uri === p.uri))) {
-            hasPinned = true
-          }
-          return hasPinned
-        })
+      ? paragraphs.filter((p) => pinnedSet.has(p.uri))
       : []
 
     return {
-      activeInspectionParagraphUris: set,
+      activeInspectionParagraphUris: hoveredConcept ? hoveredSet : pinnedSet,
       activeInspectionLabel: activeLabel,
       activeInspectionCategory: activeCat,
       pinnedConceptLabel: pinnedLabel,
       pinnedConceptCategory: pinnedCat,
-      pinnedParagraphsList: pList
+      pinnedParagraphsList: pList,
+      pinnedParagraphUris: pinnedSet,
+      hoveredParagraphUris: hoveredSet
     }
-  }, [activeInspectionConcept, pinnedConcept, referenceAnnotations, stagedAnnotations, paragraphs])
+  }, [activeInspectionConcept, hoveredConcept, pinnedConcept, referenceAnnotations, stagedAnnotations, paragraphs])
 
   // Navigation fluide avec focus centré sur le paragraphe
   const handleFocusParagraph = useCallback(
@@ -140,6 +142,8 @@ export function useConceptInspection({
     pinnedConceptLabel,
     pinnedConceptCategory,
     pinnedParagraphsList,
+    pinnedParagraphUris,
+    hoveredParagraphUris,
     handleFocusParagraph
   }
 }

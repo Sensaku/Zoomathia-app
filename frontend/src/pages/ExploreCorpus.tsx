@@ -318,6 +318,8 @@ export const ExploreCorpus: React.FC = () => {
     pinnedConceptLabel,
     pinnedConceptCategory,
     pinnedParagraphsList,
+    pinnedParagraphUris,
+    hoveredParagraphUris,
     handleFocusParagraph
   } = inspectionState
 
@@ -945,10 +947,8 @@ export const ExploreCorpus: React.FC = () => {
                                         <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto scrollbar-thin pr-0.5">
                                           {sec.children?.map((p: any) => {
                                             const isParaActive = activeParagraphUri === p.uri
-                                            const isHovering = hoveredConcept !== null
-                                            const hasInspectedP = activeInspectionConcept !== null && activeInspectionParagraphUris.has(p.uri)
-                                            const isHoveredP = isHovering && hasInspectedP
-                                            const isPinnedP = !isHovering && !!pinnedConcept && hasInspectedP
+                                            const isHoveredP = !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
+                                            const isPinnedP = !!pinnedConcept && (pinnedParagraphUris?.has(p.uri) ?? false)
 
                                             return (
                                               <button
@@ -965,7 +965,7 @@ export const ExploreCorpus: React.FC = () => {
                                                     : isHoveredP
                                                       ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
                                                       : isPinnedP
-                                                        ? (CATEGORY_TOC_PINNED[activeInspectionCategory] || CATEGORY_TOC_PINNED.general)
+                                                        ? (CATEGORY_TOC_PINNED[pinnedConceptCategory] || CATEGORY_TOC_PINNED.general)
                                                         : 'bg-white text-[#543b22] border-[#ded5c6] hover:bg-[#f4ede2] hover:border-[#9A6530]/50'
                                                 }`}
                                                 title={`Passage § ${p.id}`}

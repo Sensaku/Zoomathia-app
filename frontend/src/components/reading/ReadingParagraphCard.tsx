@@ -63,26 +63,27 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
     activeInspectionCategory,
     hoveredConcept,
     pinnedConcept,
+    pinnedConceptLabel,
+    pinnedConceptCategory,
+    pinnedParagraphUris,
+    hoveredParagraphUris,
     setHoveredConcept,
     setPinnedConcept
   } = inspectionState
 
-  const hasInspectedConcept =
-    activeInspectionConcept !== null && activeInspectionParagraphUris.has(p.uri)
-  const isHovering = hoveredConcept !== null
-  const isHoveredSpanPara = isHovering && hasInspectedConcept
-  const isPinnedSpanPara = !isHovering && !!pinnedConcept && hasInspectedConcept
+  const hasPinnedConcept = !!pinnedConcept && (pinnedParagraphUris?.has(p.uri) ?? false)
+  const hasHoveredConcept = !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
 
   const paraBorderClass = isCurrentPara
-    ? hasInspectedConcept
-      ? isHoveredSpanPara
-        ? `${CATEGORY_PARA_HOVER[activeInspectionCategory] || CATEGORY_PARA_HOVER.general} ring-2 ring-offset-1`
-        : `${CATEGORY_PARA_PINNED[activeInspectionCategory] || CATEGORY_PARA_PINNED.general} ring-2 ring-offset-1`
-      : 'border-[#9A6530] border-l-[#9A6530] bg-[#fffdfb] shadow-md ring-2 ring-[#9A6530]/40 ring-offset-1'
-    : isPinnedSpanPara
-      ? (CATEGORY_PARA_PINNED[activeInspectionCategory] || CATEGORY_PARA_PINNED.general)
-      : isHoveredSpanPara
-        ? (CATEGORY_PARA_HOVER[activeInspectionCategory] || CATEGORY_PARA_HOVER.general)
+    ? hasHoveredConcept
+      ? `${CATEGORY_PARA_HOVER[activeInspectionCategory] || CATEGORY_PARA_HOVER.general} ring-2 ring-offset-1`
+      : hasPinnedConcept
+        ? `${CATEGORY_PARA_PINNED[pinnedConceptCategory] || CATEGORY_PARA_PINNED.general} ring-2 ring-offset-1`
+        : 'border-[#9A6530] border-l-[#9A6530] bg-[#fffdfb] shadow-md ring-2 ring-[#9A6530]/40 ring-offset-1'
+    : hasHoveredConcept
+      ? (CATEGORY_PARA_HOVER[activeInspectionCategory] || CATEGORY_PARA_HOVER.general)
+      : hasPinnedConcept
+        ? (CATEGORY_PARA_PINNED[pinnedConceptCategory] || CATEGORY_PARA_PINNED.general)
         : 'border-[#ede4d4] border-l-[#ede4d4] bg-[#fcfaf7]/70 hover:bg-white hover:border-[#cfc3af] hover:border-l-[#cfc3af] hover:shadow-2xs'
 
   return (
@@ -100,10 +101,10 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
             className={`text-xs font-mono font-bold px-2 py-0.5 rounded-none border inline-flex items-center justify-center text-center leading-none select-none ${
               isCurrentPara
                 ? 'bg-[#9A6530] text-white border-[#855424]'
-                : isPinnedSpanPara
-                  ? (CATEGORY_BADGE_PINNED[activeInspectionCategory] || CATEGORY_BADGE_PINNED.general)
-                  : isHoveredSpanPara
-                    ? (CATEGORY_BADGE_HOVER[activeInspectionCategory] || CATEGORY_BADGE_HOVER.general)
+                : hasHoveredConcept
+                  ? (CATEGORY_BADGE_HOVER[activeInspectionCategory] || CATEGORY_BADGE_HOVER.general)
+                  : hasPinnedConcept
+                    ? (CATEGORY_BADGE_PINNED[pinnedConceptCategory] || CATEGORY_BADGE_PINNED.general)
                     : 'bg-[#f4ede2] text-[#6d4c24] border-[#ded5c6]'
             }`}
           >
@@ -122,16 +123,16 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
             </span>
           )}
 
-          {isPinnedSpanPara && (
+          {hasPinnedConcept && (
             <span
               className={`text-[10px] font-semibold px-2 py-0.5 rounded-full select-none inline-flex items-center space-x-1 shrink-0 max-w-[200px] truncate ${
-                CATEGORY_TAG_PINNED[activeInspectionCategory] || CATEGORY_TAG_PINNED.general
+                CATEGORY_TAG_PINNED[pinnedConceptCategory] || CATEGORY_TAG_PINNED.general
               }`}
-              title={`${pinnedTagText} : ${activeInspectionLabel || ''}`}
+              title={`${pinnedTagText} : ${pinnedConceptLabel || ''}`}
             >
               <span className="shrink-0">📌</span>
               <span className="truncate">
-                {activeInspectionLabel || pinnedTagText}
+                {pinnedConceptLabel || pinnedTagText}
               </span>
             </span>
           )}
@@ -176,30 +177,15 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
         }`}
         onMouseUp={() => onTextSelection?.(p)}
       >
-        {isCurrentPara ? (
-          <AnnotatedAncientText
-            p={p}
-            referenceMap={referenceMap}
-            stagedList={stagedList}
-            hoveredConcept={hoveredConcept}
-            pinnedConcept={pinnedConcept}
-            onHoverConcept={setHoveredConcept}
-            onPinConcept={(c) => setPinnedConcept((prev) => (prev === c ? null : c))}
-          />
-        ) : isPinnedSpanPara ? (
-          <AnnotatedAncientText
-            p={p}
-            referenceMap={referenceMap}
-            stagedList={stagedList}
-            filterConceptUri={activeInspectionConcept}
-            hoveredConcept={hoveredConcept}
-            pinnedConcept={pinnedConcept}
-            onHoverConcept={setHoveredConcept}
-            onPinConcept={(c) => setPinnedConcept((prev) => (prev === c ? null : c))}
-          />
-        ) : (
-          <span>{p.text}</span>
-        )}
+        <AnnotatedAncientText
+          p={p}
+          referenceMap={referenceMap}
+          stagedList={stagedList}
+          hoveredConcept={hoveredConcept}
+          pinnedConcept={pinnedConcept}
+          onHoverConcept={setHoveredConcept}
+          onPinConcept={(c) => setPinnedConcept((prev) => (prev === c ? null : c))}
+        />
       </div>
 
       {/* Traduction alignée synoptique */}

@@ -344,6 +344,8 @@ export const ExploreWork: React.FC = () => {
     pinnedConceptLabel,
     pinnedConceptCategory,
     pinnedParagraphsList,
+    pinnedParagraphUris,
+    hoveredParagraphUris,
     handleFocusParagraph
   } = inspectionState
 
@@ -886,11 +888,9 @@ export const ExploreWork: React.FC = () => {
                               <p className="text-[11px] text-[#8c8275] italic py-1">{t.work.noParagraphs}</p>
                             ) : (
                               paragraphs.map((p) => {
-                                const isCurrentP = activeParagraphUri === p.uri
-                                const isHovering = hoveredConcept !== null
-                                const hasInspectedP = activeInspectionConcept !== null && activeInspectionParagraphUris.has(p.uri)
-                                const isHoveredP = isHovering && hasInspectedP
-                                const isPinnedP = !isHovering && !!pinnedConcept && hasInspectedP
+                                  const isCurrentP = activeParagraphUri === p.uri
+                                  const isHoveredP = !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
+                                  const isPinnedP = !!pinnedConcept && (pinnedParagraphUris?.has(p.uri) ?? false)
 
                                 return (
                                   <button
@@ -918,7 +918,7 @@ export const ExploreWork: React.FC = () => {
                                           : isHoveredP
                                             ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
                                             : isPinnedP
-                                              ? (CATEGORY_TOC_PINNED[activeInspectionCategory] || CATEGORY_TOC_PINNED.general)
+                                              ? (CATEGORY_TOC_PINNED[pinnedConceptCategory] || CATEGORY_TOC_PINNED.general)
                                               : 'bg-[#ede5d8] text-[#6d4c24] border-[#ded5c6]'
                                       }`}
                                     >

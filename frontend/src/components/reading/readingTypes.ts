@@ -32,5 +32,7 @@ export interface ConceptInspectionState {
   pinnedConceptLabel: string | null
   pinnedConceptCategory: ConceptCategory
   pinnedParagraphsList: ReadingParagraph[]
+  pinnedParagraphUris: Set<string>
+  hoveredParagraphUris: Set<string>
   handleFocusParagraph: (paraUri: string) => void
 }
