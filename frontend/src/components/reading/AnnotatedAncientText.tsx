@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StagedAnnotation } from '../../types'
 import { ReadingParagraph, ReadingSpan } from './readingTypes'
 import { resolveParagraphSpans } from './annotationResolver'
@@ -20,7 +20,7 @@ export interface AnnotatedAncientTextProps {
   p: ReadingParagraph
   referenceMap?: Record<string, any>
   stagedList?: StagedAnnotation[]
-  filterConceptUri?: string | null
+  filterConceptUri?: string | string[] | null
   hoveredConcept?: string | null
   pinnedConcept?: string | null
   onHoverConcept?: (uri: string | null) => void
@@ -28,7 +28,7 @@ export interface AnnotatedAncientTextProps {
   globalThemesTitle?: string
 }
 
-export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = ({
+export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = React.memo(({
   p,
   referenceMap = {},
   stagedList = [],
@@ -39,12 +39,114 @@ export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = ({
   onPinConcept,
   globalThemesTitle = 'Thèmes du passage'
 }) => {
-  const { specificSpans, globalThemes } = resolveParagraphSpans(
-    p,
-    referenceMap,
-    stagedList,
-    filterConceptUri
-  )
+  // Clé sérialisée stable pour le filtre de concepts
+  const filterKey = Array.isArray(filterConceptUri)
+    ? filterConceptUri.join('||')
+    : (filterConceptUri || '')
+
+  // Pré-calcul mémoisé de la résolution des spans et du découpage en intervalles
+  // Cette étape lourde ne s'exécute QUE si le texte ou les annotations du paragraphe changent, jamais au simple survol.
+  const { specificSpans, globalThemes, chunkData } = useMemo(() => {
+    const { specificSpans, globalThemes } = resolveParagraphSpans(
+      p,
+      referenceMap,
+      stagedList,
+      filterConceptUri
+    )
+
+    if (specificSpans.length === 0) {
+      return { specificSpans, globalThemes, chunkData: [] }
+    }
+
+    const boundarySet = new Set<number>([0, p.text.length])
+    specificSpans.forEach((s) => {
+      boundarySet.add(s.start)
+      boundarySet.add(s.end)
+    })
+    const boundaries = Array.from(boundarySet).sort((a, b) => a - b)
+
+    const chunkData: Array<{
+      bStart: number
+      bEnd: number
+      chunk: string
+      matching: ReadingSpan[]
+      startingSpans: ReadingSpan[]
+      endingSpans: ReadingSpan[]
+      isEndOfOverlap: boolean
+      primaryMatch: ReadingSpan | null
+      catInfo: ReturnType<typeof getConceptCategoryInfo> | null
+      baseTooltip: string
+      hasStaged: boolean
+    }> = []
+
+    for (let i = 0; i < boundaries.length - 1; i++) {
+      const bStart = boundaries[i]
+      const bEnd = boundaries[i + 1]
+      const chunk = p.text.slice(bStart, bEnd)
+      if (!chunk) continue
+
+      const matching = specificSpans.filter((s) => s.start <= bStart && s.end >= bEnd)
+      if (matching.length === 0) {
+        chunkData.push({
+          bStart,
+          bEnd,
+          chunk,
+          matching: [],
+          startingSpans: [],
+          endingSpans: [],
+          isEndOfOverlap: false,
+          primaryMatch: null,
+          catInfo: null,
+          baseTooltip: '',
+          hasStaged: false
+        })
+      } else {
+        const startingSpans = specificSpans.filter((s) => s.start === bStart)
+        const endingSpans = specificSpans.filter((s) => s.end === bEnd)
+        const isSpanEnd = endingSpans.length > 0
+        const isOverlap = matching.length > 1
+        const primaryMatch = matching[0]
+        const catInfo = getConceptCategoryInfo(
+          primaryMatch.category,
+          primaryMatch.collection,
+          primaryMatch.label,
+          primaryMatch.concept
+        )
+        const hasStaged = matching.some((s) => s.isStaged)
+
+        const nextMatchingCount =
+          i < boundaries.length - 2
+            ? specificSpans.filter((s) => s.start <= boundaries[i + 1] && s.end >= boundaries[i + 2]).length
+            : 0
+        const isEndOfOverlap = isOverlap && (nextMatchingCount !== matching.length || isSpanEnd)
+
+        const baseTooltip = isOverlap
+          ? `${matching.length} concepts superposés :\n${matching
+              .map((s) => {
+                const cInfo = getConceptCategoryInfo(s.category, s.collection, s.label, s.concept)
+                return `• [${cInfo.label}] ${s.label}${s.isStaged ? ' [Staging]' : ''}`
+              })
+              .join('\n')}`
+          : `[${catInfo.label}] ${primaryMatch.label}${primaryMatch.isStaged ? ' [Staging]' : ''}`
+
+        chunkData.push({
+          bStart,
+          bEnd,
+          chunk,
+          matching,
+          startingSpans,
+          endingSpans,
+          isEndOfOverlap,
+          primaryMatch,
+          catInfo,
+          baseTooltip,
+          hasStaged
+        })
+      }
+    }
+
+    return { specificSpans, globalThemes, chunkData }
+  }, [p, referenceMap, stagedList, filterKey])
 
   const renderGlobalThemes = () => {
     if (globalThemes.length === 0) return null
@@ -65,7 +167,7 @@ export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = ({
               onMouseEnter={() => onHoverConcept?.(sp.concept)}
               onMouseLeave={() => onHoverConcept?.(null)}
               onClick={() => onPinConcept?.(sp.concept)}
-              className={`cursor-pointer inline-flex items-center space-x-1.5 text-xs sm:text-sm font-semibold px-3 py-1 rounded-none border transition-all ${
+              className={`cursor-pointer inline-flex items-center space-x-1.5 text-xs sm:text-sm font-semibold px-3 py-1 rounded-none border ${
                 isPin
                   ? 'bg-[#9A6530] text-white border-[#855424] shadow-sm ring-2 ring-amber-500'
                   : isHov
@@ -100,171 +202,139 @@ export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = ({
     )
   }
 
-  // Interval Partitioning
-  const boundarySet = new Set<number>([0, p.text.length])
-  specificSpans.forEach((s) => {
-    boundarySet.add(s.start)
-    boundarySet.add(s.end)
-  })
-  const boundaries = Array.from(boundarySet).sort((a, b) => a - b)
+  const elements = chunkData.map((item) => {
+    const {
+      bStart,
+      bEnd,
+      chunk,
+      matching,
+      startingSpans,
+      endingSpans,
+      isEndOfOverlap,
+      primaryMatch,
+      catInfo,
+      baseTooltip,
+      hasStaged
+    } = item
 
-  const elements: React.ReactNode[] = []
-  for (let i = 0; i < boundaries.length - 1; i++) {
-    const bStart = boundaries[i]
-    const bEnd = boundaries[i + 1]
-    const chunk = p.text.slice(bStart, bEnd)
-    if (!chunk) continue
-
-    const matching = specificSpans.filter((s) => s.start <= bStart && s.end >= bEnd)
-
-    if (matching.length === 0) {
-      elements.push(<span key={`txt-${bStart}-${bEnd}`}>{chunk}</span>)
-    } else {
-      const hoveredMatch = hoveredConcept ? matching.find((s) => s.concept === hoveredConcept) : null
-      const pinnedMatch = pinnedConcept ? matching.find((s) => s.concept === pinnedConcept) : null
-      const isPinned = !!pinnedMatch
-      const isHovered = !!hoveredMatch
-      const isOverlap = matching.length > 1
-      const hasStaged = matching.some((s) => s.isStaged)
-
-      // 1. Délimitation des séparations : repères verticaux de début et fin
-      const startingSpans = specificSpans.filter((s) => s.start === bStart)
-      const endingSpans = specificSpans.filter((s) => s.end === bEnd)
-      const isSpanEnd = endingSpans.length > 0
-
-      let borderDelimiters = ''
-      if (startingSpans.length > 0) {
-        const activeStart =
-          startingSpans.find((s) => s.concept === hoveredConcept || s.concept === pinnedConcept) ||
-          startingSpans[0]
-        const startCat = getConceptCategoryInfo(
-          activeStart.category,
-          activeStart.collection,
-          activeStart.label,
-          activeStart.concept
-        ).category
-        const isAct = activeStart.concept === hoveredConcept || activeStart.concept === pinnedConcept
-        borderDelimiters += ` ${
-          isAct
-            ? CATEGORY_ACTIVE_DELIMITER_LEFT[startCat] || CATEGORY_ACTIVE_DELIMITER_LEFT.general
-            : CATEGORY_DELIMITER_LEFT[startCat] || CATEGORY_DELIMITER_LEFT.general
-        }`
-      }
-      if (endingSpans.length > 0) {
-        const activeEnd =
-          endingSpans.find((s) => s.concept === hoveredConcept || s.concept === pinnedConcept) ||
-          endingSpans[0]
-        const endCat = getConceptCategoryInfo(
-          activeEnd.category,
-          activeEnd.collection,
-          activeEnd.label,
-          activeEnd.concept
-        ).category
-        const isAct = activeEnd.concept === hoveredConcept || activeEnd.concept === pinnedConcept
-        borderDelimiters += ` ${
-          isAct
-            ? CATEGORY_ACTIVE_DELIMITER_RIGHT[endCat] || CATEGORY_ACTIVE_DELIMITER_RIGHT.general
-            : CATEGORY_DELIMITER_RIGHT[endCat] || CATEGORY_DELIMITER_RIGHT.general
-        }`
-      }
-
-      // 2. Détermination de la classe de surlignage
-      const primaryMatch = matching[0]
-      const catInfo = getConceptCategoryInfo(
-        primaryMatch.category,
-        primaryMatch.collection,
-        primaryMatch.label,
-        primaryMatch.concept
-      )
-
-      let badgeClass = ''
-      if (isHovered && hoveredMatch) {
-        // Le survol dynamique est prioritaire pour donner un retour immédiat
-        const hCat = getConceptCategoryInfo(
-          hoveredMatch.category,
-          hoveredMatch.collection,
-          hoveredMatch.label,
-          hoveredMatch.concept
-        ).category
-        badgeClass =
-          (CATEGORY_HOVER_STYLES[hCat] || CATEGORY_HOVER_STYLES.general) +
-          (isOverlap ? ' border-double' : '')
-      } else if (isPinned && pinnedMatch) {
-        // Concept épinglé fixe
-        const pCat = getConceptCategoryInfo(
-          pinnedMatch.category,
-          pinnedMatch.collection,
-          pinnedMatch.label,
-          pinnedMatch.concept
-        ).category
-        badgeClass =
-          (CATEGORY_PINNED_STYLES[pCat] || CATEGORY_PINNED_STYLES.general) +
-          (isOverlap ? ' border-double' : '')
-      } else if (isOverlap) {
-        badgeClass = CATEGORY_OVERLAP_STYLES[catInfo.category] || CATEGORY_OVERLAP_STYLES.general
-      } else {
-        badgeClass = CATEGORY_STYLES[catInfo.category] || CATEGORY_STYLES.general
-      }
-
-      // Fin de chevauchement pour le compteur numérique
-      const nextMatchingCount =
-        i < boundaries.length - 2
-          ? specificSpans.filter((s) => s.start <= boundaries[i + 1] && s.end >= boundaries[i + 2]).length
-          : 0
-      const isEndOfOverlap = isOverlap && (nextMatchingCount !== matching.length || isSpanEnd)
-
-      const pinHint = isPinned ? ' • Cliquer pour désépingler' : ' • Cliquer pour épingler'
-      const tooltip =
-        (isOverlap
-          ? `${matching.length} concepts superposés :\n${matching
-              .map((s) => {
-                const cInfo = getConceptCategoryInfo(s.category, s.collection, s.label, s.concept)
-                return `• [${cInfo.label}] ${s.label}${s.isStaged ? ' [Staging]' : ''}`
-              })
-              .join('\n')}`
-          : `[${catInfo.label}] ${primaryMatch.label}${primaryMatch.isStaged ? ' [Staging]' : ''}`) + pinHint
-
-      const hasActiveInspection = !!(hoveredConcept || pinnedConcept)
-      const isInspected = isHovered || isPinned
-      const dimClass = hasActiveInspection && !isInspected ? ' opacity-40 hover:opacity-100 transition-opacity' : ''
-
-      elements.push(
-        <mark
-          key={`mark-${bStart}-${bEnd}`}
-          onMouseEnter={() => onHoverConcept?.(primaryMatch.concept)}
-          onMouseLeave={() => onHoverConcept?.(null)}
-          onClick={(e) => {
-            const sel = window.getSelection()
-            if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
-              return
-            }
-            e.stopPropagation()
-            const clicked = (pinnedMatch ? pinnedMatch.concept : primaryMatch?.concept) || null
-            if (clicked) {
-              onPinConcept?.(clicked)
-            }
-          }}
-          className={`rounded-none px-0.5 py-0 transition-colors cursor-pointer ${badgeClass} ${borderDelimiters}${dimClass}`}
-          title={tooltip}
-        >
-          {chunk}
-          {isEndOfOverlap && (
-            <span
-              className="inline-flex items-center text-[9px] font-mono font-bold px-1 py-0 rounded-none bg-[#9A6530]/15 text-[#6e461f] align-super select-none ml-0.5 border border-[#9A6530]/30 shadow-2xs"
-              title={tooltip}
-            >
-              {matching.length}
-            </span>
-          )}
-          {hasStaged && (
-            <span className="ml-0.5 text-[9px] uppercase font-mono bg-emerald-700 text-white px-1 py-0.2 rounded-none inline-block">
-              stg
-            </span>
-          )}
-        </mark>
-      )
+    if (matching.length === 0 || !primaryMatch || !catInfo) {
+      return <span key={`txt-${bStart}-${bEnd}`}>{chunk}</span>
     }
-  }
+
+    const hoveredMatch = hoveredConcept ? matching.find((s) => s.concept === hoveredConcept) : null
+    const pinnedMatch = pinnedConcept ? matching.find((s) => s.concept === pinnedConcept) : null
+    const isPinned = !!pinnedMatch
+    const isHovered = !!hoveredMatch
+    const isOverlap = matching.length > 1
+
+    // Repères verticaux
+    let borderDelimiters = ''
+    if (startingSpans.length > 0) {
+      const activeStart =
+        startingSpans.find((s) => s.concept === hoveredConcept || s.concept === pinnedConcept) ||
+        startingSpans[0]
+      const startCat = getConceptCategoryInfo(
+        activeStart.category,
+        activeStart.collection,
+        activeStart.label,
+        activeStart.concept
+      ).category
+      const isAct = activeStart.concept === hoveredConcept || activeStart.concept === pinnedConcept
+      borderDelimiters += ` ${
+        isAct
+          ? CATEGORY_ACTIVE_DELIMITER_LEFT[startCat] || CATEGORY_ACTIVE_DELIMITER_LEFT.general
+          : CATEGORY_DELIMITER_LEFT[startCat] || CATEGORY_DELIMITER_LEFT.general
+      }`
+    }
+    if (endingSpans.length > 0) {
+      const activeEnd =
+        endingSpans.find((s) => s.concept === hoveredConcept || s.concept === pinnedConcept) ||
+        endingSpans[0]
+      const endCat = getConceptCategoryInfo(
+        activeEnd.category,
+        activeEnd.collection,
+        activeEnd.label,
+        activeEnd.concept
+      ).category
+      const isAct = activeEnd.concept === hoveredConcept || activeEnd.concept === pinnedConcept
+      borderDelimiters += ` ${
+        isAct
+          ? CATEGORY_ACTIVE_DELIMITER_RIGHT[endCat] || CATEGORY_ACTIVE_DELIMITER_RIGHT.general
+          : CATEGORY_DELIMITER_RIGHT[endCat] || CATEGORY_DELIMITER_RIGHT.general
+      }`
+    }
+
+    // Détermination de la classe de surlignage
+    let badgeClass = ''
+    if (isHovered && hoveredMatch) {
+      const hCat = getConceptCategoryInfo(
+        hoveredMatch.category,
+        hoveredMatch.collection,
+        hoveredMatch.label,
+        hoveredMatch.concept
+      ).category
+      badgeClass =
+        (CATEGORY_HOVER_STYLES[hCat] || CATEGORY_HOVER_STYLES.general) +
+        (isOverlap ? ' border-double' : '')
+    } else if (isPinned && pinnedMatch) {
+      const pCat = getConceptCategoryInfo(
+        pinnedMatch.category,
+        pinnedMatch.collection,
+        pinnedMatch.label,
+        pinnedMatch.concept
+      ).category
+      badgeClass =
+        (CATEGORY_PINNED_STYLES[pCat] || CATEGORY_PINNED_STYLES.general) +
+        (isOverlap ? ' border-double' : '')
+    } else if (isOverlap) {
+      badgeClass = CATEGORY_OVERLAP_STYLES[catInfo.category] || CATEGORY_OVERLAP_STYLES.general
+    } else {
+      badgeClass = CATEGORY_STYLES[catInfo.category] || CATEGORY_STYLES.general
+    }
+
+    const pinHint = isPinned ? ' • Cliquer pour désépingler' : ' • Cliquer pour épingler'
+    const tooltip = `${baseTooltip}${pinHint}`
+
+    const hasActiveInspection = !!(hoveredConcept || pinnedConcept)
+    const isInspected = isHovered || isPinned
+    const dimClass = hasActiveInspection && !isInspected ? ' opacity-40 hover:opacity-100' : ''
+
+    return (
+      <mark
+        key={`mark-${bStart}-${bEnd}`}
+        onMouseEnter={() => onHoverConcept?.(primaryMatch.concept)}
+        onMouseLeave={() => onHoverConcept?.(null)}
+        onClick={(e) => {
+          const sel = window.getSelection()
+          if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
+            return
+          }
+          e.stopPropagation()
+          const clicked = (pinnedMatch ? pinnedMatch.concept : primaryMatch?.concept) || null
+          if (clicked) {
+            onPinConcept?.(clicked)
+          }
+        }}
+        className={`rounded-none px-0.5 py-0 cursor-pointer ${badgeClass} ${borderDelimiters}${dimClass}`}
+        title={tooltip}
+      >
+        {chunk}
+        {isEndOfOverlap && (
+          <span
+            className="inline-flex items-center text-[9px] font-mono font-bold px-1 py-0 rounded-none bg-[#9A6530]/15 text-[#6e461f] align-super select-none ml-0.5 border border-[#9A6530]/30 shadow-2xs"
+            title={tooltip}
+          >
+            {matching.length}
+          </span>
+        )}
+        {hasStaged && (
+          <span className="ml-0.5 text-[9px] uppercase font-mono bg-emerald-700 text-white px-1 py-0.2 rounded-none inline-block">
+            stg
+          </span>
+        )}
+      </mark>
+    )
+  })
 
   return (
     <div>
@@ -272,4 +342,4 @@ export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = ({
       <span>{elements}</span>
     </div>
   )
-}
+})

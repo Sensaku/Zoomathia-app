@@ -10,14 +10,18 @@ export function resolveParagraphSpans(
   p: ReadingParagraph,
   referenceMap: Record<string, any> = {},
   stagedList: StagedAnnotation[] = [],
-  filterConceptUri?: string | null
+  filterConceptUri?: string | string[] | null
 ): { specificSpans: ReadingSpan[]; globalThemes: ReadingSpan[] } {
   const specificSpans: ReadingSpan[] = []
   const globalThemes: ReadingSpan[] = []
 
+  const allowedSet = filterConceptUri
+    ? new Set(Array.isArray(filterConceptUri) ? filterConceptUri : [filterConceptUri])
+    : null
+
   // 1. Annotations de référence Corese
   for (const item of Object.values(referenceMap || {})) {
-    if (filterConceptUri && item.concept !== filterConceptUri) {
+    if (allowedSet && !allowedSet.has(item.concept)) {
       continue
     }
 
@@ -59,7 +63,7 @@ export function resolveParagraphSpans(
 
   // 2. Annotations de staging (locales / révision)
   for (const s of stagedList) {
-    if (filterConceptUri && s.concept_uri !== filterConceptUri) {
+    if (allowedSet && !allowedSet.has(s.concept_uri)) {
       continue
     }
 

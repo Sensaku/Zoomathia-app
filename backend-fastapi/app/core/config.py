@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_PREFIX: str = ""
     
-    # Endpoint SPARQL local ou externe, fourni par l'administrateur du déploiement.
-    SPARQL_ENDPOINT: str = "http://127.0.0.1:8080/sparql"
+    # Endpoint SPARQL distant I3S par défaut (surchargeable via la variable SPARQL_ENDPOINT)
+    SPARQL_ENDPOINT: str = "http://zoomathia.i3s.unice.fr/sparql"
     SPARQL_TIMEOUT: float = 30.0
     
     # Server & CORS

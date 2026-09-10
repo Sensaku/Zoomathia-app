@@ -28,7 +28,7 @@ Le backend est publié sur `3001` et le frontend sur `8080` par défaut, les deu
 
 Prérequis : Docker Engine et le plugin Docker Compose.
 
-Le Compose racine démarre uniquement le frontend et le backend. Un endpoint SPARQL/Corese doit être déjà accessible depuis le conteneur backend ; le dépôt ne contacte plus l'I3S par défaut et ne lance pas de conteneur Corese.
+Le Compose racine démarre uniquement le frontend et le backend. Par défaut, le backend interroge l'endpoint SPARQL distant de l'I3S (`http://zoomathia.i3s.unice.fr/sparql`). Il est possible de configurer un endpoint SPARQL/Corese local ou dédié via la variable `SPARQL_ENDPOINT`.
 
 ```bash
 docker compose up -d --build
@@ -52,22 +52,27 @@ docker compose down
 
 Le volume `backend-storage` conserve la base SQLite de staging.
 
-## Endpoint SPARQL externe
+## Configuration de l'endpoint SPARQL
 
-Le backend ne peut pas récupérer les données sans endpoint SPARQL accessible. Renseigner `SPARQL_ENDPOINT` dans le fichier `.env` à la racine avant le déploiement.
+Par défaut, l'application se connecte directement à l'endpoint distant : `http://zoomathia.i3s.unice.fr/sparql`.
 
-Si Corese tourne directement sur le même serveur Ubuntu, le Compose utilise l'adresse spéciale Docker suivante :
+Pour utiliser une instance Corese locale ou dédiée, renseigner `SPARQL_ENDPOINT` dans le fichier `.env` à la racine :
+
+Si Corese tourne sur le même hôte que Docker :
 
 ```dotenv
 SPARQL_ENDPOINT=http://host.docker.internal:8080/sparql
-# Le port 8080 étant utilisé par le frontend par défaut, choisir un autre port pour lui.
+# Le port 8080 étant utilisé par le frontend par défaut, choisir un autre port pour lui si Corese écoute sur 8080.
 FRONTEND_PORT=80
 SPARQL_TIMEOUT=30
 ```
 
-Si Corese est installé sur une autre machine, remplacer cette valeur par son adresse IP ou DNS, par exemple `http://192.168.1.20:8080/sparql`. Si aucun Corese n'est disponible, l'API et Swagger démarreront, mais les endpoints qui interrogent les données échoueront.
+Si Corese est installé sur une autre machine du réseau local :
+```dotenv
+SPARQL_ENDPOINT=http://192.168.1.20:8080/sparql
+```
 
-Un modèle est fourni dans [.env.example](C:/Users/Mazuki/Desktop/zoomathia/web-app/.env.example).
+Un modèle est fourni dans [.env.example](.env.example).
 
 ### Fichiers d'environnement
 

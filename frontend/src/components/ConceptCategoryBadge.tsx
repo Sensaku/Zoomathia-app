@@ -255,12 +255,12 @@ export const ConceptCategoryBadge: React.FC<ConceptCategoryBadgeProps> = ({
 
 // Palettes et classes CSS complètes pour le surlignage sémantique TheZoo (zéro saut de texte / zero layout shift)
 export const CATEGORY_STYLES: Record<string, string> = {
-  animal: 'bg-amber-100/75 border-b-2 border-amber-600 text-amber-950',
-  behavior: 'bg-indigo-100/75 border-b-2 border-indigo-600 text-indigo-950',
-  anatomy: 'bg-rose-100/75 border-b-2 border-rose-600 text-rose-950',
-  place: 'bg-teal-100/75 border-b-2 border-teal-600 text-teal-950',
-  person: 'bg-sky-100/75 border-b-2 border-sky-600 text-sky-950',
-  general: 'bg-stone-100/80 border-b-2 border-stone-500 text-stone-900',
+  animal: 'bg-amber-100/75 hover:bg-amber-200 border-b-2 border-amber-600 hover:border-amber-700 text-amber-950',
+  behavior: 'bg-indigo-100/75 hover:bg-indigo-200 border-b-2 border-indigo-600 hover:border-indigo-700 text-indigo-950',
+  anatomy: 'bg-rose-100/75 hover:bg-rose-200 border-b-2 border-rose-600 hover:border-rose-700 text-rose-950',
+  place: 'bg-teal-100/75 hover:bg-teal-200 border-b-2 border-teal-600 hover:border-teal-700 text-teal-950',
+  person: 'bg-sky-100/75 hover:bg-sky-200 border-b-2 border-sky-600 hover:border-sky-700 text-sky-950',
+  general: 'bg-stone-100/80 hover:bg-stone-200 border-b-2 border-stone-500 hover:border-stone-600 text-stone-900',
 }
 
 export const CATEGORY_HOVER_STYLES: Record<string, string> = {
@@ -282,12 +282,12 @@ export const CATEGORY_PINNED_STYLES: Record<string, string> = {
 }
 
 export const CATEGORY_OVERLAP_STYLES: Record<string, string> = {
-  animal: 'bg-amber-100/90 border-b-2 border-double border-amber-700 text-amber-950',
-  behavior: 'bg-indigo-100/90 border-b-2 border-double border-indigo-700 text-indigo-950',
-  anatomy: 'bg-rose-100/90 border-b-2 border-double border-rose-700 text-rose-950',
-  place: 'bg-teal-100/90 border-b-2 border-double border-teal-700 text-teal-950',
-  person: 'bg-sky-100/90 border-b-2 border-double border-sky-700 text-sky-950',
-  general: 'bg-stone-100/90 border-b-2 border-double border-stone-600 text-stone-900',
+  animal: 'bg-amber-100/90 hover:bg-amber-200 border-b-2 border-double border-amber-700 text-amber-950',
+  behavior: 'bg-indigo-100/90 hover:bg-indigo-200 border-b-2 border-double border-indigo-700 text-indigo-950',
+  anatomy: 'bg-rose-100/90 hover:bg-rose-200 border-b-2 border-double border-rose-700 text-rose-950',
+  place: 'bg-teal-100/90 hover:bg-teal-200 border-b-2 border-double border-teal-700 text-teal-950',
+  person: 'bg-sky-100/90 hover:bg-sky-200 border-b-2 border-double border-sky-700 text-sky-950',
+  general: 'bg-stone-100/90 hover:bg-stone-200 border-b-2 border-double border-stone-600 text-stone-900',
 }
 
 export const CATEGORY_DELIMITER_LEFT: Record<string, string> = {

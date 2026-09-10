@@ -15,15 +15,15 @@ Swagger permet de consulter les modèles, les paramètres et d'exécuter directe
 
 ## Lancement avec Docker Compose
 
-Le fichier `docker-compose.yml` situé à la racine démarre uniquement le frontend et FastAPI. Corese n'est pas inclus : le backend doit pouvoir joindre un endpoint SPARQL déjà installé sur le serveur ou sur une autre machine.
+Le fichier `docker-compose.yml` situé à la racine démarre uniquement le frontend et FastAPI. Par défaut, l'application interroge l'endpoint SPARQL distant `http://zoomathia.i3s.unice.fr/sparql`.
 
-Avant le premier démarrage, créer le fichier de configuration racine :
+Pour utiliser une instance locale de Corese, créer le fichier de configuration racine :
 
 ```bash
 cp .env.example .env
 ```
 
-Si Corese tourne directement sur le même serveur Ubuntu, conserver ou définir :
+Si Corese tourne directement sur le même serveur en local :
 
 ```dotenv
 SPARQL_ENDPOINT=http://host.docker.internal:8080/sparql
@@ -31,8 +31,6 @@ FRONTEND_PORT=80
 ```
 
 Le changement de `FRONTEND_PORT` est nécessaire si Corese écoute lui aussi sur `8080` sur le même hôte.
-
-Si Corese est distant, remplacer cette valeur par son adresse IP ou DNS. Le dépôt ne contacte plus l'I3S par défaut.
 
 Démarrer les services :
 
@@ -84,7 +82,7 @@ Variables principales :
 | --- | --- | --- |
 | `HOST` | `0.0.0.0` | Adresse d'écoute de l'application |
 | `PORT` | `3001` | Port du backend |
-| `SPARQL_ENDPOINT` | `http://127.0.0.1:8080/sparql` | Endpoint SPARQL utilisé par l'API |
+| `SPARQL_ENDPOINT` | `http://zoomathia.i3s.unice.fr/sparql` | Endpoint SPARQL utilisé par l'API |
 | `SPARQL_TIMEOUT` | `30` | Timeout SPARQL en secondes |
 | `STAGING_DB_PATH` | `data/staging.db` | Base SQLite des annotations et propositions |
 | `XML_DATA_DIR` | `data/files` | Corpus XML téléchargeable |
@@ -101,7 +99,7 @@ SPARQL_ENDPOINT=http://127.0.0.1:8080/sparql
 ## Tests
 
 ```bash
-uv run pytest tests --ignore=tests/test_perf.py
+uv run pytest
 ```
 
 `test_perf.py` est un benchmark qui contacte directement un endpoint Corese ; il doit être lancé séparément lorsque Corese est disponible.

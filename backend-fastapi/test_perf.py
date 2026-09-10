@@ -3,7 +3,7 @@ import os
 import time
 
 client = httpx.Client(timeout=45)
-sparql_endpoint = os.getenv("SPARQL_ENDPOINT", "http://127.0.0.1:8080/sparql")
+sparql_endpoint = os.getenv("SPARQL_ENDPOINT", "http://zoomathia.i3s.unice.fr/sparql")
 
 print("Testing Corese SPARQL performance...")
 

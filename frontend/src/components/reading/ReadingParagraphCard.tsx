@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StagedAnnotation } from '../../types'
 import { ReadingParagraph, ConceptInspectionState } from './readingTypes'
 import { AnnotatedAncientText } from './AnnotatedAncientText'
@@ -86,13 +86,26 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
         ? (CATEGORY_PARA_PINNED[pinnedConceptCategory] || CATEGORY_PARA_PINNED.general)
         : 'border-[#ede4d4] border-l-[#ede4d4] bg-[#fcfaf7]/70 hover:bg-white hover:border-[#cfc3af] hover:border-l-[#cfc3af] hover:shadow-2xs'
 
+  // Détermination des concepts à afficher pour ce paragraphe non actif (concept épinglé et/ou survolé)
+  const activeFilters = useMemo(() => {
+    if (isCurrentPara) return null
+    const list: string[] = []
+    if (hasHoveredConcept && hoveredConcept) {
+      list.push(hoveredConcept)
+    }
+    if (hasPinnedConcept && pinnedConcept && !list.includes(pinnedConcept)) {
+      list.push(pinnedConcept)
+    }
+    return list.length > 0 ? list : null
+  }, [isCurrentPara, hasHoveredConcept, hoveredConcept, hasPinnedConcept, pinnedConcept])
+
   return (
     <article
       id={p.uri}
       data-para-uri={p.uri}
       tabIndex={isCurrentPara ? 0 : -1}
       onClick={onClick}
-      className={`p-4 sm:p-5 rounded-none border border-l-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9A6530] ${paraBorderClass}`}
+      className={`p-4 sm:p-5 rounded-none border border-l-4 transition-colors duration-75 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9A6530] ${paraBorderClass}`}
     >
       {/* En-tête du paragraphe */}
       <div className="flex items-start justify-between mb-2.5 select-none gap-2 min-h-[26px]">
@@ -138,6 +151,7 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
           )}
         </div>
 
+        {/* Tag Paragraphe Actif ou Bouton d'Annotation */}
         <div className="flex items-center space-x-2 shrink-0">
           {isCurrentPara && selectedSnippet && onAnnotateSnippet && (
             <button
@@ -146,13 +160,11 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
                 e.stopPropagation()
                 onAnnotateSnippet()
               }}
-              className="inline-flex items-center space-x-1 text-[11px] font-semibold bg-[#9A6530] text-white px-2.5 py-1 rounded-none shadow hover:bg-[#855424] transition-all animate-pulse"
-              title="Cliquer pour annoter ce mot ou passage"
+              className="inline-flex items-center justify-center text-center leading-none space-x-1 text-xs bg-[#9A6530] hover:bg-[#855424] text-white font-medium px-2.5 py-1 rounded-none shadow-xs transition-colors cursor-pointer"
+              title="Annoter le passage sélectionné"
             >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>
-                {annotateButtonText} « {selectedSnippet.slice(0, 15)}{selectedSnippet.length > 15 ? '...' : ''} »
-              </span>
+              <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{annotateButtonText}</span>
             </button>
           )}
 
@@ -177,15 +189,30 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
         }`}
         onMouseUp={() => onTextSelection?.(p)}
       >
-        <AnnotatedAncientText
-          p={p}
-          referenceMap={referenceMap}
-          stagedList={stagedList}
-          hoveredConcept={hoveredConcept}
-          pinnedConcept={pinnedConcept}
-          onHoverConcept={setHoveredConcept}
-          onPinConcept={(c) => setPinnedConcept((prev) => (prev === c ? null : c))}
-        />
+        {isCurrentPara ? (
+          <AnnotatedAncientText
+            p={p}
+            referenceMap={referenceMap}
+            stagedList={stagedList}
+            hoveredConcept={hoveredConcept}
+            pinnedConcept={pinnedConcept}
+            onHoverConcept={setHoveredConcept}
+            onPinConcept={(c) => setPinnedConcept((prev) => (prev === c ? null : c))}
+          />
+        ) : activeFilters ? (
+          <AnnotatedAncientText
+            p={p}
+            referenceMap={referenceMap}
+            stagedList={stagedList}
+            filterConceptUri={activeFilters}
+            hoveredConcept={hoveredConcept}
+            pinnedConcept={pinnedConcept}
+            onHoverConcept={setHoveredConcept}
+            onPinConcept={(c) => setPinnedConcept((prev) => (prev === c ? null : c))}
+          />
+        ) : (
+          <span>{p.text}</span>
+        )}
       </div>
 
       {/* Traduction alignée synoptique */}
