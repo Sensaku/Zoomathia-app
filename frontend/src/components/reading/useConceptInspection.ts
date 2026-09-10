@@ -114,9 +114,14 @@ export function useConceptInspection({
         setActiveParagraphUri(paraUri)
       }
       setTimeout(() => {
-        const el = document.getElementById(paraUri)
+        const el =
+          document.getElementById(paraUri) ||
+          document.querySelector(`[data-para-uri="${CSS.escape(paraUri)}"]`)
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          if (el instanceof HTMLElement) {
+            el.focus({ preventScroll: true })
+          }
         }
       }, 40)
     },

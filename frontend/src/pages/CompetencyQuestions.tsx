@@ -174,9 +174,9 @@ export const CompetencyQuestions: React.FC = () => {
     for (const row of matchedRows) {
       for (let i = 0; i < row.length; i++) {
         if (i === paraColIdx) {
-          if (row[i]) paragraphs.add(row[i])
+          if (row[i]) paragraphs.add(row[i].trim())
         } else if (row[i] && row[i].toLowerCase() !== selectedEntity.toLowerCase()) {
-          relatedEntities.add(row[i])
+          relatedEntities.add(row[i].trim())
         }
       }
     }
@@ -699,7 +699,7 @@ export const CompetencyQuestions: React.FC = () => {
                           
                           <div className="pt-1 flex justify-end">
                             <Link
-                              to={`/explore-work?uri=${encodeURIComponent(paraUri)}`}
+                              to={`/explore-work?uri=${encodeURIComponent(paraUri.trim())}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-xs font-semibold text-[#9A6530] hover:text-[#855424] hover:underline"
@@ -820,7 +820,7 @@ export const CompetencyQuestions: React.FC = () => {
                           >
                             {citation && citation.isZoomathiaUri ? (
                               <Link
-                                to={`/explore-work?uri=${encodeURIComponent(cell)}`}
+                                to={`/explore-work?uri=${encodeURIComponent(cell.trim())}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="group inline-flex flex-col gap-0.5 hover:underline"
@@ -835,7 +835,7 @@ export const CompetencyQuestions: React.FC = () => {
                               </Link>
                             ) : isParagraph ? (
                               <Link
-                                to={`/explore-work?uri=${encodeURIComponent(cell)}`}
+                                to={`/explore-work?uri=${encodeURIComponent(cell.trim())}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[#3b6ea5] hover:underline inline-flex items-center gap-1 font-sans text-xs"

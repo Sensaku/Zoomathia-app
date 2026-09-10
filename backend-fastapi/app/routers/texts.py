@@ -1,7 +1,11 @@
+import re
+import logging
 from fastapi import APIRouter, Query
 from typing import List, Dict, Any
 from app.services.sparql_client import sparql_client
 from app.services.tree_builder import build_summary_tree
+
+logger = logging.getLogger("zoomathia.texts")
 
 router = APIRouter(tags=["Texts & Hierarchy"])
 
@@ -134,52 +138,84 @@ async def get_paragraph_alone(uri: str = Query(..., description="URI de référe
 @router.get("/resolveUri")
 async def resolve_uri(uri: str = Query(..., description="URI à résoudre (oeuvre, section ou paragraphe)")) -> Dict[str, Any]:
     safe_uri = uri.replace('>', '').replace('<', '').strip()
-    sparql = f"""
-    prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
-    SELECT ?type ?work ?section WHERE {{
-      {{
-        <{safe_uri}> a zoo:Oeuvre .
-        BIND(<{safe_uri}> AS ?work)
-        BIND("work" AS ?type)
-      }} UNION {{
-        <{safe_uri}> zoo:isPartOf ?section .
-        ?section zoo:isPartOf* ?work .
-        ?work a zoo:Oeuvre .
-        FILTER EXISTS {{ <{safe_uri}> zoo:text ?txt }}
-        BIND("paragraph" AS ?type)
-      }} UNION {{
-        <{safe_uri}> a zoo:Paragraph .
-        <{safe_uri}> zoo:isPartOf ?section .
-        ?section zoo:isPartOf* ?work .
-        ?work a zoo:Oeuvre .
-        BIND("paragraph" AS ?type)
-      }} UNION {{
-        <{safe_uri}> zoo:isPartOf+ ?work .
-        ?work a zoo:Oeuvre .
-        BIND(<{safe_uri}> AS ?section)
-        BIND("section" AS ?type)
-      }}
-    }} LIMIT 1
-    """
-    res = await sparql_client.query(sparql)
-    bindings = res.get("results", {}).get("bindings", [])
-    if not bindings:
+    bindings = []
+
+    try:
+        sparql = f"""
+        prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
+        SELECT ?type ?work ?section WHERE {{
+          {{
+            <{safe_uri}> a zoo:Oeuvre .
+            BIND(<{safe_uri}> AS ?work)
+            BIND("work" AS ?type)
+          }} UNION {{
+            <{safe_uri}> (^zoo:hasPart|zoo:isPartOf) ?section .
+            ?section (^zoo:hasPart*|zoo:isPartOf*) ?work .
+            ?work a zoo:Oeuvre .
+            FILTER EXISTS {{ <{safe_uri}> zoo:text ?txt }}
+            BIND("paragraph" AS ?type)
+          }} UNION {{
+            <{safe_uri}> a zoo:Paragraph .
+            <{safe_uri}> (^zoo:hasPart|zoo:isPartOf) ?section .
+            ?section (^zoo:hasPart*|zoo:isPartOf*) ?work .
+            ?work a zoo:Oeuvre .
+            BIND("paragraph" AS ?type)
+          }} UNION {{
+            <{safe_uri}> (^zoo:hasPart+|zoo:isPartOf+) ?work .
+            ?work a zoo:Oeuvre .
+            BIND(<{safe_uri}> AS ?section)
+            BIND("section" AS ?type)
+          }}
+        }} LIMIT 1
+        """
+        res = await sparql_client.query(sparql)
+        bindings = res.get("results", {}).get("bindings", [])
+    except Exception as e:
+        logger.warning(f"Impossible d'exécuter la requête SPARQL de résolution pour {safe_uri}: {e}")
+
+    if bindings:
+        b = bindings[0]
+        uri_type = b.get("type", {}).get("value", "unknown")
+        work_uri = b.get("work", {}).get("value")
+        section_uri = b.get("section", {}).get("value")
+        paragraph_uri = safe_uri if uri_type == "paragraph" else None
+
         return {
-            "type": "unknown",
-            "work": None,
-            "section": None,
-            "paragraph": safe_uri
+            "type": uri_type,
+            "work": work_uri,
+            "section": section_uri,
+            "paragraph": paragraph_uri
         }
 
-    b = bindings[0]
-    uri_type = b.get("type", {}).get("value", "unknown")
-    work_uri = b.get("work", {}).get("value")
-    section_uri = b.get("section", {}).get("value")
-    paragraph_uri = safe_uri if uri_type == "paragraph" else None
+    # Repli heuristique déterministe basé sur l'anatomie canonique des URIs Zoomathia
+    # Ex: http://ns.inria.fr/zoomathia/Pliny/historia_naturalis/10/172
+    # Ex: http://ns.inria.fr/zoomathia/Aelian/de_natura_animalium/4/24/text/1
+    m = re.match(r"^https?://ns\.inria\.fr/zoomathia/([^/]+)/([^/]+)(?:/(.*))?$", safe_uri)
+    if m:
+        author = m.group(1)
+        work_name = m.group(2)
+        work_uri = f"http://ns.inria.fr/zoomathia/{author}/{work_name}"
+        sub = m.group(3)
+
+        if not sub:
+            return {"type": "work", "work": work_uri, "section": None, "paragraph": None}
+
+        segments = [s for s in sub.split('/') if s]
+        if "text" in segments:
+            text_idx = segments.index("text")
+            sec_parts = segments[:text_idx]
+            section_uri = f"{work_uri}/{'/'.join(sec_parts)}" if sec_parts else None
+            return {"type": "paragraph", "work": work_uri, "section": section_uri, "paragraph": safe_uri}
+        elif len(segments) >= 2:
+            section_uri = f"{work_uri}/{'/'.join(segments[:-1])}"
+            return {"type": "paragraph", "work": work_uri, "section": section_uri, "paragraph": safe_uri}
+        elif len(segments) == 1:
+            return {"type": "section", "work": work_uri, "section": safe_uri, "paragraph": None}
 
     return {
-        "type": uri_type,
-        "work": work_uri,
-        "section": section_uri,
-        "paragraph": paragraph_uri
+        "type": "unknown",
+        "work": None,
+        "section": None,
+        "paragraph": safe_uri
     }
+

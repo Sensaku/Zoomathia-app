@@ -79,7 +79,7 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
       ? isHoveredSpanPara
         ? `${CATEGORY_PARA_HOVER[activeInspectionCategory] || CATEGORY_PARA_HOVER.general} ring-2 ring-offset-1`
         : `${CATEGORY_PARA_PINNED[activeInspectionCategory] || CATEGORY_PARA_PINNED.general} ring-2 ring-offset-1`
-      : 'border-[#9A6530] border-l-4 bg-[#fffdfb] shadow-md ring-1 ring-[#9A6530]/20'
+      : 'border-[#9A6530] border-l-4 bg-[#fffdfb] shadow-md ring-2 ring-[#9A6530]/40 ring-offset-1'
     : isPinnedSpanPara
       ? (CATEGORY_PARA_PINNED[activeInspectionCategory] || CATEGORY_PARA_PINNED.general)
       : isHoveredSpanPara
@@ -90,8 +90,9 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
     <article
       id={p.uri}
       data-para-uri={p.uri}
+      tabIndex={isCurrentPara ? 0 : -1}
       onClick={onClick}
-      className={`p-4 sm:p-5 rounded-none border transition-all cursor-pointer ${paraBorderClass}`}
+      className={`p-4 sm:p-5 rounded-none border transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9A6530] ${paraBorderClass}`}
     >
       {/* En-tête du paragraphe */}
       <div className="flex items-start justify-between mb-2.5 select-none gap-2">

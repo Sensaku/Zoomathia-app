@@ -71,10 +71,38 @@ import {
   useConceptInspection
 } from '../components/reading'
 
+/**
+ * Recherche récursive du nœud de section le plus précis dans l'arborescence du sommaire
+ * dont l'URI correspond comme préfixe à celle du paragraphe.
+ */
+function findSectionForParagraph(nodes: SummaryNode[], paraUri: string): string | null {
+  if (!paraUri || !nodes || nodes.length === 0) return null
+  let bestMatch: string | null = null
+  let maxLen = 0
+
+  const traverse = (node: SummaryNode) => {
+    if (paraUri.startsWith(node.uri) && node.uri.length > maxLen) {
+      bestMatch = node.uri
+      maxLen = node.uri.length
+    }
+    if (node.children && node.children.length > 0) {
+      for (const child of node.children) {
+        traverse(child)
+      }
+    }
+  }
+
+  for (const n of nodes) {
+    traverse(n)
+  }
+
+  return bestMatch
+}
+
 export const ExploreWork: React.FC = () => {
   const { t, language } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialUri = searchParams.get('uri') || ''
+  const initialUri = searchParams.get('uri')?.trim() || ''
 
   const [selectedAuthor, setSelectedAuthor] = useState<string>('')
   const [selectedWorkUri, setSelectedWorkUri] = useState<string>('')
@@ -133,14 +161,21 @@ export const ExploreWork: React.FC = () => {
       }
       if (resolvedTarget.paragraph) {
         setActiveParagraphUri(resolvedTarget.paragraph)
+      } else if (resolvedTarget.type !== 'work' && resolvedTarget.type !== 'section') {
+        setActiveParagraphUri(initialUri)
       }
     } else {
-      // Pré-résolution optimiste immédiate si l'URI est directement une œuvre connue
-      const directWork = allWorks.find((w) => w.uri === initialUri)
-      if (directWork) {
-        setSelectedWorkUri(directWork.uri)
-        if (directWork.author) {
-          setSelectedAuthor(directWork.author)
+      // Pré-résolution optimiste immédiate si l'URI commence par une œuvre connue
+      const matchedWork = allWorks.find(
+        (w) => initialUri === w.uri || initialUri.startsWith(w.uri + '/')
+      )
+      if (matchedWork) {
+        setSelectedWorkUri(matchedWork.uri)
+        if (matchedWork.author) {
+          setSelectedAuthor(matchedWork.author)
+        }
+        if (initialUri !== matchedWork.uri) {
+          setActiveParagraphUri(initialUri)
         }
       }
     }
@@ -177,20 +212,15 @@ export const ExploreWork: React.FC = () => {
     enabled: !!selectedWorkUri,
   })
 
-  // Déplier automatiquement le livre parent dans la table des matières si une section est active
+  // Déduire automatiquement la section depuis le sommaire si seul le paragraphe est ciblé
   useEffect(() => {
-    if (activeSectionUri && summary.length > 0) {
-      for (const book of summary) {
-        if (book.children?.some((c) => c.uri === activeSectionUri)) {
-          setCollapsedNodes((prev) => {
-            if (prev[book.uri] === false) return prev
-            return { ...prev, [book.uri]: false }
-          })
-          break
-        }
+    if (!activeSectionUri && activeParagraphUri && summary.length > 0) {
+      const bestSection = findSectionForParagraph(summary, activeParagraphUri)
+      if (bestSection) {
+        setActiveSectionUri(bestSection)
       }
     }
-  }, [activeSectionUri, summary])
+  }, [activeSectionUri, activeParagraphUri, summary])
 
   // 4. Traduction anglaise candidate
   const { data: translationInfo } = useQuery({
@@ -199,13 +229,64 @@ export const ExploreWork: React.FC = () => {
     enabled: !!selectedWorkUri,
   })
 
-  // 5. Paragraphes de la section sélectionnée (ou première feuille)
-  const targetSectionUri = activeSectionUri || (summary[0]?.children?.[0]?.uri || summary[0]?.uri || '')
+  // 5. Paragraphes de la section sélectionnée (ou section déduite du paragraphe, ou première feuille)
+  const inferredSectionUri = useMemo(() => {
+    return (
+      activeSectionUri ||
+      findSectionForParagraph(summary, activeParagraphUri) ||
+      summary[0]?.children?.[0]?.uri ||
+      summary[0]?.uri ||
+      ''
+    )
+  }, [activeSectionUri, summary, activeParagraphUri])
+  const targetSectionUri = inferredSectionUri
+
+  // Déplier automatiquement le livre parent dans la table des matières si une section est active
+  useEffect(() => {
+    if (targetSectionUri && summary.length > 0) {
+      for (const book of summary) {
+        if (book.children?.some((c) => c.uri === targetSectionUri) || book.uri === targetSectionUri) {
+          setCollapsedNodes((prev) => {
+            if (prev[book.uri] === false) return prev
+            return { ...prev, [book.uri]: false }
+          })
+          break
+        }
+      }
+    }
+  }, [targetSectionUri, summary])
+
   const { data: paragraphs = [], isLoading: isParagraphsLoading } = useQuery({
     queryKey: ['paragraphs', targetSectionUri],
     queryFn: () => fetchParagraphs(targetSectionUri),
     enabled: !!targetSectionUri,
   })
+
+  // Défilement automatique et focus sur le paragraphe cible (depuis URL ou redirection externe)
+  useEffect(() => {
+    if (!activeParagraphUri || hasAutoScrolled || isParagraphsLoading || paragraphs.length === 0) {
+      return
+    }
+
+    const paraExists = paragraphs.some((p) => p.uri === activeParagraphUri)
+    if (!paraExists) return
+
+    const timer = setTimeout(() => {
+      const el =
+        document.getElementById(activeParagraphUri) ||
+        document.querySelector(`[data-para-uri="${CSS.escape(activeParagraphUri)}"]`)
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        if (el instanceof HTMLElement) {
+          el.focus({ preventScroll: true })
+        }
+        setHasAutoScrolled(true)
+      }
+    }, 120)
+
+    return () => clearTimeout(timer)
+  }, [activeParagraphUri, paragraphs, isParagraphsLoading, hasAutoScrolled])
 
   // 6. Traduction des paragraphes si disponible
   const { data: translationParagraphs = [] } = useQuery({
