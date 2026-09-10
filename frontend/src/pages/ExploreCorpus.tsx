@@ -959,13 +959,13 @@ export const ExploreCorpus: React.FC = () => {
                                                   setActiveSectionUri(sec.uri)
                                                   handleFocusParagraph(p.uri)
                                                 }}
-                                                className={`px-2 py-1 rounded-none text-xs font-mono font-bold transition-all cursor-pointer border ${
+                                                className={`px-2 py-1 rounded-none text-xs font-mono font-bold transition-colors cursor-pointer border ${
                                                   isParaActive
                                                     ? 'bg-[#9A6530] text-white border-[#855424] shadow-xs ring-1 ring-[#9A6530]/40'
                                                     : isHoveredP
-                                                      ? `${CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general} shadow-2xs`
+                                                      ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
                                                       : isPinnedP
-                                                        ? `${CATEGORY_TOC_PINNED[activeInspectionCategory] || CATEGORY_TOC_PINNED.general} shadow-2xs`
+                                                        ? (CATEGORY_TOC_PINNED[activeInspectionCategory] || CATEGORY_TOC_PINNED.general)
                                                         : 'bg-white text-[#543b22] border-[#ded5c6] hover:bg-[#f4ede2] hover:border-[#9A6530]/50'
                                                 }`}
                                                 title={`Passage § ${p.id}`}
@@ -1130,7 +1130,7 @@ export const ExploreCorpus: React.FC = () => {
                           onMouseEnter={() => setHoveredConcept(item.concept)}
                           onMouseLeave={() => setHoveredConcept(null)}
                           onClick={() => setPinnedConcept((prev) => (prev === item.concept ? null : item.concept))}
-                          className={`p-3 sm:p-3.5 rounded-none border transition-all text-sm space-y-2 cursor-pointer ${
+                          className={`p-3 sm:p-3.5 rounded-none border transition-colors text-sm space-y-2 cursor-pointer ${
                             isPinned
                               ? 'border-[#9A6530] bg-[#fdf7ee] ring-2 ring-amber-500 shadow-sm'
                               : isHovered

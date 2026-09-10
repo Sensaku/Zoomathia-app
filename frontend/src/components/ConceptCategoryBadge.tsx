@@ -327,21 +327,21 @@ export const CATEGORY_ACTIVE_DELIMITER_RIGHT: Record<string, string> = {
 }
 
 export const CATEGORY_PARA_PINNED: Record<string, string> = {
-  animal: 'border-amber-600 border-l-4 bg-amber-50/90 shadow-md ring-2 ring-amber-500',
-  behavior: 'border-indigo-600 border-l-4 bg-indigo-50/90 shadow-md ring-2 ring-indigo-500',
-  anatomy: 'border-rose-600 border-l-4 bg-rose-50/90 shadow-md ring-2 ring-rose-500',
-  place: 'border-teal-600 border-l-4 bg-teal-50/90 shadow-md ring-2 ring-teal-500',
-  person: 'border-sky-600 border-l-4 bg-sky-50/90 shadow-md ring-2 ring-sky-500',
-  general: 'border-stone-600 border-l-4 bg-stone-50/90 shadow-md ring-2 ring-stone-500',
+  animal: 'border-amber-600 border-l-amber-600 bg-amber-50/90 shadow-md ring-2 ring-amber-500',
+  behavior: 'border-indigo-600 border-l-indigo-600 bg-indigo-50/90 shadow-md ring-2 ring-indigo-500',
+  anatomy: 'border-rose-600 border-l-rose-600 bg-rose-50/90 shadow-md ring-2 ring-rose-500',
+  place: 'border-teal-600 border-l-teal-600 bg-teal-50/90 shadow-md ring-2 ring-teal-500',
+  person: 'border-sky-600 border-l-sky-600 bg-sky-50/90 shadow-md ring-2 ring-sky-500',
+  general: 'border-stone-600 border-l-stone-600 bg-stone-50/90 shadow-md ring-2 ring-stone-500',
 }
 
 export const CATEGORY_PARA_HOVER: Record<string, string> = {
-  animal: 'border-amber-500 border-l-4 bg-amber-50/80 shadow-sm ring-2 ring-amber-400',
-  behavior: 'border-indigo-500 border-l-4 bg-indigo-50/80 shadow-sm ring-2 ring-indigo-400',
-  anatomy: 'border-rose-500 border-l-4 bg-rose-50/80 shadow-sm ring-2 ring-rose-400',
-  place: 'border-teal-500 border-l-4 bg-teal-50/80 shadow-sm ring-2 ring-teal-400',
-  person: 'border-sky-500 border-l-4 bg-sky-50/80 shadow-sm ring-2 ring-sky-400',
-  general: 'border-stone-500 border-l-4 bg-stone-50/80 shadow-sm ring-2 ring-stone-400',
+  animal: 'border-amber-500 border-l-amber-500 bg-amber-50/80 shadow-sm ring-2 ring-amber-400',
+  behavior: 'border-indigo-500 border-l-indigo-500 bg-indigo-50/80 shadow-sm ring-2 ring-indigo-400',
+  anatomy: 'border-rose-500 border-l-rose-500 bg-rose-50/80 shadow-sm ring-2 ring-rose-400',
+  place: 'border-teal-500 border-l-teal-500 bg-teal-50/80 shadow-sm ring-2 ring-teal-400',
+  person: 'border-sky-500 border-l-sky-500 bg-sky-50/80 shadow-sm ring-2 ring-sky-400',
+  general: 'border-stone-500 border-l-stone-500 bg-stone-50/80 shadow-sm ring-2 ring-stone-400',
 }
 
 export const CATEGORY_TAG_PINNED: Record<string, string> = {
@@ -363,38 +363,38 @@ export const CATEGORY_TAG_HOVER: Record<string, string> = {
 }
 
 export const CATEGORY_BADGE_PINNED: Record<string, string> = {
-  animal: 'bg-amber-600 text-white border-amber-700',
-  behavior: 'bg-indigo-600 text-white border-indigo-700',
-  anatomy: 'bg-rose-600 text-white border-rose-700',
-  place: 'bg-teal-600 text-white border-teal-700',
-  person: 'bg-sky-600 text-white border-sky-700',
-  general: 'bg-stone-600 text-white border-stone-700',
+  animal: 'bg-amber-600 text-white border border-amber-700',
+  behavior: 'bg-indigo-600 text-white border border-indigo-700',
+  anatomy: 'bg-rose-600 text-white border border-rose-700',
+  place: 'bg-teal-600 text-white border border-teal-700',
+  person: 'bg-sky-600 text-white border border-sky-700',
+  general: 'bg-stone-600 text-white border border-stone-700',
 }
 
 export const CATEGORY_BADGE_HOVER: Record<string, string> = {
-  animal: 'bg-amber-500 text-white border-amber-600',
-  behavior: 'bg-indigo-500 text-white border-indigo-600',
-  anatomy: 'bg-rose-500 text-white border-rose-600',
-  place: 'bg-teal-500 text-white border-teal-600',
-  person: 'bg-sky-500 text-white border-sky-600',
-  general: 'bg-stone-500 text-white border-stone-600',
+  animal: 'bg-amber-500 text-white border border-amber-600',
+  behavior: 'bg-indigo-500 text-white border border-indigo-600',
+  anatomy: 'bg-rose-500 text-white border border-rose-600',
+  place: 'bg-teal-500 text-white border border-teal-600',
+  person: 'bg-sky-500 text-white border border-sky-600',
+  general: 'bg-stone-500 text-white border border-stone-600',
 }
 
 export const CATEGORY_TOC_PINNED: Record<string, string> = {
-  animal: 'bg-amber-300 text-amber-950 border-amber-500 shadow-xs ring-1 ring-amber-500 font-bold',
-  behavior: 'bg-indigo-300 text-indigo-950 border-indigo-500 shadow-xs ring-1 ring-indigo-500 font-bold',
-  anatomy: 'bg-rose-300 text-rose-950 border-rose-500 shadow-xs ring-1 ring-rose-500 font-bold',
-  place: 'bg-teal-300 text-teal-950 border-teal-500 shadow-xs ring-1 ring-teal-500 font-bold',
-  person: 'bg-sky-300 text-sky-950 border-sky-500 shadow-xs ring-1 ring-sky-500 font-bold',
-  general: 'bg-stone-300 text-stone-950 border-stone-500 shadow-xs ring-1 ring-stone-500 font-bold',
+  animal: 'bg-amber-300 text-amber-950 border border-amber-500 shadow-xs ring-1 ring-amber-500',
+  behavior: 'bg-indigo-300 text-indigo-950 border border-indigo-500 shadow-xs ring-1 ring-indigo-500',
+  anatomy: 'bg-rose-300 text-rose-950 border border-rose-500 shadow-xs ring-1 ring-rose-500',
+  place: 'bg-teal-300 text-teal-950 border border-teal-500 shadow-xs ring-1 ring-teal-500',
+  person: 'bg-sky-300 text-sky-950 border border-sky-500 shadow-xs ring-1 ring-sky-500',
+  general: 'bg-stone-300 text-stone-950 border border-stone-500 shadow-xs ring-1 ring-stone-500',
 }
 
 export const CATEGORY_TOC_HOVER: Record<string, string> = {
-  animal: 'bg-amber-200 text-amber-950 border-amber-400 shadow-2xs font-bold',
-  behavior: 'bg-indigo-200 text-indigo-950 border-indigo-400 shadow-2xs font-bold',
-  anatomy: 'bg-rose-200 text-rose-950 border-rose-400 shadow-2xs font-bold',
-  place: 'bg-teal-200 text-teal-950 border-teal-400 shadow-2xs font-bold',
-  person: 'bg-sky-200 text-sky-950 border-sky-400 shadow-2xs font-bold',
-  general: 'bg-stone-200 text-stone-950 border-stone-400 shadow-2xs font-bold',
+  animal: 'bg-amber-200 text-amber-950 border border-amber-400 shadow-2xs',
+  behavior: 'bg-indigo-200 text-indigo-950 border border-indigo-400 shadow-2xs',
+  anatomy: 'bg-rose-200 text-rose-950 border border-rose-400 shadow-2xs',
+  place: 'bg-teal-200 text-teal-950 border border-teal-400 shadow-2xs',
+  person: 'bg-sky-200 text-sky-950 border border-sky-400 shadow-2xs',
+  general: 'bg-stone-200 text-stone-950 border border-stone-400 shadow-2xs',
 }
 

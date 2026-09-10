@@ -7,10 +7,9 @@ import {
   CATEGORY_PARA_HOVER,
   CATEGORY_BADGE_PINNED,
   CATEGORY_BADGE_HOVER,
-  CATEGORY_TAG_PINNED,
-  CATEGORY_TAG_HOVER
+  CATEGORY_TAG_PINNED
 } from '../ConceptCategoryBadge'
-import { Sparkles, PlusCircle, Layers } from 'lucide-react'
+import { Sparkles, PlusCircle } from 'lucide-react'
 
 export interface ReadingParagraphCardProps {
   p: ReadingParagraph
@@ -79,12 +78,12 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
       ? isHoveredSpanPara
         ? `${CATEGORY_PARA_HOVER[activeInspectionCategory] || CATEGORY_PARA_HOVER.general} ring-2 ring-offset-1`
         : `${CATEGORY_PARA_PINNED[activeInspectionCategory] || CATEGORY_PARA_PINNED.general} ring-2 ring-offset-1`
-      : 'border-[#9A6530] border-l-4 bg-[#fffdfb] shadow-md ring-2 ring-[#9A6530]/40 ring-offset-1'
+      : 'border-[#9A6530] border-l-[#9A6530] bg-[#fffdfb] shadow-md ring-2 ring-[#9A6530]/40 ring-offset-1'
     : isPinnedSpanPara
       ? (CATEGORY_PARA_PINNED[activeInspectionCategory] || CATEGORY_PARA_PINNED.general)
       : isHoveredSpanPara
         ? (CATEGORY_PARA_HOVER[activeInspectionCategory] || CATEGORY_PARA_HOVER.general)
-        : 'border-[#ede4d4] bg-[#fcfaf7]/70 hover:bg-white hover:border-[#cfc3af] hover:shadow-2xs'
+        : 'border-[#ede4d4] border-l-[#ede4d4] bg-[#fcfaf7]/70 hover:bg-white hover:border-[#cfc3af] hover:border-l-[#cfc3af] hover:shadow-2xs'
 
   return (
     <article
@@ -92,10 +91,10 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
       data-para-uri={p.uri}
       tabIndex={isCurrentPara ? 0 : -1}
       onClick={onClick}
-      className={`p-4 sm:p-5 rounded-none border transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9A6530] ${paraBorderClass}`}
+      className={`p-4 sm:p-5 rounded-none border border-l-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9A6530] ${paraBorderClass}`}
     >
       {/* En-tête du paragraphe */}
-      <div className="flex items-start justify-between mb-2.5 select-none gap-2">
+      <div className="flex items-start justify-between mb-2.5 select-none gap-2 min-h-[26px]">
         <div className="flex items-center space-x-2 flex-wrap gap-y-1">
           <span
             className={`text-xs font-mono font-bold px-2 py-0.5 rounded-none border inline-flex items-center justify-center text-center leading-none select-none ${
@@ -117,27 +116,22 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
             </span>
           )}
 
-          {annotationCount > 0 && !hasInspectedConcept && !isCurrentPara && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-[#855424] border border-amber-200/80">
+          {annotationCount > 0 && !isCurrentPara && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-[#855424] border border-amber-200/80 shrink-0">
               {annotationCount} annot{annotationCount > 1 ? 's' : ''}
             </span>
           )}
 
-          {hasInspectedConcept && (
+          {isPinnedSpanPara && (
             <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full select-none flex items-center flex-wrap gap-x-1 min-w-0 ${
-                isHoveredSpanPara
-                  ? (CATEGORY_TAG_HOVER[activeInspectionCategory] || CATEGORY_TAG_HOVER.general)
-                  : (CATEGORY_TAG_PINNED[activeInspectionCategory] || CATEGORY_TAG_PINNED.general)
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full select-none inline-flex items-center space-x-1 shrink-0 max-w-[200px] truncate ${
+                CATEGORY_TAG_PINNED[activeInspectionCategory] || CATEGORY_TAG_PINNED.general
               }`}
+              title={`${pinnedTagText} : ${activeInspectionLabel || ''}`}
             >
-              {isHoveredSpanPara ? <Layers className="w-2.5 h-2.5 shrink-0" /> : <span className="shrink-0">📌</span>}
-              <span className="whitespace-normal break-words">
-                {isCurrentPara
-                  ? `${presentHereTagText} ${activeInspectionLabel ? `(« ${activeInspectionLabel} »)` : ''}`
-                  : isHoveredSpanPara
-                    ? `${associatedTagText} ${activeInspectionLabel ? `(« ${activeInspectionLabel} »)` : ''}`
-                    : `${pinnedTagText} ${activeInspectionLabel ? `(« ${activeInspectionLabel} »)` : ''}`}
+              <span className="shrink-0">📌</span>
+              <span className="truncate">
+                {activeInspectionLabel || pinnedTagText}
               </span>
             </span>
           )}
@@ -192,7 +186,7 @@ export const ReadingParagraphCard: React.FC<ReadingParagraphCardProps> = React.m
             onHoverConcept={setHoveredConcept}
             onPinConcept={(c) => setPinnedConcept((prev) => (prev === c ? null : c))}
           />
-        ) : hasInspectedConcept ? (
+        ) : isPinnedSpanPara ? (
           <AnnotatedAncientText
             p={p}
             referenceMap={referenceMap}

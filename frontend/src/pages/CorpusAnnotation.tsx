@@ -740,7 +740,7 @@ export const CorpusAnnotation: React.FC = () => {
                 key={p.uri}
                 type="button"
                 onClick={() => handleFocusParagraph(p.uri)}
-                className={`px-2 py-1 rounded-none text-xs font-mono font-bold transition-all cursor-pointer border inline-flex items-center space-x-1 ${
+                className={`px-2 py-1 rounded-none text-xs font-mono font-bold transition-colors cursor-pointer border inline-flex items-center space-x-1 ${
                   isParaActive
                     ? 'bg-[#9A6530] text-white border-[#855424] shadow-xs ring-1 ring-[#9A6530]/40'
                     : isParaPinned
@@ -1198,7 +1198,7 @@ export const CorpusAnnotation: React.FC = () => {
                       onMouseLeave={() => setHoveredConcept(null)}
                       onClick={() => setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))}
                       title={isPinned ? t.annotate.unpinAnnotationTooltip : t.annotate.pinAnnotationTooltip}
-                      className={`p-3 rounded-none border text-xs space-y-2 transition-all cursor-pointer ${
+                      className={`p-3 rounded-none border text-xs space-y-2 transition-colors cursor-pointer ${
                         isPinned
                           ? 'ring-2 ring-amber-500 border-amber-400 bg-amber-50/80 shadow-xs'
                           : isHovered
@@ -1335,7 +1335,7 @@ export const CorpusAnnotation: React.FC = () => {
                       onMouseLeave={() => setHoveredConcept(null)}
                       onClick={() => setPinnedConcept((prev) => (prev === item.concept ? null : item.concept))}
                       title={isPinned ? t.annotate.unpinAnnotationTooltip : t.annotate.pinAnnotationTooltip}
-                      className={`p-3 rounded-none border text-xs transition-all cursor-pointer ${
+                      className={`p-3 rounded-none border text-xs transition-colors cursor-pointer ${
                         isPinned
                           ? 'border-[#9A6530] bg-[#fdf7ee] ring-2 ring-amber-500 shadow-sm'
                           : isHovered

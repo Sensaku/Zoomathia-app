@@ -900,7 +900,7 @@ export const ExploreWork: React.FC = () => {
                                       e.stopPropagation()
                                       handleFocusParagraph(p.uri)
                                     }}
-                                    className={`w-full text-left px-2 py-1.5 rounded-none text-xs transition-all flex items-center justify-between group cursor-pointer border ${
+                                    className={`w-full text-left px-2 py-1.5 rounded-none text-xs transition-colors flex items-center justify-between group cursor-pointer border ${
                                       isCurrentP
                                         ? 'bg-[#9A6530] text-white font-semibold shadow-xs border-[#855424]'
                                         : isHoveredP
@@ -912,14 +912,14 @@ export const ExploreWork: React.FC = () => {
                                     title={p.text}
                                   >
                                     <span
-                                      className={`font-mono text-[11px] shrink-0 font-bold px-1.5 py-0.5 rounded-none inline-flex items-center justify-center text-center leading-none ${
+                                      className={`font-mono text-[11px] shrink-0 font-bold px-1.5 py-0.5 rounded-none border inline-flex items-center justify-center text-center leading-none ${
                                         isCurrentP
-                                          ? 'bg-amber-300 text-amber-950 shadow-2xs'
+                                          ? 'bg-amber-300 text-amber-950 border-amber-400 shadow-2xs'
                                           : isHoveredP
                                             ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
                                             : isPinnedP
                                               ? (CATEGORY_TOC_PINNED[activeInspectionCategory] || CATEGORY_TOC_PINNED.general)
-                                              : 'bg-[#ede5d8] text-[#6d4c24] border border-[#ded5c6]'
+                                              : 'bg-[#ede5d8] text-[#6d4c24] border-[#ded5c6]'
                                       }`}
                                     >
                                       § {p.id}
@@ -1068,7 +1068,7 @@ export const ExploreWork: React.FC = () => {
                             onMouseEnter={() => setHoveredConcept(item.concept_uri)}
                             onMouseLeave={() => setHoveredConcept(null)}
                             onClick={() => setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))}
-                            className={`p-3 rounded-none border text-xs space-y-2 transition-all cursor-pointer ${
+                            className={`p-3 rounded-none border text-xs space-y-2 transition-colors cursor-pointer ${
                               isPinned
                                 ? 'border-emerald-600 bg-emerald-100/90 ring-2 ring-emerald-600 shadow-sm'
                                 : isHovered
@@ -1194,7 +1194,7 @@ export const ExploreWork: React.FC = () => {
                             onMouseEnter={() => setHoveredConcept(item.concept)}
                             onMouseLeave={() => setHoveredConcept(null)}
                             onClick={() => setPinnedConcept((prev) => (prev === item.concept ? null : item.concept))}
-                            className={`p-3 rounded-none border text-xs transition-all cursor-pointer ${
+                            className={`p-3 rounded-none border text-xs transition-colors cursor-pointer ${
                               isPinned
                                 ? 'border-[#9A6530] bg-[#fdf7ee] ring-2 ring-amber-500 shadow-sm'
                                 : isHovered
