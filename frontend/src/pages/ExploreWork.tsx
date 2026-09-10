@@ -996,13 +996,13 @@ export const ExploreWork: React.FC = () => {
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center space-x-1.5 min-w-0">
+                              <div className="flex items-start space-x-1.5 min-w-0 flex-1">
                                 <ConceptCategoryIcon
                                   label={item.concept_label}
                                   uri={item.concept_uri}
                                   className="w-3.5 h-3.5 shrink-0"
                                 />
-                                <strong className="text-emerald-950 font-semibold text-sm capitalize truncate">
+                                <strong className="text-emerald-950 font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug">
                                   {item.concept_label}
                                 </strong>
                                 {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
@@ -1122,7 +1122,7 @@ export const ExploreWork: React.FC = () => {
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center space-x-1.5 min-w-0">
+                              <div className="flex items-start space-x-1.5 min-w-0 flex-1">
                                 <ConceptCategoryIcon
                                   category={item.category}
                                   collection={item.collection}
@@ -1130,7 +1130,7 @@ export const ExploreWork: React.FC = () => {
                                   uri={item.concept}
                                   className="w-3.5 h-3.5 shrink-0"
                                 />
-                                <strong className="text-[#2c2724] font-semibold text-sm capitalize truncate">
+                                <strong className="text-[#2c2724] font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug">
                                   {item.label.toLowerCase()}
                                 </strong>
                                 {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}

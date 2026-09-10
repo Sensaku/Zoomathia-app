@@ -1214,13 +1214,13 @@ export const CorpusAnnotation: React.FC = () => {
                     >
                       {/* Concept & Badge Statut */}
                       <div className="flex items-start justify-between gap-1.5">
-                        <div className="flex items-center space-x-1.5 min-w-0">
+                        <div className="flex items-start space-x-1.5 min-w-0 flex-1">
                           <ConceptCategoryIcon
                             label={item.concept_label}
                             uri={item.concept_uri}
                             className="w-4 h-4 shrink-0"
                           />
-                          <strong className="font-semibold text-sm capitalize truncate text-[#2c2724]">
+                          <strong className="font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug text-[#2c2724]">
                             {item.concept_label}
                           </strong>
                           {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
@@ -1342,14 +1342,14 @@ export const CorpusAnnotation: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1.5">
-                        <div className="flex items-center space-x-1.5 min-w-0">
+                        <div className="flex items-start space-x-1.5 min-w-0 flex-1">
                           <ConceptCategoryIcon
                             label={item.label}
                             uri={item.concept}
                             category={item.category as any}
                             className="w-3.5 h-3.5 shrink-0"
                           />
-                          <strong className="font-semibold text-sm capitalize truncate text-[#2c2724]">
+                          <strong className="font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug text-[#2c2724]">
                             {item.label}
                           </strong>
                           {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
