@@ -27,6 +27,7 @@ async def test_qc_list():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_get_authors():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -40,6 +41,7 @@ async def test_get_authors():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_get_works():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -53,6 +55,7 @@ async def test_get_works():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_qc1_query():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -66,6 +69,7 @@ async def test_qc1_query():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_qc_spo_query():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -77,6 +81,7 @@ async def test_qc_spo_query():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_get_theso():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -90,6 +95,7 @@ async def test_get_theso():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_get_summary():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

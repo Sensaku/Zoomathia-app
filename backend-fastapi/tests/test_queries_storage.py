@@ -91,6 +91,7 @@ async def test_security_flaw_prevent_deleting_builtin_queries():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_execute_saved_query_on_triplestore():
     """Vérifie l'exécution directe d'une requête de la bibliothèque sur Corese."""
     transport = ASGITransport(app=app)

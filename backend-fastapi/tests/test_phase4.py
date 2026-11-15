@@ -13,6 +13,7 @@ from app.main import app
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_thesaurus_autocomplete():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -147,6 +148,7 @@ async def test_sparql_playground_security():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_sparql_playground_valid_query():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
