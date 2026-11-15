@@ -15,11 +15,11 @@
 | Requirement | Status |
 |---|---|
 | Local accounts (email and password) managed by the application | Decided (RM-CPT-01) |
-| Account inactive until an admin activates it, after email verification | Decided (RM-CPT-02) |
-| Passwords hashed with Argon2id, never logged | Proposed |
-| Password reset through single-use, expiring tokens | Proposed |
+| Account inactive until an admin activates it, after checking the email address and the declared identity (by hand until an SMTP server is available) | Decided (RM-CPT-02) |
+| Passwords hashed with Argon2id through pwdlib, never logged | Decided |
+| Password reset by an administrator until an SMTP server is available; then single-use, expiring tokens sent by email | Decided |
 | Login throttling and temporary lockout after repeated failures | Proposed |
-| Sessions in `HttpOnly`, `Secure`, `SameSite` cookies with CSRF protection, or short-lived bearer tokens | Proposed |
+| Server-side sessions stored in the database and revocable, identified by an `HttpOnly`, `Secure`, `SameSite` cookie, with CSRF protection | Decided |
 | Service-account tokens: random, stored hashed, limited to creating suggestions, revocable by an admin | Proposed |
 
 ## Authorization

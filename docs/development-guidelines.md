@@ -190,9 +190,9 @@ Modules identified for the coming work. Check each one's version and maintenance
 
 | Need | Module | Utility | Limits |
 |---|---|---|---|
-| RDF exports, SPARQL validation | `rdflib` | Correct Turtle serialization; SPARQL 1.1 parser to check the query form and reject `SERVICE` | Does not parse Corese-specific extensions (such queries are rejected) |
-| Password hashing | `pwdlib` (Argon2) | Argon2id, the option used in the FastAPI documentation | Hashing only, no account management; avoid `passlib`, unmaintained |
-| Local accounts (registration, verification, reset) | `fastapi-users`, or a minimal in-house flow on `pwdlib` and signed tokens | `fastapi-users` covers the whole flow | **To evaluate during the P0 work:** maintenance status of `fastapi-users`; an in-house flow means more security-sensitive code to own |
+| RDF exports, SPARQL validation | `rdflib` (approved 2026-11-15) | Correct Turtle serialization; SPARQL 1.1 parser to check the query form and reject `SERVICE` | Does not parse Corese-specific extensions (such queries are rejected) |
+| Password hashing | `pwdlib` (Argon2, approved 2026-11-15) | Argon2id, the option used in the FastAPI documentation | Hashing only, no account management; avoid `passlib`, unmaintained |
+| Local accounts (registration, sessions, roles) | Minimal in-house flow on `pwdlib` with server-side sessions (decided 2026-11-15) | Full control of admin activation and peer review; hashing from a maintained library | Security-sensitive code to own: tests and Opus review required. `fastapi-users` was rejected: maintenance mode since 2026 |
 | Anti-flood throttling | nginx `limit_req` | Already in the stack, no code to write | Per IP only; per-route business limits would need `slowapi` |
 | Corese and OpenTheso doubles in tests | `respx` | Intercepts `httpx` at transport level: realistic tests without network | `httpx` only; fixtures must stay in line with real responses (`live` tests) |
 | TEI-XML parsing (ingestion) | `lxml` | Fast, XPath, the usual choice for TEI | Must be configured against XXE (`resolve_entities=False`, `no_network=True`) |

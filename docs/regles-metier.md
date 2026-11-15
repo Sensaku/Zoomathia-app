@@ -59,6 +59,7 @@ L'authentification repose sur des comptes gérés par l'application (email et mo
 
 **RM-CPT-02 — Activation par un administrateur.** *Décidé.*
 L'inscription crée un compte **en attente**. Un administrateur l'active après vérification de l'email et de l'identité déclarée (nom, affiliation). Un compte en attente ne peut rien écrire.
+*Mécanisme (décidé le 2026-11-15) :* tant qu'aucun serveur SMTP n'est disponible, l'administrateur vérifie lui-même l'adresse et l'identité, active le compte et réinitialise les mots de passe.
 
 **RM-CPT-03 — Désactivation.** *Proposé.*
 Un administrateur peut désactiver un compte. Ses contributions restent publiées et attribuées.
