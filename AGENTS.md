@@ -39,10 +39,13 @@ Backend, from `backend-fastapi/`:
 ```bash
 uv sync
 uv run uvicorn app.main:app --reload --port 3001
-STAGING_DB_PATH=/tmp/zoomathia-test.db uv run pytest -q    # always use a temporary database
+uv run ruff check .        # lint (add --fix for safe fixes)
+uv run ruff format .       # format
+uv run mypy                # type check, strict on new modules
+uv run pytest              # temporary database, simulated Corese, no network
+uv run pytest --live -m live   # on demand only: bounded read-only queries to the production Corese
+uv run --group docs mkdocs serve --config-file ../mkdocs.yml   # documentation site, http://127.0.0.1:8000
 ```
-
-PowerShell equivalent for the tests: `$env:STAGING_DB_PATH = "$env:TEMP\zoomathia-test.db"; uv run pytest -q`
 
 Frontend, from `frontend/`:
 
@@ -53,7 +56,7 @@ npx tsc --noEmit     # type check
 npm run build
 ```
 
-The target tooling (Ruff, mypy, Vite+ with oxlint, oxfmt and Vitest, Playwright, MkDocs) and its scripts are defined in `docs/development-guidelines.md` but **not installed yet**. Until it is, the commands above are the only ones that exist.
+The frontend tooling (Vite+ with oxlint, oxfmt and Vitest, Playwright, TypeDoc) is defined in `docs/development-guidelines.md` but **not installed yet**: it waits for Node 24 on the maintainer's machine. Until then, the frontend commands above are the only ones that exist.
 
 ## Non-negotiable rules
 
@@ -70,12 +73,12 @@ The target tooling (Ruff, mypy, Vite+ with oxlint, oxfmt and Vitest, Playwright,
 
 ## Working method
 
-1. **Start with code-review-graph** (MCP server `code-review-graph`): `get_minimal_context_tool(task=...)`, then `build_or_update_graph_tool` if the graph is stale. Check the impact radius of the files you plan to touch, and find callers with `query_graph_tool` rather than guessing.
+1. **Frame the task before coding** (analysis and architecture phase): business rules involved, approach, tests, risks and criticality, in a short implementation brief. Start with code-review-graph (MCP server `code-review-graph`): `get_minimal_context_tool(task=...)`, then `build_or_update_graph_tool` if the graph is stale; check the impact radius of the files you plan to touch, and find callers with `query_graph_tool` rather than guessing.
 2. **Stay in scope.** Change only what the task requires: no renaming, reformatting or refactoring outside it, no speculative abstraction. Report unrelated problems instead of fixing them in passing.
 3. **Do not reinvent the wheel.** Before writing generic code, look for an existing dependency or a maintained library. Propose any new module to the project owner with its utility, limits and alternatives; add it only once approved.
 4. **Test what matters**, following "Writing relevant tests" in the guidelines, and **document as you go**: docstrings and TSDoc of the public functions you touch, and any document your change makes inaccurate.
 5. **Prepare the review:** update the graph and run `detect_changes_tool` (risk, affected flows, test gaps).
-6. **Get a cross-model review before committing:** a model from another provider reviews the change (for example Codex for Claude's code, and the other way round); otherwise the `cross-model-reviewer` subagent on a different Claude model. Light review if the risk is low, deep review if it is medium or high. Fix or answer every finding; unresolved disagreements go to the project owner.
+6. **Get a cross-model review before committing:** a model from another provider when available and approved by the project owner (for example Codex); otherwise Claude Opus at high effort, through the `cross-model-reviewer` subagent. Light review if the risk is low, deep review if it is medium or high. Fix or answer every finding; unresolved disagreements go to the project owner.
 
 Details, module catalogue and review checklist: `docs/development-guidelines.md`.
 
@@ -92,19 +95,20 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 - **Size:** indicative limits of ~200 lines per component, ~50 per function, ~400 per file; beyond that, split or justify.
 - **Accessibility (RGAA):** built into every component: semantic HTML, keyboard navigation, labels, contrast, no information conveyed by color alone.
 - **Visual design:** follow `docs/design-system.md`. There are no separate mockups: screens are built from design tokens and catalogue components, and every visual change goes through its checklist.
-- **Commits:** Conventional Commits, directly on `main` while there is a single developer.
+- **Commits:** Conventional Commits, directly on `main` while there is a single developer. **No AI attribution:** never add a `Co-Authored-By` trailer or a "Generated with" line naming an AI tool (Claude, GPT, Codex, Gemini…) to a commit or a pull request.
 - **API:** the legacy camelCase routes (`/getWorks`, `/getQC`…) are replaced in one go by a versioned REST API (`/v1/...`). Do not add legacy-style routes.
 - **Comments** explain intent (why), not mechanics. **Traceability:** cite the rule ID (`RM-XXX-nn`) in code, tests and change descriptions.
 - **Design:** DRY applies to knowledge (rules, data, security code), not to code that merely looks alike; SOLID through single responsibility and injected dependencies; KISS and YAGNI against over-engineering.
+- **AI workflow:** analysis and architecture by Claude Opus 5.5 (high effort, max for critical tasks), then implementation by Claude Sonnet subagents (medium effort, high for critical tasks), then review by Claude Opus at high effort. Design implementation always uses medium effort and is cross-checked by Codex and Gemini 4 Hydrogen. Details in `docs/development-guidelines.md` ("AI workflow and models") and `CLAUDE.md`.
 
 ## Definition of done
 
-- Backend tests pass with a temporary `STAGING_DB_PATH`; new logic has tests at the right level (see the guidelines), none of which needs network access.
-- `npx tsc --noEmit` and `npm run build` pass; once the tooling is installed, lint, format and type checks pass too.
+- `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` and `uv run pytest` pass; new logic has tests at the right level (see the guidelines), none of which needs network access.
+- `npx tsc --noEmit` and `npm run build` pass; once Vite+ is installed, its lint, format and tests pass too.
 - New UI works with the keyboard, has labels and passes the automated accessibility checks.
 - The diff contains only what the task requires: no unrelated renaming, reformatting or refactoring.
 - A cross-model review was done (see "Working method") and every finding is fixed or answered.
-- Docstrings, TSDoc and documents touched by the change are up to date; once installed, the documentation site builds in strict mode.
+- Docstrings, TSDoc and documents touched by the change are up to date; the documentation site builds in strict mode.
 - New i18n keys exist in both `fr.ts` and `en.ts`.
 - If a business rule changed, `docs/regles-metier.md` is updated in the same change.
 - No secrets, `.env` files, databases or `__pycache__` added to git.
@@ -118,7 +122,8 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 
 ## Known pitfalls
 
-- `uv run pytest` without `STAGING_DB_PATH` writes into `backend-fastapi/data/staging.db`, which is tracked by git. All current tests also hit the live I3S Corese and OpenTheso.
+- Tests force a temporary database and block network access (`tests/conftest.py`). Only the tests marked `live` reach the production Corese or OpenTheso, and they are excluded by default. `backend-fastapi/data/staging.db` is still tracked by git: never commit changes to it.
+- Known gaps of the 2026-11-15 audit are written as strict `xfail` tests in `tests/test_known_gaps.py`. When a fix makes one pass, remove its marker: the test then guards against regressions.
 - The default SPARQL endpoint (`http://zoomathia.i3s.unice.fr/sparql`) is the **shared production** Corese. Unbounded queries (`SELECT *` without `LIMIT`, global `DESCRIBE`) can crash it (out of memory).
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite) until RM-QC-01 is implemented. Keep them consistent if you must touch them.
 - Concept categories are computed twice (backend `classify_concept`, frontend `getConceptCategoryInfo`) with diverging rules, until RM-CON-01 and RM-CON-02 are implemented.
@@ -128,7 +133,7 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 ## Current priorities
 
 1. Framing documents and development guidelines (this file and `docs/`): done on 2026-11-15.
-2. Next, in an order to confirm with the project owner:
-   - install the tooling and the test foundation (`docs/development-guidelines.md`, "Adoption");
+2. Next:
+   - tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend, tests, documentation site and CI done on 2026-11-15; frontend (Vite+, Playwright, TypeDoc) after the upgrade to Node 24;
    - P0 security work (`docs/security.md`, "Known gaps"): authentication and roles, server-side status, RDF serialization, unified SPARQL validation and guardrails, escaping helpers.
 3. Then: competency questions in the database, publication of validated annotations to Corese, categories from TheZoo collections, versioned REST API, TEI ingestion and pre-annotation.

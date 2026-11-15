@@ -1,0 +1,52 @@
+# Documentation site of the Zoomathia application.
+# Build from backend-fastapi/ (the docs dependencies live in its "docs" group):
+#   uv run --group docs mkdocs build --strict --config-file ../mkdocs.yml
+# Material for MkDocs reaches end of life on 2027-05-05 (critical fixes until
+# then): migrate before that date to Zensical, which reads this same file.
+site_name: Zoomathia
+site_description: Documentation of the Zoomathia application
+repo_url: https://github.com/Sensaku/Zoomathia-app
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: fr
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [backend-fastapi]
+          options:
+            docstring_style: google
+            show_submodules: true
+
+nav:
+  - Accueil: index.md
+  - Onboarding: onboarding.md
+  - Projet:
+      - Vision: vision.md
+      - Règles métier: regles-metier.md
+      - Glossaire: glossaire.md
+  - Technique:
+      - Architecture: architecture.md
+      - Sécurité: security.md
+      - Directives de développement: development-guidelines.md
+      - Design system: design-system.md
+  - Référence:
+      - Backend (Python): reference/backend.md

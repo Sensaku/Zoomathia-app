@@ -118,3 +118,4 @@ A print stylesheet prints the passage with its citation (author, work, reference
 5. Loading, empty and error states designed.
 6. French and English texts both fit (French is often longer).
 7. Mobile and print checked when the screen is concerned.
+8. Cross-checked by Codex and Gemini 4 Hydrogen, like every design implementation (development guidelines, "AI workflow and models").

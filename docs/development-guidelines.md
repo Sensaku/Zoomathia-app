@@ -203,7 +203,7 @@ Modules identified for the coming work. Check each one's version and maintenance
 | SPARQL editor | CodeMirror 6 with the SPARQL mode of `@codemirror/legacy-modes`, or YASGUI | Replaces the in-house editor, highlighter and tokenizer (~580 lines) with maintained code | **To evaluate:** bundle size (YASGUI is heavy), styling, maintenance status |
 | Changelog | `git-cliff` | `CHANGELOG.md` generated from Conventional Commits | Requires disciplined commit messages |
 | Dependency audit | `pip-audit`, `npm audit` | Known vulnerabilities in dependencies | Known advisories only |
-| Documentation site | `mkdocs-material`, `mkdocstrings[python]` | One site for hand-written and generated documentation; Python reference from docstrings | Docstrings must be maintained; theme and plugins to configure |
+| Documentation site | `mkdocs-material`, `mkdocstrings[python]` | One site for hand-written and generated documentation; Python reference from docstrings | Docstrings must be maintained; Material for MkDocs reaches end of life on 2027-05-05: migrate to Zensical, its successor reading the same `mkdocs.yml`, before that date |
 | TypeScript reference | `typedoc`, with `typedoc-plugin-markdown` to include it in MkDocs | Reference generated from TSDoc | Documents exported symbols only |
 | Accessible UI primitives (dialogs, menus, comboboxes) | Radix UI or React Aria, headless and styled with Tailwind | Keyboard and screen-reader behaviour already solved; could replace the in-house `MultiSelectCombobox` (314 lines) | **To evaluate:** one more dependency; check bundle size and fit with the design tokens |
 | Component catalogue | Storybook, or Ladle | Visual reference replacing mockups ([design-system.md](design-system.md)); Storybook adds axe checks and Vitest integration | **To choose at adoption:** Storybook is heavier; Ladle is lighter but has fewer add-ons |
@@ -238,6 +238,24 @@ Modules identified for the coming work. Check each one's version and maintenance
 - **End to end:** few journeys, critical ones only, stable selectors (roles), no fixed waits.
 - **A fast suite:** unit and integration tests run in seconds, on every change. A slow or flaky test is fixed or removed, never ignored.
 
+## AI workflow and models
+
+Decided 2026-11-15. Every task goes through three phases, and its criticality sets the effort.
+
+1. **Analysis and architecture:** Claude Opus 5.5 frames the task: business rules involved, impact (code-review-graph), approach, tests to write, risks and criticality. The phase ends with an implementation brief. When the main session is not Opus, it delegates this phase to the `architect` subagent.
+2. **Implementation:** Claude Sonnet subagents (`implementer`) write the code from the brief.
+3. **Review:** every review done by Claude uses Claude Opus at high effort (see "Cross-model review").
+
+| Criticality | Typical tasks | Analysis (Opus) | Implementation (Sonnet) |
+|---|---|---|---|
+| Critical | Security, authentication and permissions, decided business rules, data integrity (annotation positions, publication to Corese), migrations | max | high |
+| Standard | Features, refactoring, tests, tooling | high | medium |
+| Design | UI and visual implementation | high | medium, always |
+
+- The analysis phase classifies the task and states it in the brief. When in doubt, the task is critical.
+- **Design implementations are cross-checked by two other providers, Codex and Gemini 4 Hydrogen**, which receive the diff. The Gemini CLI is not installed on the maintainer's machine yet.
+- Documentation-only tasks skip the implementation phase.
+
 ## Code review and impact analysis
 
 ### Working with code-review-graph
@@ -252,7 +270,8 @@ code-review-graph keeps a Tree-sitter graph of the code (functions, calls, flows
 
 ### Cross-model review
 
-- **Every code change is reviewed before commit by a model other than its author:** a model from another provider when available (for example Codex/GPT reviews Claude's code, and the other way round); otherwise a subagent running on a different Claude model (`.claude/agents/cross-model-reviewer.md`).
+- **Models:** every review done by Claude uses Claude Opus at high effort, never a smaller model (see "AI workflow and models").
+- **Every code change is reviewed before commit by a model other than its author:** a model from another provider when available and approved by the project owner (for example Codex, which then receives the diff); otherwise Claude Opus at high effort.
 - **Depth follows the risk computed by code-review-graph:** low risk → light review (`detect_changes_tool` in minimal mode); medium or high risk → deep review with source code (`detect_changes_tool` in standard mode, then `get_review_context_tool`).
 - **The author fixes or answers every finding.** Unresolved disagreements go to the project owner, who decides.
 - Documentation-only changes, typo fixes and trivial configuration changes are exempt.
@@ -276,7 +295,7 @@ Findings are ranked by severity, with file and line, the concrete failure scenar
   - backend: `ruff check`, `ruff format --check`, mypy, tests without network;
   - frontend: lint, format check, type check, tests, build;
   - Playwright journeys, once the suite exists.
-- **Weekly:** `pip-audit` and `npm audit`, non-blocking, with a summary of findings.
+- **Weekly:** `pip-audit` and `npm audit`, outside the push checks, so they never block a push. A finding makes the scheduled run fail visibly, and the run summary lists the findings.
 - A failing pipeline on `main` is fixed before any other work.
 
 ## Versions and changelog
@@ -311,8 +330,9 @@ Accessibility is built into every component, not added at the end.
 
 - **Single developer for now:** commits go directly on `main` (decided 2026-11-15). Switch to feature branches and pull requests when a second developer joins.
 - Conventional Commits in English; small commits, one logical change each.
+- **No AI attribution** in commits or pull requests: no `Co-Authored-By` trailer and no "Generated with" line naming an AI tool (decided 2026-11-15).
 - Generated files are not committed, except lockfiles and the release changelog.
-- Agents commit or push only on explicit request ([AGENTS.md](../AGENTS.md)).
+- Agents commit or push only on explicit request ([AGENTS.md](https://github.com/Sensaku/Zoomathia-app/blob/main/AGENTS.md)).
 
 ## Documentation
 
@@ -344,8 +364,8 @@ Accessibility is built into every component, not added at the end.
 
 *Proposed order* to bring the repository in line with these guidelines:
 
-1. **Tooling:** Ruff, mypy, Vite+ (oxlint, oxfmt, Vitest), Playwright, MkDocs Material with mkdocstrings and TypeDoc, their configuration files, the npm and uv scripts, the CI workflow.
-2. **Test foundation:** `conftest.py` with a temporary database and simulated Corese; first unit tests of the decided rules.
+1. **Tooling:** Ruff, mypy, Vite+ (oxlint, oxfmt, Vitest), Playwright, MkDocs Material with mkdocstrings and TypeDoc, their configuration files, the npm and uv scripts, the CI workflow. *Status (2026-11-15):* backend tooling, documentation site (Python reference) and CI done; Vite+, Playwright and TypeDoc wait for Node 24 on the maintainer's machine.
+2. **Test foundation:** `conftest.py` with a temporary database and simulated Corese; first unit tests of the decided rules. *Status (2026-11-15):* done for the backend, including the known gaps of the audit written as strict `xfail` tests (`tests/test_known_gaps.py`).
 3. **Progressive restructuring:** new code goes straight into the target structure; existing modules move when they are modified, starting with the domains touched by the P0 security work (accounts, annotations).
 
 code-review-graph is already operational: the graph was first built on 2026-11-15 (70 files) and is updated incrementally.
