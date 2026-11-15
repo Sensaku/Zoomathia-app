@@ -15,11 +15,86 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "mypy>=2.4.1",
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
+    "respx>=0.23.1",
+    "ruff>=0.17.5",
+]
+docs = [
+    "mkdocs-material>=9.7.7",
+    "mkdocstrings[python]>=1.0.6",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# pytester powers the meta-tests of the test doubles (tests/test_fixtures.py).
+addopts = "-p pytester"
+markers = [
+    "live: reads the real production Corese or OpenTheso with bounded queries; skipped unless `--live` is given",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["data"]
+
+[tool.ruff.lint]
+# Rule set from docs/development-guidelines.md, "Python tooling".
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "N", "S", "C90"]
+# Line length is the formatter's job; long SPARQL strings are acceptable.
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI declares parameters through calls in default arguments.
+extend-immutable-calls = ["fastapi.Body", "fastapi.Depends", "fastapi.Path", "fastapi.Query"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+# `assert` is the point of a test.
+"tests/**" = ["S101"]
+# Legacy debt (2026-11-15): issues left after the mechanical formatting commit.
+# Remove an entry when its file is refactored; new files get the full rule set.
+"app/core/config.py" = ["S104"]
+"app/routers/annotations.py" = ["C901", "SIM102", "W291"]
+"app/routers/concepts.py" = ["C901", "W291"]
+"app/routers/saved_queries.py" = ["B904"]
+"app/routers/search.py" = ["C901", "N815", "W291"]
+"app/routers/sparql_playground.py" = ["B904"]
+"app/routers/texts.py" = ["W291"]
+"app/routers/thesaurus.py" = ["B904"]
+"app/routers/works.py" = ["W291"]
+"app/services/sparql_client.py" = ["B904"]
+"app/services/staging_store.py" = ["S110", "SIM102", "SIM105", "SIM118"]
+"app/services/tree_builder.py" = ["C901", "SIM102", "SIM110"]
+"test_perf.py" = ["W291"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app", "tests"]
+
+[[tool.mypy.overrides]]
+# Legacy debt (2026-11-15): modules written before the guidelines are exempt
+# until they are refactored. New modules are checked in strict mode.
+module = [
+    "app.main",
+    "app.core.*",
+    "app.models.*",
+    "app.routers.*",
+    "app.services.*",
+    "tests.test_api",
+    "tests.test_phase4",
+    "tests.test_queries_storage",
+]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# Legacy debt (2026-11-15): tests call legacy functions that are not typed yet.
+module = ["tests.*"]
+disallow_untyped_calls = false
