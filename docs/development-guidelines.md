@@ -102,7 +102,7 @@ Tests mirror this layout in `backend-fastapi/tests/<domain>/`.
 
 - Fixed queries live in `.rq` files next to the domain that uses them (`<domain>/sparql/*.rq`).
 - Parameters are named placeholders, *Proposed syntax:* `{{ name }}`. It is invalid SPARQL, so an unfilled placeholder fails loudly.
-- Placeholders are filled only by the shared helpers (`sparql_iri()`, `sparql_literal()`, `sparql_lang()`, `sparql_int()`). A single loader renders a query and rejects missing or unknown parameters.
+- Placeholders are filled only by the shared helpers of `app/shared/sparql.py` (`sparql_iri()`, `sparql_literal()`, `sparql_lang()`). A single loader renders a query and rejects missing or unknown parameters.
 - Only the custom search, which is dynamic, uses a small typed builder that emits the same escaped fragments.
 - Each `.rq` file starts with a comment giving its purpose, its parameters and its expected cost.
 - Queries are sent with POST and are bounded (`LIMIT`, or an aggregate with bounded output).

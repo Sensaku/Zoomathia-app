@@ -92,7 +92,6 @@ async def test_rm_acc_02_unbounded_select_is_limited(
         assert corese.queries == []
 
 
-@known_gap("User input is passed to Corese as a regular expression")
 async def test_concept_search_does_not_use_user_input_as_regex(
     client: httpx.AsyncClient, corese: FakeCorese
 ) -> None:

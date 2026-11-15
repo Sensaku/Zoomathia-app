@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from app.services.sparql_client import sparql_client
 from app.services.tree_builder import build_custom_search_tree
+from app.shared.sparql import sparql_iri, sparql_literal
 
 router = APIRouter(tags=["Search"])
 
@@ -41,19 +42,6 @@ class CustomSearchPayload(BaseModel):
     concept_criteria: list[ConceptCriterion] | None = None
     collection_criteria: list[CollectionCriterion] | None = None
     match_mode: str | None = None  # "AND" | "OR"
-
-
-def clean_uri(uri: str) -> str:
-    return uri.replace(">", "").replace("<", "").strip()
-
-
-def escape_uri(uri: str) -> str:
-    return f"<{clean_uri(uri)}>"
-
-
-def escape_literal(val: str) -> str:
-    clean = val.replace('"', '\\"').strip()
-    return f'"{clean}"'
 
 
 @router.post("/customSearch")
@@ -125,18 +113,18 @@ async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
     # 2. Construction des filtres textuels (Auteurs / Œuvres)
     text_filters = []
     if authors and works:
-        auth_in = ", ".join([escape_literal(a) for a in authors])
-        work_in = ", ".join([escape_uri(w) for w in works])
+        auth_in = ", ".join([sparql_literal(a.strip()) for a in authors])
+        work_in = ", ".join([sparql_iri(w.strip()) for w in works])
         text_filters.append(f"FILTER(?author IN ({auth_in}) || ?work IN ({work_in}))")
     elif authors:
-        auth_in = ", ".join([escape_literal(a) for a in authors])
+        auth_in = ", ".join([sparql_literal(a.strip()) for a in authors])
         text_filters.append(f"FILTER(?author IN ({auth_in}))")
     elif works:
-        work_in = ", ".join([escape_uri(w) for w in works])
+        work_in = ", ".join([sparql_iri(w.strip()) for w in works])
         text_filters.append(f"FILTER(?work IN ({work_in}))")
 
     if excluded_works:
-        ex_work_in = ", ".join([escape_uri(w) for w in excluded_works])
+        ex_work_in = ", ".join([sparql_iri(w.strip()) for w in excluded_works])
         text_filters.append(f"FILTER(?work NOT IN ({ex_work_in}))")
 
     text_filter_block = "\n      ".join(text_filters)
@@ -147,7 +135,7 @@ async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
         if is_and_mode:
             # Mode ET : chaque critère positif doit être présent sur le paragraphe
             for i, c in enumerate(included_concepts):
-                c_uri = escape_uri(c.uri)
+                c_uri = sparql_iri(c.uri.strip())
                 if c.include_subconcepts:
                     positive_clauses.append(f"""
                     ?ann_c_{i} oa:hasTarget [ oa:hasSource ?paragraph ];
@@ -161,7 +149,7 @@ async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
                     """)
 
             for j, col in enumerate(included_collections):
-                col_uri = escape_uri(col.uri)
+                col_uri = sparql_iri(col.uri.strip())
                 positive_clauses.append(f"""
                 ?ann_col_{j} oa:hasTarget [ oa:hasSource ?paragraph ];
                              oa:hasBody ?col_body_{j}.
@@ -170,9 +158,13 @@ async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
         else:
             # Mode OU : un des critères positifs doit correspondre
             or_branches = []
-            exact_uris = [escape_uri(c.uri) for c in included_concepts if not c.include_subconcepts]
-            taxo_uris = [escape_uri(c.uri) for c in included_concepts if c.include_subconcepts]
-            coll_uris = [escape_uri(col.uri) for col in included_collections]
+            exact_uris = [
+                sparql_iri(c.uri.strip()) for c in included_concepts if not c.include_subconcepts
+            ]
+            taxo_uris = [
+                sparql_iri(c.uri.strip()) for c in included_concepts if c.include_subconcepts
+            ]
+            coll_uris = [sparql_iri(col.uri.strip()) for col in included_collections]
 
             all_direct_uris = exact_uris + taxo_uris
             if all_direct_uris:
@@ -206,7 +198,7 @@ async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
     # 4. Construction des filtres d'exclusion (FILTER NOT EXISTS)
     negative_clauses = []
     for k, exc in enumerate(excluded_concepts):
-        exc_uri = escape_uri(exc.uri)
+        exc_uri = sparql_iri(exc.uri.strip())
         if exc.include_subconcepts:
             negative_clauses.append(f"""
             FILTER NOT EXISTS {{
@@ -224,7 +216,7 @@ async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
             """)
 
     for m, ex_col in enumerate(excluded_collections):
-        ex_col_uri = escape_uri(ex_col.uri)
+        ex_col_uri = sparql_iri(ex_col.uri.strip())
         negative_clauses.append(f"""
         FILTER NOT EXISTS {{
           ?ann_ex_col_{m} oa:hasTarget [ oa:hasSource ?paragraph ];

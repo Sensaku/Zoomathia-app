@@ -81,14 +81,15 @@ No usage quotas. Guardrails are sized so that normal use never reaches them.
 
 ## Known gaps (audit of 2026-11-15)
 
+Fixed so far: injection through request data in the read endpoints, including the user regex of `/searchConcepts` and the incomplete escaping of `/getWorksFromAuthors` and `/customSearch` (P0-1, helpers in `app/shared/sparql.py`).
+
 | Priority | Gap | Rules |
 |---|---|---|
 | P0 | No authentication or authorization on write endpoints | RM-CTB-01, RM-MOD-01 |
 | P0 | Client can set `status` at creation; native QCs can be overwritten with `PUT /queries/{id}` | RM-CTB-04, RM-QC-02 |
 | P0 | Turtle injection in `/annotations/export-ttl` and `/thesaurus/proposals/export-ttl` | RM-PUB-01 |
-| P0 | Unbounded SPARQL accepted; user regex in `/searchConcepts`; unlimited search criteria | RM-ACC-02 |
+| P0 | Unbounded SPARQL accepted; unlimited search criteria | RM-ACC-02 |
 | P0 | `SERVICE` blocked on `/sparql/execute` but accepted on `/download-custom-search-*`; keyword denylist with false positives | RM-ACC-02 |
-| P1 | Incomplete escaping (`"` escaped, `\` not) in `/getWorksFromAuthors` and `/customSearch` | — |
 | P1 | Unbounded caches (SPARQL results, OpenTheso); no maximum length on fields | RM-ACC-02 |
 | P1 | CSV export not escaped (Greek `;`, formula injection) | — |
 | P1 | OpenTheso URLs built without encoding | — |

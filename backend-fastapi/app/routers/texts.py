@@ -6,6 +6,7 @@ from fastapi import APIRouter, Query
 
 from app.services.sparql_client import sparql_client
 from app.services.tree_builder import build_summary_tree
+from app.shared.sparql import sparql_iri
 
 logger = logging.getLogger("zoomathia.texts")
 
@@ -14,16 +15,16 @@ router = APIRouter(tags=["Texts & Hierarchy"])
 
 @router.get("/getSummary")
 async def get_summary(uri: str = Query(..., description="URI de l'oeuvre")) -> list[dict[str, Any]]:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    node_iri = sparql_iri(uri)
     sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
     SELECT DISTINCT ?parent ?current ?type (xsd:integer(?id_t) as ?id) ?title ?file WHERE {{
       ?current a ?type;
-          zoo:isPartOf+ <{safe_uri}>;
+          zoo:isPartOf+ {node_iri};
           zoo:isPartOf ?parent_t;
           zoo:identifier ?id_t.
       FILTER(?type != zoo:Paragraph)
-      BIND(IF(?parent_t = <{safe_uri}>, ?current, ?parent_t) AS ?parent)
+      BIND(IF(?parent_t = {node_iri}, ?current, ?parent_t) AS ?parent)
       OPTIONAL {{ ?current zoo:title ?title_t. }}
       BIND(IF(BOUND(?author_t), ?author_t, "") AS ?author)
       BIND(IF(BOUND(?title_t), ?title_t, "") AS ?title)
@@ -36,12 +37,12 @@ async def get_summary(uri: str = Query(..., description="URI de l'oeuvre")) -> l
 
 @router.get("/getChildren")
 async def get_children(uri: str = Query(..., description="URI du noeud")) -> list[dict[str, Any]]:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    node_iri = sparql_iri(uri)
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?child ?identifier ?title ?type WHERE {{
-      <{safe_uri}> zoo:hasPart ?child.
+      {node_iri} zoo:hasPart ?child.
       ?child a ?type;
             zoo:identifier ?identifier.
       OPTIONAL {{ ?child zoo:title ?titleprov. }}
@@ -64,12 +65,12 @@ async def get_children(uri: str = Query(..., description="URI du noeud")) -> lis
 
 @router.get("/getChildrenType")
 async def get_children_type(uri: str = Query(..., description="URI du noeud")) -> list[str]:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    node_iri = sparql_iri(uri)
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?childType WHERE {{
-      <{safe_uri}> zoo:hasPart ?child.
+      {node_iri} zoo:hasPart ?child.
       ?child a ?childType.
     }}
     """
@@ -85,12 +86,12 @@ async def get_children_type(uri: str = Query(..., description="URI du noeud")) -
 async def get_current_type(
     uri: str = Query(..., description="URI du noeud"),
 ) -> list[dict[str, str]]:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    node_iri = sparql_iri(uri)
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?type WHERE {{
-      <{safe_uri}> a ?type .
+      {node_iri} a ?type .
     }}
     """
     res = await sparql_client.query(sparql)
@@ -105,14 +106,14 @@ async def get_current_type(
 async def get_paragraphs(
     uri: str = Query(..., description="URI du noeud parent"),
 ) -> list[dict[str, Any]]:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    node_iri = sparql_iri(uri)
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT (xsd:integer(?id_p) as ?id) ?title ?uri ?text WHERE {{
-      <{safe_uri}> zoo:title ?title.
+      {node_iri} zoo:title ?title.
       ?uri a zoo:Paragraph;
-        zoo:isPartOf <{safe_uri}>;
+        zoo:isPartOf {node_iri};
         zoo:identifier ?id_p;
         zoo:text ?text.
     }} ORDER BY ?id
@@ -136,7 +137,7 @@ async def get_paragraphs(
 async def get_paragraph_alone(
     uri: str = Query(..., description="URI de référence"),
 ) -> list[dict[str, Any]]:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    node_iri = sparql_iri(uri)
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -146,7 +147,7 @@ async def get_paragraph_alone(
       ?paragraph zoo:text ?text;
                  zoo:identifier ?id_p.
       FILTER EXISTS {{
-        ?parent zoo:hasPart <{safe_uri}>
+        ?parent zoo:hasPart {node_iri}
       }}
     }} ORDER BY ?id
     """
@@ -168,7 +169,9 @@ async def get_paragraph_alone(
 async def resolve_uri(
     uri: str = Query(..., description="URI à résoudre (oeuvre, section ou paragraphe)"),
 ) -> dict[str, Any]:
-    safe_uri = uri.replace(">", "").replace("<", "").strip()
+    safe_uri = uri.strip()
+    # Validated before the `try` below, which would otherwise turn a 400 into an empty answer.
+    node_iri = sparql_iri(safe_uri)
     bindings = []
 
     try:
@@ -176,25 +179,25 @@ async def resolve_uri(
         prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
         SELECT ?type ?work ?section WHERE {{
           {{
-            <{safe_uri}> a zoo:Oeuvre .
-            BIND(<{safe_uri}> AS ?work)
+            {node_iri} a zoo:Oeuvre .
+            BIND({node_iri} AS ?work)
             BIND("work" AS ?type)
           }} UNION {{
-            <{safe_uri}> (^zoo:hasPart|zoo:isPartOf) ?section .
+            {node_iri} (^zoo:hasPart|zoo:isPartOf) ?section .
             ?section (^zoo:hasPart*|zoo:isPartOf*) ?work .
             ?work a zoo:Oeuvre .
-            FILTER EXISTS {{ <{safe_uri}> zoo:text ?txt }}
+            FILTER EXISTS {{ {node_iri} zoo:text ?txt }}
             BIND("paragraph" AS ?type)
           }} UNION {{
-            <{safe_uri}> a zoo:Paragraph .
-            <{safe_uri}> (^zoo:hasPart|zoo:isPartOf) ?section .
+            {node_iri} a zoo:Paragraph .
+            {node_iri} (^zoo:hasPart|zoo:isPartOf) ?section .
             ?section (^zoo:hasPart*|zoo:isPartOf*) ?work .
             ?work a zoo:Oeuvre .
             BIND("paragraph" AS ?type)
           }} UNION {{
-            <{safe_uri}> (^zoo:hasPart+|zoo:isPartOf+) ?work .
+            {node_iri} (^zoo:hasPart+|zoo:isPartOf+) ?work .
             ?work a zoo:Oeuvre .
-            BIND(<{safe_uri}> AS ?section)
+            BIND({node_iri} AS ?section)
             BIND("section" AS ?type)
           }}
         }} LIMIT 1

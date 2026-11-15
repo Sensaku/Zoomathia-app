@@ -60,7 +60,7 @@ The frontend tooling (Vite+ with oxlint, oxfmt and Vitest, Playwright, TypeDoc) 
 
 ## Non-negotiable rules
 
-1. **No request data is interpolated into SPARQL.** Use the shared escaping helpers for IRIs and literals (to be created in the P0 work), or `VALUES`. Never write `f"... <{uri}> ..."` with external input.
+1. **No request data is interpolated into SPARQL.** Use the shared escaping helpers for IRIs, literals and language tags (`app/shared/sparql.py`), or `VALUES`. Never write `f"... <{uri}> ..."` with external input.
 2. **User-supplied SPARQL goes through one validation function**: parsed, `SELECT`/`ASK` only, no `SERVICE`, enforced `LIMIT` and timeout (RM-ACC-02).
 3. **The server decides** the author (logged-in account), the initial status and the reviewer of any contribution (RM-CTB-03, RM-CTB-04). Never trust a client-sent `status`, author name, role or ID.
 4. **RDF and CSV are produced by serializers** (`rdflib`, the `csv` module), never by string concatenation.

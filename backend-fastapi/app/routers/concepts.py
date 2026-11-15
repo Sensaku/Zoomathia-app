@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, Query
 from pydantic import BaseModel
 
 from app.services.sparql_client import sparql_client
+from app.shared.sparql import sparql_iri, sparql_lang, sparql_literal
 
 router = APIRouter(tags=["Concepts & Thesaurus"])
 
@@ -243,19 +244,19 @@ async def get_concepts(
     uri: str = Query(..., description="URI du paragraphe"),
     lang: str = Query("en", description="Code langue (ex: en, fr, lat)"),
 ) -> dict[str, Any]:
-    safe_uri = uri.replace(">", "").replace("<", "")
-    safe_lang = lang.replace('"', "")
+    paragraph_iri = sparql_iri(uri)
+    lang_tag = sparql_lang(lang)
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     prefix oa: <http://www.w3.org/ns/oa#>
     prefix skos: <http://www.w3.org/2004/02/skos/core#> 
     SELECT DISTINCT ?annotation ?annotation_type ?concept ?label ?start ?end ?exact ?coll ?collLabel WHERE {{
-      <{safe_uri}> zoo:hasAnnotation ?annotation.
+      {paragraph_iri} zoo:hasAnnotation ?annotation.
       ?annotation a ?annotation_type;
         oa:hasBody ?concept;
         oa:hasTarget [
-          oa:hasSource <{safe_uri}>;
+          oa:hasSource {paragraph_iri};
           oa:hasSelector ?selector
         ].
       ?selector oa:exact ?exact.
@@ -263,7 +264,7 @@ async def get_concepts(
       FILTER(lang(?labelen) = "en")
       OPTIONAL {{
         ?concept skos:prefLabel ?labellang.
-        FILTER(lang(?labellang) = "{safe_lang}")
+        FILTER(lang(?labellang) = "{lang_tag}")
       }}
       OPTIONAL {{
         ?coll skos:member ?concept;
@@ -324,15 +325,15 @@ async def search_concepts(
     lang: str = Query("en", description="Langue"),
     limit: int = Query(60, ge=1, le=300, description="Nombre max de résultats"),
 ) -> list[dict[str, Any]]:
-    safe_input = input.replace('"', '\\"')
-    safe_lang = lang.replace('"', "")
+    input_literal = sparql_literal(input)
+    lang_tag = sparql_lang(lang)
     sparql = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     SELECT DISTINCT ?concept ?label ?type ?coll ?collLabel WHERE {{
       ?concept a ?type;
                skos:prefLabel ?label.
-      FILTER(lang(?label) = "{safe_lang}")
-      FILTER(regex(str(?label), "{safe_input}", "i"))
+      FILTER(lang(?label) = "{lang_tag}")
+      FILTER(CONTAINS(LCASE(STR(?label)), LCASE({input_literal})))
       OPTIONAL {{
         ?coll skos:member ?concept;
               skos:prefLabel ?collLabel.
@@ -374,14 +375,14 @@ async def get_collections(
     lang: str = Query("fr", description="Langue des libellés (ex: fr, en)"),
 ) -> list[dict[str, Any]]:
     """Récupère les 14 collections thématiques SKOS de TheZoo avec décompte des membres."""
-    safe_lang = lang.replace('"', "")
+    lang_tag = sparql_lang(lang)
     sparql = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     SELECT DISTINCT ?coll ?label (count(?m) as ?members) WHERE {{
       ?coll a skos:Collection;
             skos:prefLabel ?label;
             skos:member ?m.
-      FILTER(lang(?label) = "{safe_lang}")
+      FILTER(lang(?label) = "{lang_tag}")
     }} GROUP BY ?coll ?label ORDER BY desc(?members)
     """
     res = await sparql_client.query(sparql)
@@ -418,13 +419,13 @@ async def get_language_concept() -> list[dict[str, str]]:
 
 @router.get("/getTheso")
 async def get_theso(lang: str = Query("en", description="Langue")) -> list[dict[str, str]]:
-    safe_lang = lang.replace('"', "")
+    lang_tag = sparql_lang(lang)
     sparql = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     SELECT DISTINCT ?concept ?label ?type WHERE {{
       ?concept a ?type;
                skos:prefLabel ?label.
-      FILTER(lang(?label) = "{safe_lang}")
+      FILTER(lang(?label) = "{lang_tag}")
     }} ORDER BY ?label
     """
     res = await sparql_client.query(sparql)
@@ -447,23 +448,23 @@ async def get_top_concepts(lang: str = Query("en")) -> list[Any]:
 async def get_paragraph_with_concept(payload: ParagraphWithConceptRequest) -> list[dict[str, Any]]:
     subpart_clauses = []
     for i, c in enumerate(payload.concepts):
-        safe_c = c.value.replace(">", "").replace("<", "")
+        concept_iri = sparql_iri(c.value)
         subpart_clauses.append(f"""
-        ?annotation{i} oa:hasBody <{safe_c}>;
+        ?annotation{i} oa:hasBody {concept_iri};
                        oa:hasTarget [ oa:hasSource ?paragraph ].
         """)
     subpart = "\n".join(subpart_clauses)
-    safe_uri = payload.uri.replace(">", "").replace("<", "")
+    section_iri = sparql_iri(payload.uri)
 
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix oa: <http://www.w3.org/ns/oa#>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?paragraph ?title ?id ?text WHERE {{
-      <{safe_uri}> schema:title ?title.
+      {section_iri} schema:title ?title.
       ?paragraph zoo:text ?text;
                  zoo:identifier ?id;
-                 zoo:isPartOf <{safe_uri}>.
+                 zoo:isPartOf {section_iri}.
       {subpart}
     }} ORDER BY ?id
     """
@@ -488,9 +489,9 @@ async def get_paragraphs_with_concepts(payload: dict[str, Any] = Body(...)) -> l
     subpart_clauses = []
     for i, c in enumerate(concepts_raw):
         c_val = c.get("value", "") if isinstance(c, dict) else str(c)
-        safe_c = c_val.replace(">", "").replace("<", "")
+        concept_iri = sparql_iri(c_val)
         subpart_clauses.append(f"""
-        ?annotation{i} oa:hasBody <{safe_c}>;
+        ?annotation{i} oa:hasBody {concept_iri};
                        oa:hasTarget [ oa:hasSource ?paragraph ].
         """)
     subpart = "\n".join(subpart_clauses)

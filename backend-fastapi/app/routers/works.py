@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query
 
 from app.services.sparql_client import sparql_client
 from app.services.witness_dedup import dedupe_zoo_witnesses
+from app.shared.sparql import sparql_iri, sparql_literal
 
 router = APIRouter(tags=["Works & Authors"])
 
@@ -57,8 +58,7 @@ async def get_works() -> list[dict[str, Any]]:
 async def get_works_from_author(
     author: str = Query(..., description="Nom de l'auteur"),
 ) -> list[dict[str, Any]]:
-    # Échappement des guillemets pour éviter l'injection
-    safe_author = author.replace('"', '\\"')
+    author_literal = sparql_literal(author)
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
@@ -67,7 +67,7 @@ async def get_works_from_author(
               zoo:editor ?editor;
               (schema:title|zoo:title) ?title.
       OPTIONAL {{ ?oeuvre zoo:file ?file. }}
-      FILTER(str(?author) = "{safe_author}")
+      FILTER(str(?author) = {author_literal})
     }} GROUP BY ?oeuvre ?title ORDER BY ?title
     """
     res = await sparql_client.query(sparql)
@@ -89,13 +89,13 @@ async def get_works_from_author(
 async def get_work_by_uri(
     uri: str = Query(..., description="URI de l'œuvre ou partie"),
 ) -> list[dict[str, str]]:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    work_iri = sparql_iri(uri)
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?work ?author ?title WHERE {{
       {{
-        ?work zoo:hasPart+ <{safe_uri}>;
+        ?work zoo:hasPart+ {work_iri};
               zoo:author ?author;
               zoo:editor ?editor;
               zoo:title ?title.
@@ -125,11 +125,11 @@ async def get_work_by_uri(
 async def get_translation(
     uri: str = Query(..., description="URI de l'œuvre"),
 ) -> dict[str, str] | None:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    work_iri = sparql_iri(uri)
     file_sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
     SELECT ?file WHERE {{
-      <{safe_uri}> zoo:file ?file.
+      {work_iri} zoo:file ?file.
     }}
     """
     file_res = await sparql_client.query(file_sparql)
@@ -176,11 +176,11 @@ async def get_translation(
 async def get_work_part(
     title: str = Query(..., description="URI du livre ou oeuvre"),
 ) -> list[dict[str, Any]]:
-    safe_title = title.replace(">", "").replace("<", "")
+    part_iri = sparql_iri(title)
     sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?part ?type ?id ?title WHERE {{    
-      <{safe_title}> zoo:hasPart ?part.
+      {part_iri} zoo:hasPart ?part.
       ?part a ?type;
             zoo:identifier ?id;
             zoo:title ?title.
@@ -203,15 +203,15 @@ async def get_work_part(
 
 @router.get("/getMetadata")
 async def get_metadata(uri: str = Query(..., description="URI de l'oeuvre")) -> dict[str, Any]:
-    safe_uri = uri.replace(">", "").replace("<", "")
+    work_iri = sparql_iri(uri)
     sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?author ?editor ?file ?date WHERE {{
-      <{safe_uri}> a zoo:Oeuvre;
+      {work_iri} a zoo:Oeuvre;
         zoo:author ?author;
         zoo:date ?date;
         zoo:editor ?editor.
-      OPTIONAL {{ <{safe_uri}> zoo:file ?file_t. }}
+      OPTIONAL {{ {work_iri} zoo:file ?file_t. }}
       BIND(IF(BOUND(?file_t), ?file_t, 'word_files') as ?file)
     }}
     """

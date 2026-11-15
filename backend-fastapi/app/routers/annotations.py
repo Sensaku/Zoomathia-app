@@ -15,6 +15,7 @@ from app.models.annotation_models import (
 from app.routers.concepts import classify_concept
 from app.services.sparql_client import sparql_client
 from app.services.staging_store import staging_store
+from app.shared.sparql import sparql_iri, sparql_lang
 
 router = APIRouter(prefix="/annotations", tags=["annotations"])
 
@@ -68,8 +69,8 @@ async def get_section_annotations(
     ainsi que les annotations en staging (propositions en cours).
     Élimine la tempête N+1 de requêtes sur le Triplestore.
     """
-    safe_section = section_uri.replace(">", "").replace("<", "")
-    safe_lang = lang.replace('"', "")
+    section_iri = sparql_iri(section_uri)
+    lang_tag = sparql_lang(lang)
 
     # 1. Requête SPARQL groupée pour obtenir les annotations Corese de toute la section
     sparql_annots = f"""
@@ -78,7 +79,7 @@ async def get_section_annotations(
     prefix skos: <http://www.w3.org/2004/02/skos/core#> 
     SELECT DISTINCT ?paragraph ?annotation ?annotation_type ?concept ?label ?start ?end ?exact ?coll ?collLabel WHERE {{
       ?paragraph a zoo:Paragraph;
-                 zoo:isPartOf <{safe_section}>;
+                 zoo:isPartOf {section_iri};
                  zoo:hasAnnotation ?annotation.
       ?annotation a ?annotation_type;
         oa:hasBody ?concept;
@@ -91,7 +92,7 @@ async def get_section_annotations(
       FILTER(lang(?labelen) = "en")
       OPTIONAL {{
         ?concept skos:prefLabel ?labellang.
-        FILTER(lang(?labellang) = "{safe_lang}")
+        FILTER(lang(?labellang) = "{lang_tag}")
       }}
       OPTIONAL {{
         ?coll skos:member ?concept;
@@ -165,7 +166,7 @@ async def get_section_annotations(
         prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
         SELECT DISTINCT ?uri WHERE {{
           ?uri a zoo:Paragraph;
-               zoo:isPartOf <{safe_section}>.
+               zoo:isPartOf {section_iri}.
         }}
         """
         para_res = await sparql_client.query(sparql_paras)

@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, Response
 
 from app.core.config import settings
 from app.services.sparql_client import sparql_client
+from app.shared.sparql import sparql_iri
 
 router = APIRouter(tags=["Export & Downloads"])
 
@@ -124,14 +125,14 @@ async def download_custom_search_csv(sparql: str = Query(..., description="Requ�
 
 @router.get("/download-turtle")
 async def download_turtle(uri: str = Query(..., description="URI de l'oeuvre")):
-    safe_uri = uri.replace(">", "").replace("<", "")
+    work_iri = sparql_iri(uri)
     # Requête CONSTRUCT bornée pour ne pas faire crasher Corese comme le faisait DESCRIBE
     sparql = f"""
     PREFIX zoo: <http://ns.inria.fr/zoomathia/zoo#>
     CONSTRUCT {{
-      <{safe_uri}> ?p ?o .
+      {work_iri} ?p ?o .
     }} WHERE {{
-      <{safe_uri}> ?p ?o .
+      {work_iri} ?p ?o .
     }}
     """
     ttl = await sparql_client.construct(sparql)

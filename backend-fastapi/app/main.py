@@ -17,6 +17,7 @@ from app.routers import (
     works,
 )
 from app.services.sparql_client import sparql_client
+from app.shared.errors import register_error_handlers
 
 
 @asynccontextmanager
@@ -39,6 +40,8 @@ app = FastAPI(
         "persistAuthorization": True,
     },
 )
+
+register_error_handlers(app)
 
 # Configuration CORS propre
 app.add_middleware(
