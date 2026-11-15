@@ -1,6 +1,12 @@
 # Documentation générée par les agents à la racine
+# (seuls README, AGENTS et CLAUDE sont versionnés ; la doc durable va dans docs/)
 /*.md
 !/README.md
+!/AGENTS.md
+!/CLAUDE.md
+
+# Réglages Claude Code personnels
+.claude/settings.local.json
 
 # Ressources locales non versionnées
 /scripts/
