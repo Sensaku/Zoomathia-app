@@ -1,24 +1,32 @@
-import httpx
 import asyncio
 import logging
-from typing import Dict, Any, Optional
-from fastapi import HTTPException
-from app.core.config import settings
-
 import time
 from collections import OrderedDict
+from typing import Any
+
+import httpx
+from fastapi import HTTPException
+
+from app.core.config import settings
 
 logger = logging.getLogger("zoomathia.sparql")
 
+
 class SPARQLClient:
-    def __init__(self, endpoint: str = settings.SPARQL_ENDPOINT, timeout: float = settings.SPARQL_TIMEOUT, cache_ttl: float = 1800.0, max_cache_size: int = 500):
+    def __init__(
+        self,
+        endpoint: str = settings.SPARQL_ENDPOINT,
+        timeout: float = settings.SPARQL_TIMEOUT,
+        cache_ttl: float = 1800.0,
+        max_cache_size: int = 500,
+    ):
         self.endpoint = endpoint
         self.timeout = timeout
         self.cache_ttl = cache_ttl
         self.max_cache_size = max_cache_size
-        self._cache: OrderedDict[str, tuple[float, Dict[str, Any]]] = OrderedDict()
-        self._client: Optional[httpx.AsyncClient] = None
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._cache: OrderedDict[str, tuple[float, dict[str, Any]]] = OrderedDict()
+        self._client: httpx.AsyncClient | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     async def get_client(self) -> httpx.AsyncClient:
         current_loop = asyncio.get_running_loop()
@@ -26,7 +34,7 @@ class SPARQLClient:
             self._loop = current_loop
             self._client = httpx.AsyncClient(
                 timeout=httpx.Timeout(self.timeout, connect=10.0),
-                headers={"User-Agent": "ZoomathiaFastAPI/1.0"}
+                headers={"User-Agent": "ZoomathiaFastAPI/1.0"},
             )
         return self._client
 
@@ -40,7 +48,7 @@ class SPARQLClient:
         """Vide le cache des requêtes SPARQL."""
         self._cache.clear()
 
-    async def query(self, sparql_query: str, use_cache: bool = True) -> Dict[str, Any]:
+    async def query(self, sparql_query: str, use_cache: bool = True) -> dict[str, Any]:
         """Exécute une requête SPARQL SELECT et renvoie le JSON standardisé (avec mise en cache TTL)."""
         clean_query = " ".join(sparql_query.split())
         now = time.time()
@@ -57,7 +65,7 @@ class SPARQLClient:
         client = await self.get_client()
         params = {"query": sparql_query, "format": "json"}
         headers = {"Accept": "application/sparql-results+json"}
-        
+
         try:
             response = await client.get(self.endpoint, params=params, headers=headers)
             response.raise_for_status()
@@ -77,18 +85,22 @@ class SPARQLClient:
             logger.error(f"Timeout sur la requête SPARQL: {e}")
             raise HTTPException(status_code=504, detail="SPARQL query timed out")
         except httpx.HTTPStatusError as e:
-            logger.error(f"Erreur HTTP retournée par SPARQL ({e.response.status_code}): {e.response.text}")
+            logger.error(
+                f"Erreur HTTP retournée par SPARQL ({e.response.status_code}): {e.response.text}"
+            )
             raise HTTPException(status_code=502, detail=f"SPARQL error: {e.response.status_code}")
         except Exception as e:
             logger.error(f"Erreur inattendue lors de la requête SPARQL: {e}")
-            raise HTTPException(status_code=500, detail=f"Internal SPARQL processing error: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"Internal SPARQL processing error: {str(e)}"
+            )
 
     async def construct(self, sparql_query: str) -> str:
         """Exécute une requête SPARQL CONSTRUCT ou DESCRIBE et renvoie du texte Turtle."""
         client = await self.get_client()
         params = {"query": sparql_query}
         headers = {"Accept": "text/turtle"}
-        
+
         try:
             response = await client.get(self.endpoint, params=params, headers=headers)
             response.raise_for_status()
@@ -96,5 +108,6 @@ class SPARQLClient:
         except Exception as e:
             logger.error(f"Erreur CONSTRUCT SPARQL: {e}")
             raise HTTPException(status_code=502, detail=f"SPARQL query failed: {str(e)}")
+
 
 sparql_client = SPARQLClient()

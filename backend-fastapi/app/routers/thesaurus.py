@@ -2,28 +2,32 @@
 Routeur FastAPI pour l'interaction avec le thésaurus TheZoo (th310) et OpenTheso Huma-Num.
 """
 
-from typing import List, Optional
-from fastapi import APIRouter, Query, HTTPException, Response
-from app.services.opentheso_client import opentheso_client
-from app.services.staging_store import staging_store
+from fastapi import APIRouter, HTTPException, Query, Response
+
 from app.models.annotation_models import (
     ThesaurusProposalRequest,
     ThesaurusProposalResponse,
     UpdateProposalStatusRequest,
 )
+from app.services.opentheso_client import opentheso_client
+from app.services.staging_store import staging_store
 
 router = APIRouter(prefix="/thesaurus", tags=["thesaurus"])
 
 
 @router.get("/autocomplete")
-async def autocomplete_thesaurus(q: str = Query(..., min_length=2, description="Préfixe de recherche")):
+async def autocomplete_thesaurus(
+    q: str = Query(..., min_length=2, description="Préfixe de recherche"),
+):
     """Recherche temps réel de concepts dans TheZoo (th310) via l'API OpenTheso d'Huma-Num."""
     results = await opentheso_client.autocomplete(q)
     return results
 
 
 @router.get("/concept")
-async def get_thesaurus_concept(id: str = Query(..., description="Identifiant OpenTheso du concept (ex: 105466)")):
+async def get_thesaurus_concept(
+    id: str = Query(..., description="Identifiant OpenTheso du concept (ex: 105466)"),
+):
     """Récupère la notice sémantique JSON-LD d'un concept du thésaurus."""
     data = await opentheso_client.get_concept_details(id)
     if not data:
@@ -40,10 +44,10 @@ async def submit_thesaurus_proposal(proposal: ThesaurusProposalRequest):
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@router.get("/proposals", response_model=List[ThesaurusProposalResponse])
+@router.get("/proposals", response_model=list[ThesaurusProposalResponse])
 async def list_thesaurus_proposals(
-    status: Optional[str] = Query(None, description="Filtrer par statut"),
-    q: Optional[str] = Query(None, description="Recherche textuelle libre")
+    status: str | None = Query(None, description="Filtrer par statut"),
+    q: str | None = Query(None, description="Recherche textuelle libre"),
 ):
     """Liste les propositions de termes enregistrées avec filtrage optionnel."""
     return staging_store.get_proposals(status=status, search=q)
@@ -56,7 +60,7 @@ async def update_thesaurus_proposal_status(proposal_id: int, req: UpdateProposal
     if req.status not in valid_statuses:
         raise HTTPException(
             status_code=400,
-            detail=f"Statut invalide '{req.status}'. Valeurs permises: {', '.join(valid_statuses)}"
+            detail=f"Statut invalide '{req.status}'. Valeurs permises: {', '.join(valid_statuses)}",
         )
     updated = staging_store.update_proposal_status(proposal_id, req.status)
     if not updated:
@@ -80,5 +84,5 @@ async def export_proposals_turtle():
     return Response(
         content=ttl_content,
         media_type="text/turtle",
-        headers={"Content-Disposition": "attachment; filename=thezoo_proposals.ttl"}
+        headers={"Content-Disposition": "attachment; filename=thezoo_proposals.ttl"},
     )

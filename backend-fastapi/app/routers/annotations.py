@@ -3,16 +3,18 @@ Routeur FastAPI pour les annotations manuelles au standard W3C Web Annotation (o
 Permet aux chercheurs d'annoter des passages textuels, de modérer les propositions et d'exporter les triplets RDF.
 """
 
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Query, HTTPException, Response
-from app.services.staging_store import staging_store
-from app.services.sparql_client import sparql_client
-from app.routers.concepts import classify_concept
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Query, Response
+
 from app.models.annotation_models import (
-    CreateAnnotationRequest,
     AnnotationResponse,
+    CreateAnnotationRequest,
     UpdateAnnotationStatusRequest,
 )
+from app.routers.concepts import classify_concept
+from app.services.sparql_client import sparql_client
+from app.services.staging_store import staging_store
 
 router = APIRouter(prefix="/annotations", tags=["annotations"])
 
@@ -25,15 +27,17 @@ async def create_annotation(annotation: CreateAnnotationRequest):
         if annotation.end_offset <= annotation.start_offset:
             raise HTTPException(
                 status_code=400,
-                detail="L'offset de fin doit être strictement supérieur à l'offset de début."
+                detail="L'offset de fin doit être strictement supérieur à l'offset de début.",
             )
     return staging_store.add_annotation(annotation)
 
 
-@router.get("", response_model=List[AnnotationResponse])
+@router.get("", response_model=list[AnnotationResponse])
 async def list_annotations(
-    paragraph_uri: Optional[str] = Query(None, description="URI du paragraphe"),
-    status: Optional[str] = Query(None, description="Filtrer par statut ('En attente de validation', 'Validé', 'Rejeté')")
+    paragraph_uri: str | None = Query(None, description="URI du paragraphe"),
+    status: str | None = Query(
+        None, description="Filtrer par statut ('En attente de validation', 'Validé', 'Rejeté')"
+    ),
 ):
     """Liste les annotations enregistrées en staging, filtrables par paragraphe et par statut."""
     return staging_store.get_annotations(paragraph_uri=paragraph_uri, status=status)
@@ -46,7 +50,7 @@ async def update_annotation_status(annotation_id: int, req: UpdateAnnotationStat
     if req.status not in valid_statuses:
         raise HTTPException(
             status_code=400,
-            detail=f"Statut invalide. Valeurs autorisées : {', '.join(valid_statuses)}"
+            detail=f"Statut invalide. Valeurs autorisées : {', '.join(valid_statuses)}",
         )
     updated = staging_store.update_annotation_status(annotation_id, req.status)
     if not updated:
@@ -57,15 +61,15 @@ async def update_annotation_status(annotation_id: int, req: UpdateAnnotationStat
 @router.get("/section")
 async def get_section_annotations(
     section_uri: str = Query(..., description="URI de la section / chapitre"),
-    lang: str = Query("en", description="Code langue pour les labels")
-) -> Dict[str, Any]:
+    lang: str = Query("en", description="Code langue pour les labels"),
+) -> dict[str, Any]:
     """
     Récupère en un appel groupé toutes les annotations de référence Corese d'une section
     ainsi que les annotations en staging (propositions en cours).
     Élimine la tempête N+1 de requêtes sur le Triplestore.
     """
-    safe_section = section_uri.replace('>', '').replace('<', '')
-    safe_lang = lang.replace('"', '')
+    safe_section = section_uri.replace(">", "").replace("<", "")
+    safe_lang = lang.replace('"', "")
 
     # 1. Requête SPARQL groupée pour obtenir les annotations Corese de toute la section
     sparql_annots = f"""
@@ -108,7 +112,7 @@ async def get_section_annotations(
     bindings = res.get("results", {}).get("bindings", [])
 
     # Indexation par paragraphe
-    reference_annotations: Dict[str, Dict[str, Any]] = {}
+    reference_annotations: dict[str, dict[str, Any]] = {}
     section_paras_set = set()
 
     for elt in bindings:
@@ -135,10 +139,13 @@ async def get_section_annotations(
                 "type": elt.get("annotation_type", {}).get("value"),
                 "category": cat,
                 "collection": coll_lbl,
-                "offset": []
+                "offset": [],
             }
         else:
-            if reference_annotations[para_uri][label].get("category") == "general" and cat != "general":
+            if (
+                reference_annotations[para_uri][label].get("category") == "general"
+                and cat != "general"
+            ):
                 reference_annotations[para_uri][label]["category"] = cat
                 reference_annotations[para_uri][label]["collection"] = coll_lbl
 
@@ -146,7 +153,7 @@ async def get_section_annotations(
         end = elt.get("end", {}).get("value", 0)
         new_offset = {
             "start": int(start) if str(start).isdigit() else 0,
-            "end": int(end) if str(end).isdigit() else 0
+            "end": int(end) if str(end).isdigit() else 0,
         }
         if new_offset not in reference_annotations[para_uri][label]["offset"]:
             reference_annotations[para_uri][label]["offset"].append(new_offset)
@@ -173,7 +180,7 @@ async def get_section_annotations(
         "section_uri": section_uri,
         "paragraph_count": len(section_paras_set),
         "reference_annotations": reference_annotations,
-        "staged_annotations": [s.model_dump() for s in staged]
+        "staged_annotations": [s.model_dump() for s in staged],
     }
 
 
@@ -193,5 +200,5 @@ async def export_annotations_turtle():
     return Response(
         content=ttl_content,
         media_type="text/turtle",
-        headers={"Content-Disposition": "attachment; filename=zoomathia_staging_annotations.ttl"}
+        headers={"Content-Disposition": "attachment; filename=zoomathia_staging_annotations.ttl"},
     )

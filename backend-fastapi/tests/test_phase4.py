@@ -7,7 +7,8 @@ Tests d'intégration automatisés pour la Phase 4 :
 """
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from app.main import app
 
 
@@ -28,7 +29,7 @@ async def test_thesaurus_autocomplete():
 async def test_create_and_list_annotation():
     transport = ASGITransport(app=app)
     test_para = "http://zoomathia.i3s.unice.fr/corpus/test_para_42"
-    
+
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # 1. Création
         create_payload = {
@@ -38,7 +39,7 @@ async def test_create_and_list_annotation():
             "end_offset": 16,
             "concept_uri": "https://opentheso.huma-num.fr/?idc=107399&idt=th310",
             "concept_label": "canis",
-            "annotator_name": "Testeur Unitaire"
+            "annotator_name": "Testeur Unitaire",
         }
         res_create = await ac.post("/annotations", json=create_payload)
         assert res_create.status_code == 200
@@ -92,7 +93,7 @@ async def test_thesaurus_proposals():
             "alt_labels": ["Cervus elaphus", "Grand cerf"],
             "broader_concept_uri": "https://opentheso.huma-num.fr/?idc=107399&idt=th310",
             "definition": "Grand mammifère cervidé chassé dans l'Antiquité",
-            "contributor_name": "Arnaud B."
+            "contributor_name": "Arnaud B.",
         }
         # 1. Création
         res_create = await ac.post("/thesaurus/proposals", json=prop_payload)
@@ -113,7 +114,9 @@ async def test_thesaurus_proposals():
         assert any(p["id"] == prop_id for p in proposals)
 
         # 4. Modification de statut (Arbitrage scientifique)
-        res_status = await ac.patch(f"/thesaurus/proposals/{prop_id}/status", json={"status": "Validé"})
+        res_status = await ac.patch(
+            f"/thesaurus/proposals/{prop_id}/status", json={"status": "Validé"}
+        )
         assert res_status.status_code == 200
         assert res_status.json()["status"] == "Validé"
 
@@ -172,7 +175,7 @@ async def test_annotation_status_and_justification():
             "concept_label": "aigle royal",
             "annotator_name": "Éthologue testeur",
             "justification": "Mention explicite de l'aigle doré chez Aristote",
-            "scope_type": "word_sequence"
+            "scope_type": "word_sequence",
         }
         res = await ac.post("/annotations", json=payload)
         assert res.status_code == 200
@@ -213,7 +216,7 @@ async def test_multi_paragraph_annotation():
             "concept_uri": "https://opentheso.huma-num.fr/?idc=105525&idt=th310",
             "concept_label": "aquila",
             "scope_type": "multi_paragraph",
-            "justification": "Long passage éthologique"
+            "justification": "Long passage éthologique",
         }
         res = await ac.post("/annotations", json=payload)
         assert res.status_code == 200

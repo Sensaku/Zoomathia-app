@@ -8,19 +8,19 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any
 
+from app.core.config import settings
+from app.core.qcs_data import QCS_DATA
 from app.models.annotation_models import (
-    CreateAnnotationRequest,
     AnnotationResponse,
+    CreateAnnotationRequest,
+    CreateSavedQueryRequest,
+    SavedQueryResponse,
     ThesaurusProposalRequest,
     ThesaurusProposalResponse,
-    CreateSavedQueryRequest,
     UpdateSavedQueryRequest,
-    SavedQueryResponse,
 )
-from app.core.qcs_data import QCS_DATA
-from app.core.config import settings
 
 # Emplacement configurable de la base SQLite de staging
 DB_PATH = Path(settings.STAGING_DB_PATH)
@@ -43,7 +43,7 @@ class StagingStore:
         """Initialise le schéma relationnel SQLite si la base n'existe pas encore."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            
+
             # Table des annotations manuelles W3C
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS staged_annotations (
@@ -94,7 +94,9 @@ class StagingStore:
                 )
             """)
             try:
-                cursor.execute("ALTER TABLE thesaurus_proposals ADD COLUMN broader_concept_label TEXT")
+                cursor.execute(
+                    "ALTER TABLE thesaurus_proposals ADD COLUMN broader_concept_label TEXT"
+                )
             except sqlite3.OperationalError:
                 pass
 
@@ -123,7 +125,9 @@ class StagingStore:
 
         for qc in QCS_DATA:
             qc_id = qc["id"]
-            cursor.execute("SELECT COUNT(*) FROM saved_queries WHERE id = ? AND is_builtin = 1", (qc_id,))
+            cursor.execute(
+                "SELECT COUNT(*) FROM saved_queries WHERE id = ? AND is_builtin = 1", (qc_id,)
+            )
             if cursor.fetchone()[0] > 0:
                 continue
 
@@ -133,7 +137,7 @@ class StagingStore:
             query_text = ""
             if rq_path.exists():
                 try:
-                    with open(rq_path, "r", encoding="utf-8") as f:
+                    with open(rq_path, encoding="utf-8") as f:
                         query_text = f.read()
                 except Exception:
                     pass
@@ -141,7 +145,7 @@ class StagingStore:
             query_spo_text = None
             if spo_path.exists():
                 try:
-                    with open(spo_path, "r", encoding="utf-8") as f:
+                    with open(spo_path, encoding="utf-8") as f:
                         query_spo_text = f.read()
                 except Exception:
                     pass
@@ -164,7 +168,7 @@ class StagingStore:
                         "Équipe scientifique Zoomathia",
                         1,
                         now,
-                        now
+                        now,
                     ),
                 )
 
@@ -231,13 +235,13 @@ class StagingStore:
 
     def get_annotations(
         self,
-        paragraph_uri: Optional[str] = None,
-        status: Optional[str] = None,
-        section_paragraphs: Optional[List[str]] = None
-    ) -> List[AnnotationResponse]:
+        paragraph_uri: str | None = None,
+        status: str | None = None,
+        section_paragraphs: list[str] | None = None,
+    ) -> list[AnnotationResponse]:
         """Retourne la liste des annotations en staging, filtrable par paragraphe, statut, ou ensemble de paragraphes."""
         query = "SELECT * FROM staged_annotations WHERE 1=1"
-        params: List[Any] = []
+        params: list[Any] = []
 
         if paragraph_uri:
             query += " AND (paragraph_uri = ? OR target_paragraphs LIKE ?)"
@@ -253,13 +257,19 @@ class StagingStore:
             cursor = conn.cursor()
             cursor.execute(query, tuple(params))
             rows = cursor.fetchall()
-            
+
             results = []
             for row in rows:
                 keys = row.keys()
-                target_paras_val = row["target_paragraphs"] if "target_paragraphs" in keys and row["target_paragraphs"] else None
+                target_paras_val = (
+                    row["target_paragraphs"]
+                    if "target_paragraphs" in keys and row["target_paragraphs"]
+                    else None
+                )
                 try:
-                    paras_list = json.loads(target_paras_val) if target_paras_val else [row["paragraph_uri"]]
+                    paras_list = (
+                        json.loads(target_paras_val) if target_paras_val else [row["paragraph_uri"]]
+                    )
                 except Exception:
                     paras_list = [row["paragraph_uri"]]
 
@@ -280,22 +290,29 @@ class StagingStore:
                         concept_type=row["concept_type"],
                         annotator_name=row["annotator_name"],
                         justification=row["justification"] if "justification" in keys else None,
-                        scope_type=row["scope_type"] if "scope_type" in keys and row["scope_type"] else "word_sequence",
-                        end_paragraph_uri=row["end_paragraph_uri"] if "end_paragraph_uri" in keys else None,
+                        scope_type=row["scope_type"]
+                        if "scope_type" in keys and row["scope_type"]
+                        else "word_sequence",
+                        end_paragraph_uri=row["end_paragraph_uri"]
+                        if "end_paragraph_uri" in keys
+                        else None,
                         target_paragraphs=paras_list,
-                        status=row["status"] if "status" in keys and row["status"] else "En attente de validation",
+                        status=row["status"]
+                        if "status" in keys and row["status"]
+                        else "En attente de validation",
                         created_at=row["created_at"],
                     )
                 )
             return results
 
-    def update_annotation_status(self, annotation_id: int, status: str) -> Optional[AnnotationResponse]:
+    def update_annotation_status(
+        self, annotation_id: int, status: str
+    ) -> AnnotationResponse | None:
         """Met à jour le statut d'arbitrage d'une annotation (Validé, Rejeté, En attente de validation)."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE staged_annotations SET status = ? WHERE id = ?",
-                (status, annotation_id)
+                "UPDATE staged_annotations SET status = ? WHERE id = ?", (status, annotation_id)
             )
             conn.commit()
             cursor.execute("SELECT * FROM staged_annotations WHERE id = ?", (annotation_id,))
@@ -303,9 +320,15 @@ class StagingStore:
             if not row:
                 return None
             keys = row.keys()
-            target_paras_val = row["target_paragraphs"] if "target_paragraphs" in keys and row["target_paragraphs"] else None
+            target_paras_val = (
+                row["target_paragraphs"]
+                if "target_paragraphs" in keys and row["target_paragraphs"]
+                else None
+            )
             try:
-                paras_list = json.loads(target_paras_val) if target_paras_val else [row["paragraph_uri"]]
+                paras_list = (
+                    json.loads(target_paras_val) if target_paras_val else [row["paragraph_uri"]]
+                )
             except Exception:
                 paras_list = [row["paragraph_uri"]]
 
@@ -320,10 +343,14 @@ class StagingStore:
                 concept_type=row["concept_type"],
                 annotator_name=row["annotator_name"],
                 justification=row["justification"] if "justification" in keys else None,
-                scope_type=row["scope_type"] if "scope_type" in keys and row["scope_type"] else "word_sequence",
+                scope_type=row["scope_type"]
+                if "scope_type" in keys and row["scope_type"]
+                else "word_sequence",
                 end_paragraph_uri=row["end_paragraph_uri"] if "end_paragraph_uri" in keys else None,
                 target_paragraphs=paras_list,
-                status=row["status"] if "status" in keys and row["status"] else "En attente de validation",
+                status=row["status"]
+                if "status" in keys and row["status"]
+                else "En attente de validation",
                 created_at=row["created_at"],
             )
 
@@ -394,13 +421,11 @@ class StagingStore:
         )
 
     def get_proposals(
-        self,
-        status: Optional[str] = None,
-        search: Optional[str] = None
-    ) -> List[ThesaurusProposalResponse]:
+        self, status: str | None = None, search: str | None = None
+    ) -> list[ThesaurusProposalResponse]:
         """Retourne la liste des propositions de concepts enregistrées avec filtres optionnels."""
         query = "SELECT * FROM thesaurus_proposals WHERE 1=1"
-        params: List[Any] = []
+        params: list[Any] = []
 
         if status:
             query += " AND status = ?"
@@ -424,7 +449,9 @@ class StagingStore:
                     language=row["language"],
                     alt_labels=json.loads(row["alt_labels"]),
                     broader_concept_uri=row["broader_concept_uri"],
-                    broader_concept_label=row["broader_concept_label"] if "broader_concept_label" in row.keys() else None,
+                    broader_concept_label=row["broader_concept_label"]
+                    if "broader_concept_label" in row.keys()
+                    else None,
                     definition=row["definition"],
                     contributor_name=row["contributor_name"],
                     status=row["status"],
@@ -441,13 +468,14 @@ class StagingStore:
             conn.commit()
             return cursor.rowcount > 0
 
-    def update_proposal_status(self, proposal_id: int, status: str) -> Optional[ThesaurusProposalResponse]:
+    def update_proposal_status(
+        self, proposal_id: int, status: str
+    ) -> ThesaurusProposalResponse | None:
         """Met à jour le statut d'arbitrage d'une proposition (Validé, Rejeté, En attente de révision)."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE thesaurus_proposals SET status = ? WHERE id = ?",
-                (status, proposal_id)
+                "UPDATE thesaurus_proposals SET status = ? WHERE id = ?", (status, proposal_id)
             )
             conn.commit()
             cursor.execute("SELECT * FROM thesaurus_proposals WHERE id = ?", (proposal_id,))
@@ -460,7 +488,9 @@ class StagingStore:
                 language=row["language"],
                 alt_labels=json.loads(row["alt_labels"]),
                 broader_concept_uri=row["broader_concept_uri"],
-                broader_concept_label=row["broader_concept_label"] if "broader_concept_label" in row.keys() else None,
+                broader_concept_label=row["broader_concept_label"]
+                if "broader_concept_label" in row.keys()
+                else None,
                 definition=row["definition"],
                 contributor_name=row["contributor_name"],
                 status=row["status"],
@@ -491,18 +521,22 @@ class StagingStore:
             annot_uri = f"<http://zoomathia.i3s.unice.fr/annotation/staging/{a.id}>"
             target_blank = f"_:target_{a.id}"
             selector_blank = f"_:selector_{a.id}"
-            escaped_text = a.target_text.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ')
+            escaped_text = (
+                a.target_text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
+            )
 
             lines.append(f"{annot_uri} a oa:Annotation ;")
             lines.append(f"    oa:hasBody <{a.concept_uri}> ;")
             lines.append(f"    oa:hasTarget {target_blank} ;")
-            lines.append(f"    dcterms:creator \"{a.annotator_name}\" ;")
-            lines.append(f"    zoo:proposalStatus \"{a.status}\" ;")
-            lines.append(f"    zoo:scopeType \"{a.scope_type}\" ;")
+            lines.append(f'    dcterms:creator "{a.annotator_name}" ;')
+            lines.append(f'    zoo:proposalStatus "{a.status}" ;')
+            lines.append(f'    zoo:scopeType "{a.scope_type}" ;')
             if a.justification:
-                escaped_just = a.justification.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ')
-                lines.append(f"    dcterms:description \"{escaped_just}\" ;")
-            lines.append(f"    dcterms:created \"{a.created_at}\"^^xsd:dateTime .")
+                escaped_just = (
+                    a.justification.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
+                )
+                lines.append(f'    dcterms:description "{escaped_just}" ;')
+            lines.append(f'    dcterms:created "{a.created_at}"^^xsd:dateTime .')
             lines.append("")
             lines.append(f"{target_blank} a oa:SpecificResource ;")
             lines.append(f"    oa:hasSource <{a.paragraph_uri}> ;")
@@ -511,7 +545,7 @@ class StagingStore:
             lines.append(f"    oa:hasSelector {selector_blank} .")
             lines.append("")
             lines.append(f"{selector_blank} a oa:TextPositionSelector ;")
-            lines.append(f"    oa:exact \"{escaped_text}\" ;")
+            lines.append(f'    oa:exact "{escaped_text}" ;')
             lines.append(f"    oa:start {a.start_offset} ;")
             lines.append(f"    oa:end {a.end_offset} .")
             lines.append("")
@@ -537,17 +571,17 @@ class StagingStore:
             concept_uri = f"<http://zoomathia.i3s.unice.fr/concept/proposal/{p.id}>"
             escaped_pref = p.pref_label.replace('"', '\\"')
             lines.append(f"{concept_uri} a skos:Concept ;")
-            lines.append(f"    skos:prefLabel \"{escaped_pref}\"@{p.language} ;")
+            lines.append(f'    skos:prefLabel "{escaped_pref}"@{p.language} ;')
             for alt in p.alt_labels:
                 escaped_alt = alt.replace('"', '\\"')
-                lines.append(f"    skos:altLabel \"{escaped_alt}\"@{p.language} ;")
+                lines.append(f'    skos:altLabel "{escaped_alt}"@{p.language} ;')
             if p.broader_concept_uri:
                 lines.append(f"    skos:broader <{p.broader_concept_uri}> ;")
             if p.definition:
-                escaped_def = p.definition.replace('\\', '\\\\').replace('"', '\\"')
-                lines.append(f"    skos:definition \"{escaped_def}\"@{p.language} ;")
-            lines.append(f"    dcterms:creator \"{p.contributor_name}\" ;")
-            lines.append(f"    dcterms:created \"{p.created_at}\"^^xsd:dateTime .")
+                escaped_def = p.definition.replace("\\", "\\\\").replace('"', '\\"')
+                lines.append(f'    skos:definition "{escaped_def}"@{p.language} ;')
+            lines.append(f'    dcterms:creator "{p.contributor_name}" ;')
+            lines.append(f'    dcterms:created "{p.created_at}"^^xsd:dateTime .')
             lines.append("")
 
         return "\n".join(lines)
@@ -584,11 +618,11 @@ class StagingStore:
         return self.get_saved_query_by_id(query_id)  # type: ignore
 
     def get_saved_queries(
-        self, category: Optional[str] = None, search: Optional[str] = None
-    ) -> List[SavedQueryResponse]:
+        self, category: str | None = None, search: str | None = None
+    ) -> list[SavedQueryResponse]:
         """Retourne les requêtes sauvegardées avec filtrage optionnel."""
         query_sql = "SELECT * FROM saved_queries WHERE 1=1"
-        params: List[Any] = []
+        params: list[Any] = []
 
         if category:
             query_sql += " AND category = ?"
@@ -620,7 +654,7 @@ class StagingStore:
                 for row in rows
             ]
 
-    def get_saved_query_by_id(self, query_id: int) -> Optional[SavedQueryResponse]:
+    def get_saved_query_by_id(self, query_id: int) -> SavedQueryResponse | None:
         """Récupère une requête par son identifiant unique."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -643,7 +677,7 @@ class StagingStore:
 
     def update_saved_query(
         self, query_id: int, req: UpdateSavedQueryRequest
-    ) -> Optional[SavedQueryResponse]:
+    ) -> SavedQueryResponse | None:
         """Met à jour une requête existante."""
         existing = self.get_saved_query_by_id(query_id)
         if not existing:
@@ -653,9 +687,15 @@ class StagingStore:
         new_title = req.title.strip() if req.title is not None else existing.title
         new_desc = req.description.strip() if req.description is not None else existing.description
         new_query = req.query_text.strip() if req.query_text is not None else existing.query_text
-        new_spo = req.query_spo_text.strip() if req.query_spo_text is not None else existing.query_spo_text
+        new_spo = (
+            req.query_spo_text.strip()
+            if req.query_spo_text is not None
+            else existing.query_spo_text
+        )
         new_cat = req.category.strip() if req.category is not None else existing.category
-        new_author = req.author_name.strip() if req.author_name is not None else existing.author_name
+        new_author = (
+            req.author_name.strip() if req.author_name is not None else existing.author_name
+        )
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -678,7 +718,9 @@ class StagingStore:
         if not existing:
             return False
         if existing.is_builtin:
-            raise ValueError("Impossible de supprimer une question de compétence native du système.")
+            raise ValueError(
+                "Impossible de supprimer une question de compétence native du système."
+            )
 
         with self._get_connection() as conn:
             cursor = conn.cursor()

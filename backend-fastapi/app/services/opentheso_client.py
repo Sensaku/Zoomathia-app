@@ -4,14 +4,15 @@ Fournit l'autocomplétion en temps réel et la récupération des notices de con
 """
 
 import time
+from typing import Any
+
 import httpx
-from typing import List, Dict, Any, Optional
 
 OPENTHESO_BASE_URL = "https://opentheso.huma-num.fr"
 DEFAULT_THESO_ID = "th310"  # Identifiant OpenTheso du thésaurus Zoomathia TheZoo
 
 # Cache mémoire simple avec expiration TTL (600 secondes = 10 minutes)
-_CACHE: Dict[str, Dict[str, Any]] = {}
+_CACHE: dict[str, dict[str, Any]] = {}
 CACHE_TTL_SECONDS = 600
 
 
@@ -23,7 +24,7 @@ class OpenThesoClient:
 
     async def autocomplete(
         self, query: str, theso_id: str = DEFAULT_THESO_ID
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """
         Recherche des suggestions de concepts dans TheZoo par autocomplétion.
         Retourne une liste d'objets : [{"label": "canis", "uri": "https://...", "identifier": "..."}]
@@ -48,15 +49,17 @@ class OpenThesoClient:
                 if response.status_code == 200:
                     raw_data = response.json()
                     # Normalisation des résultats OpenTheso
-                    results: List[Dict[str, str]] = []
+                    results: list[dict[str, str]] = []
                     if isinstance(raw_data, list):
                         for item in raw_data:
                             if isinstance(item, dict) and "label" in item and "uri" in item:
-                                results.append({
-                                    "label": item.get("label", ""),
-                                    "uri": item.get("uri", ""),
-                                    "identifier": str(item.get("identifier", ""))
-                                })
+                                results.append(
+                                    {
+                                        "label": item.get("label", ""),
+                                        "uri": item.get("uri", ""),
+                                        "identifier": str(item.get("identifier", "")),
+                                    }
+                                )
                     _CACHE[cache_key] = {"data": results, "timestamp": now}
                     return results
         except Exception as e:
@@ -67,7 +70,7 @@ class OpenThesoClient:
 
     async def get_concept_details(
         self, concept_id: str, theso_id: str = DEFAULT_THESO_ID
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Récupère les détails sémantiques complets d'un concept en JSON-LD (labels multilingues, broader).
         """

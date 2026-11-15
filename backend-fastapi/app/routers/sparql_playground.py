@@ -4,9 +4,11 @@ Permet d'exécuter des requêtes de recherche ad-hoc sur le triplestore Corese a
 """
 
 import re
+
 from fastapi import APIRouter, HTTPException
-from app.services.sparql_client import sparql_client
+
 from app.models.annotation_models import SparqlQueryRequest
+from app.services.sparql_client import sparql_client
 
 router = APIRouter(prefix="/sparql", tags=["sparql"])
 
@@ -21,7 +23,10 @@ FORBIDDEN_KEYWORDS = [
     (r"\bCOPY\b", "Les opérations COPY sont strictement interdites."),
     (r"\bMOVE\b", "Les opérations MOVE sont strictement interdites."),
     (r"\bADD\b", "Les opérations ADD sont strictement interdites."),
-    (r"\bSERVICE\b", "Les requêtes fédérées (clause SERVICE) sont strictement interdites pour des raisons de sécurité."),
+    (
+        r"\bSERVICE\b",
+        "Les requêtes fédérées (clause SERVICE) sont strictement interdites pour des raisons de sécurité.",
+    ),
 ]
 
 MUTATION_KEYWORDS = [pattern for pattern, _ in FORBIDDEN_KEYWORDS]
@@ -44,14 +49,13 @@ async def execute_sparql_query(payload: SparqlQueryRequest):
     if re.search(r"\b(CONSTRUCT|DESCRIBE)\b", clean_query, re.IGNORECASE):
         raise HTTPException(
             status_code=400,
-            detail="Les requêtes CONSTRUCT et DESCRIBE ne sont pas autorisées dans le Playground. Seules les requêtes tabulaires SELECT (ou ASK) sont supportées."
+            detail="Les requêtes CONSTRUCT et DESCRIBE ne sont pas autorisées dans le Playground. Seules les requêtes tabulaires SELECT (ou ASK) sont supportées.",
         )
 
     # 3. Vérification de la présence d'une commande de lecture supportée
     if not re.search(r"\b(SELECT|ASK)\b", clean_query, re.IGNORECASE):
         raise HTTPException(
-            status_code=400,
-            detail="La requête doit comporter une clause SELECT ou ASK."
+            status_code=400, detail="La requête doit comporter une clause SELECT ou ASK."
         )
 
     # 3. Exécution asynchrone sur Corese
@@ -59,8 +63,7 @@ async def execute_sparql_query(payload: SparqlQueryRequest):
         data = await sparql_client.query(clean_query)
     except Exception as e:
         raise HTTPException(
-            status_code=502,
-            detail=f"Erreur d'exécution SPARQL sur Corese : {str(e)}"
+            status_code=502, detail=f"Erreur d'exécution SPARQL sur Corese : {str(e)}"
         )
 
     bindings = data.get("results", {}).get("bindings", [])

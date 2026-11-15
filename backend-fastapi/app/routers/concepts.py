@@ -1,44 +1,129 @@
-from fastapi import APIRouter, Query, Body
-from typing import List, Dict, Any, Optional
+from typing import Any
+
+from fastapi import APIRouter, Body, Query
 from pydantic import BaseModel
+
 from app.services.sparql_client import sparql_client
 
 router = APIRouter(tags=["Concepts & Thesaurus"])
 
+
 class ConceptInput(BaseModel):
     value: str
-    type: Optional[str] = None
+    type: str | None = None
+
 
 class ParagraphWithConceptRequest(BaseModel):
     uri: str
-    concepts: List[ConceptInput]
+    concepts: list[ConceptInput]
+
 
 ROOT_ANIMAL_IDS = {
-    '4988', '106004', '107676', '105539', '105555', '105540', '105541',
-    '107008', '106789', '107912', '105781', '105782', '106935', '106749',
-    '106753', '108745', '106933', '107467', '107292', '107286', '108048',
-    '108187', '108313', '108179', '108175', '108177', '107264', '107948',
-    '107515', '107743', '107284', '108169', '108303', '108221', '108223',
-    '107473', '5037', '105780', '4996', '15094',
+    "4988",
+    "106004",
+    "107676",
+    "105539",
+    "105555",
+    "105540",
+    "105541",
+    "107008",
+    "106789",
+    "107912",
+    "105781",
+    "105782",
+    "106935",
+    "106749",
+    "106753",
+    "108745",
+    "106933",
+    "107467",
+    "107292",
+    "107286",
+    "108048",
+    "108187",
+    "108313",
+    "108179",
+    "108175",
+    "108177",
+    "107264",
+    "107948",
+    "107515",
+    "107743",
+    "107284",
+    "108169",
+    "108303",
+    "108221",
+    "108223",
+    "107473",
+    "5037",
+    "105780",
+    "4996",
+    "15094",
     # Descendants directs de DOMESTIQUE et SAUVAGE
-    'pcrt3jcrAaRENB', 'pcrt4v7jKE3TVw', 'pcrt0wSiSXpLTf', 'pcrth4ik1YqDS1',
-    '106951', '105804', '106949', '106492', '106516', '106512', '5071',
-    '105993', '105994', '105996', 'pcrtDtJwUVaZ0I', 'pcrtLywf8Y5k0n',
-    '106552', '106554', 'pcrtamWjqMqPWT', 'pcrtOl4a3UUtiu', 'pcrtDoQWOTMlW7',
-    'pcrt6i8AcPBoY2', '106482', '106484', 'pcrtnpPag9iONJ', '107580',
-    '107578', '107582', '107914', 'pcrtEOlJwpiHmn', 'pcrt1eSDN7pc4r',
-    'pcrtoWmR7YcVct', '105904', 'pcrtRpEmyMyoAU', '106536', 'pcrtVibtZJlA99',
-    '105918', '106647', 'pcrtva7NUywIgB', '105879', 'pcrt8q2AHnsLUr',
-    'pcrt5TAeZsO7W4', '106524', 'pcrtlYnu8y5j62', '106620', 'pcrtRmvjGjzyOO',
-    '106269', '105880', '106622', '106626', '105898', 'pcrtZtKktLIqkU',
-    '107709', '105867', '105882', '106624'
+    "pcrt3jcrAaRENB",
+    "pcrt4v7jKE3TVw",
+    "pcrt0wSiSXpLTf",
+    "pcrth4ik1YqDS1",
+    "106951",
+    "105804",
+    "106949",
+    "106492",
+    "106516",
+    "106512",
+    "5071",
+    "105993",
+    "105994",
+    "105996",
+    "pcrtDtJwUVaZ0I",
+    "pcrtLywf8Y5k0n",
+    "106552",
+    "106554",
+    "pcrtamWjqMqPWT",
+    "pcrtOl4a3UUtiu",
+    "pcrtDoQWOTMlW7",
+    "pcrt6i8AcPBoY2",
+    "106482",
+    "106484",
+    "pcrtnpPag9iONJ",
+    "107580",
+    "107578",
+    "107582",
+    "107914",
+    "pcrtEOlJwpiHmn",
+    "pcrt1eSDN7pc4r",
+    "pcrtoWmR7YcVct",
+    "105904",
+    "pcrtRpEmyMyoAU",
+    "106536",
+    "pcrtVibtZJlA99",
+    "105918",
+    "106647",
+    "pcrtva7NUywIgB",
+    "105879",
+    "pcrt8q2AHnsLUr",
+    "pcrt5TAeZsO7W4",
+    "106524",
+    "pcrtlYnu8y5j62",
+    "106620",
+    "pcrtRmvjGjzyOO",
+    "106269",
+    "105880",
+    "106622",
+    "106626",
+    "105898",
+    "pcrtZtKktLIqkU",
+    "107709",
+    "105867",
+    "105882",
+    "106624",
 }
 
+
 def classify_concept(
-    coll_label: Optional[str] = None,
-    coll_uri: Optional[str] = None,
-    concept_label: Optional[str] = None,
-    concept_uri: Optional[str] = None
+    coll_label: str | None = None,
+    coll_uri: str | None = None,
+    concept_label: str | None = None,
+    concept_uri: str | None = None,
 ) -> str:
     """Détermine la catégorie taxonomique/thématique principale d'un concept TheZoo."""
     lbl = (concept_label or "").strip().lower()
@@ -51,59 +136,115 @@ def classify_concept(
 
     # 2. Vérification par libellé pour les concepts racines et dérivés animaux (Domestique, Sauvage, Animal, etc.)
     exact_root_animals = {
-        "domestique", "domestic", "domesticus", "domestico",
-        "sauvage", "wild", "ferus", "salvaje", "selvatico",
+        "domestique",
+        "domestic",
+        "domesticus",
+        "domestico",
+        "sauvage",
+        "wild",
+        "ferus",
+        "salvaje",
+        "selvatico",
         "ni domestique ni sauvage",
-        "animal domestique", "animal sauvage",
-        "animal", "animaux", "faune", "bête", "bestiole", "fauve",
-        "eumetazoa", "parazoa"
+        "animal domestique",
+        "animal sauvage",
+        "animal",
+        "animaux",
+        "faune",
+        "bête",
+        "bestiole",
+        "fauve",
+        "eumetazoa",
+        "parazoa",
     }
     if lbl in exact_root_animals:
         return "animal"
 
-    if any(lbl.startswith(prefix) for prefix in [
-        "animal ", "animaux ", "faune ", "bête ", "bestiole ",
-        "oiseau ", "poisson ", "reptile ", "insecte ", "squale "
-    ]):
+    if any(
+        lbl.startswith(prefix)
+        for prefix in [
+            "animal ",
+            "animaux ",
+            "faune ",
+            "bête ",
+            "bestiole ",
+            "oiseau ",
+            "poisson ",
+            "reptile ",
+            "insecte ",
+            "squale ",
+        ]
+    ):
         return "animal"
 
     # Animaux qualifiés de sauvage ou domestique (ex: "cheval sauvage", "âne sauvage", "taureau sauvage", "abeille sauvage")
-    if (lbl.endswith(" sauvage") or lbl.endswith(" domestique")) and not any(plant in lbl for plant in ["rosier", "figuier", "olivier", "laitue", "vigne", "pommier", "poirier"]):
+    if (lbl.endswith(" sauvage") or lbl.endswith(" domestique")) and not any(
+        plant in lbl
+        for plant in ["rosier", "figuier", "olivier", "laitue", "vigne", "pommier", "poirier"]
+    ):
         return "animal"
 
     # 3. Vérification par Collection TheZoo : MT_7 (Zoonyme), MT_10 (Archéotaxon)
-    if any(k in coll_str for k in ["zoonym", "archéotaxon", "archeotaxon", "ancient class", "idg=mt_7", "idg=mt_10"]):
+    if any(
+        k in coll_str
+        for k in ["zoonym", "archéotaxon", "archeotaxon", "ancient class", "idg=mt_7", "idg=mt_10"]
+    ):
         return "animal"
-    
+
     # 4. Comportements : Éthologie (MT_13) ou libellés éthologiques
-    if any(k in coll_str for k in ["éthologie", "ethologie", "ethology", "comportement", "behavior", "idg=mt_13"]):
+    if any(
+        k in coll_str
+        for k in ["éthologie", "ethologie", "ethology", "comportement", "behavior", "idg=mt_13"]
+    ):
         return "behavior"
-    if lbl in {"éthologie", "ethology", "comportement", "prédation", "intelligence", "parasitisme", "monogamie", "accouplement", "hygiène", "courage", "sagesse"}:
+    if lbl in {
+        "éthologie",
+        "ethology",
+        "comportement",
+        "prédation",
+        "intelligence",
+        "parasitisme",
+        "monogamie",
+        "accouplement",
+        "hygiène",
+        "courage",
+        "sagesse",
+    }:
         return "behavior"
-        
+
     # 5. Anatomie / Physiologie : MT_8, MT_11
-    if any(k in coll_str for k in ["anatomie", "anatomy", "physiologie", "physiology", "idg=mt_8", "idg=mt_11"]):
+    if any(
+        k in coll_str
+        for k in ["anatomie", "anatomy", "physiologie", "physiology", "idg=mt_8", "idg=mt_11"]
+    ):
         return "anatomy"
-    if any(lbl.startswith(p) for p in ["organe", "nageoire", "aile", "patte", "queue", "museau", "crâne"]):
+    if any(
+        lbl.startswith(p)
+        for p in ["organe", "nageoire", "aile", "patte", "queue", "museau", "crâne"]
+    ):
         return "anatomy"
-        
+
     # 6. Lieux / Géographie : MT_4
     if any(k in coll_str for k in ["lieu", "place", "géographie", "geography", "idg=mt_4"]):
         return "place"
-        
+
     # 7. Personnes / Peuples : MT_1, MT_5
-    if any(k in coll_str for k in ["anthroponyme", "anthroponym", "peuple", "people", "idg=mt_1", "idg=mt_5"]):
+    if any(
+        k in coll_str
+        for k in ["anthroponyme", "anthroponym", "peuple", "people", "idg=mt_1", "idg=mt_5"]
+    ):
         return "person"
-        
+
     return "general"
+
 
 @router.get("/getConcepts")
 async def get_concepts(
     uri: str = Query(..., description="URI du paragraphe"),
-    lang: str = Query("en", description="Code langue (ex: en, fr, lat)")
-) -> Dict[str, Any]:
-    safe_uri = uri.replace('>', '').replace('<', '')
-    safe_lang = lang.replace('"', '')
+    lang: str = Query("en", description="Code langue (ex: en, fr, lat)"),
+) -> dict[str, Any]:
+    safe_uri = uri.replace(">", "").replace("<", "")
+    safe_lang = lang.replace('"', "")
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -139,8 +280,8 @@ async def get_concepts(
     }} ORDER BY ?label
     """
     res = await sparql_client.query(sparql)
-    annotations: Dict[str, Any] = {}
-    
+    annotations: dict[str, Any] = {}
+
     bindings = res.get("results", {}).get("bindings", [])
     for elt in bindings:
         label = elt.get("label", {}).get("value")
@@ -150,7 +291,7 @@ async def get_concepts(
         coll_uri = elt.get("coll", {}).get("value")
         concept_val = elt.get("concept", {}).get("value")
         cat = classify_concept(coll_lbl, coll_uri, label, concept_val)
-        
+
         if label not in annotations:
             annotations[label] = {
                 "concept": concept_val,
@@ -158,7 +299,7 @@ async def get_concepts(
                 "type": elt.get("annotation_type", {}).get("value"),
                 "category": cat,
                 "collection": coll_lbl,
-                "offset": []
+                "offset": [],
             }
         else:
             if annotations[label].get("category") == "general" and cat != "general":
@@ -169,21 +310,22 @@ async def get_concepts(
         end = elt.get("end", {}).get("value", 0)
         new_offset = {
             "start": int(start) if str(start).isdigit() else 0,
-            "end": int(end) if str(end).isdigit() else 0
+            "end": int(end) if str(end).isdigit() else 0,
         }
         if new_offset not in annotations[label]["offset"]:
             annotations[label]["offset"].append(new_offset)
 
     return annotations
 
+
 @router.get("/searchConcepts")
 async def search_concepts(
     input: str = Query(..., min_length=1, description="Terme recherché"),
     lang: str = Query("en", description="Langue"),
-    limit: int = Query(60, ge=1, le=300, description="Nombre max de résultats")
-) -> List[Dict[str, Any]]:
+    limit: int = Query(60, ge=1, le=300, description="Nombre max de résultats"),
+) -> list[dict[str, Any]]:
     safe_input = input.replace('"', '\\"')
-    safe_lang = lang.replace('"', '')
+    safe_lang = lang.replace('"', "")
     sparql = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     SELECT DISTINCT ?concept ?label ?type ?coll ?collLabel WHERE {{
@@ -200,7 +342,7 @@ async def search_concepts(
     """
     res = await sparql_client.query(sparql)
     response = []
-    seen: Dict[str, Dict[str, Any]] = {}
+    seen: dict[str, dict[str, Any]] = {}
     for b in res.get("results", {}).get("bindings", []):
         if "concept" in b and "label" in b:
             uri = b["concept"]["value"]
@@ -209,14 +351,14 @@ async def search_concepts(
             coll_lbl = b.get("collLabel", {}).get("value")
             coll_uri = b.get("coll", {}).get("value")
             cat = classify_concept(coll_lbl, coll_uri, lbl, uri)
-            
+
             if uri not in seen:
                 item = {
                     "uri": uri,
                     "label": lbl,
-                    "type": c_type.split('#')[-1] if '#' in c_type else c_type,
+                    "type": c_type.split("#")[-1] if "#" in c_type else c_type,
                     "category": cat,
-                    "collection": coll_lbl
+                    "collection": coll_lbl,
                 }
                 seen[uri] = item
                 response.append(item)
@@ -226,12 +368,13 @@ async def search_concepts(
                     seen[uri]["collection"] = coll_lbl
     return response
 
+
 @router.get("/getCollections")
 async def get_collections(
-    lang: str = Query("fr", description="Langue des libellés (ex: fr, en)")
-) -> List[Dict[str, Any]]:
+    lang: str = Query("fr", description="Langue des libellés (ex: fr, en)"),
+) -> list[dict[str, Any]]:
     """Récupère les 14 collections thématiques SKOS de TheZoo avec décompte des membres."""
-    safe_lang = lang.replace('"', '')
+    safe_lang = lang.replace('"', "")
     sparql = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     SELECT DISTINCT ?coll ?label (count(?m) as ?members) WHERE {{
@@ -245,15 +388,18 @@ async def get_collections(
     collections = []
     for b in res.get("results", {}).get("bindings", []):
         if "coll" in b and "label" in b:
-            collections.append({
-                "uri": b["coll"]["value"],
-                "label": b["label"]["value"],
-                "memberCount": int(b.get("members", {}).get("value", 0))
-            })
+            collections.append(
+                {
+                    "uri": b["coll"]["value"],
+                    "label": b["label"]["value"],
+                    "memberCount": int(b.get("members", {}).get("value", 0)),
+                }
+            )
     return collections
 
+
 @router.get("/getLanguageConcept")
-async def get_language_concept() -> List[Dict[str, str]]:
+async def get_language_concept() -> list[dict[str, str]]:
     sparql = """
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     prefix schema: <http://schema.org/>
@@ -263,11 +409,16 @@ async def get_language_concept() -> List[Dict[str, str]]:
     }
     """
     res = await sparql_client.query(sparql)
-    return [{"value": b["lang"]["value"]} for b in res.get("results", {}).get("bindings", []) if "lang" in b and b["lang"]["value"]]
+    return [
+        {"value": b["lang"]["value"]}
+        for b in res.get("results", {}).get("bindings", [])
+        if "lang" in b and b["lang"]["value"]
+    ]
+
 
 @router.get("/getTheso")
-async def get_theso(lang: str = Query("en", description="Langue")) -> List[Dict[str, str]]:
-    safe_lang = lang.replace('"', '')
+async def get_theso(lang: str = Query("en", description="Langue")) -> list[dict[str, str]]:
+    safe_lang = lang.replace('"', "")
     sparql = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     SELECT DISTINCT ?concept ?label ?type WHERE {{
@@ -283,28 +434,26 @@ async def get_theso(lang: str = Query("en", description="Langue")) -> List[Dict[
             concept_type = b.get("type", {}).get("value", "")
             raw_label = b["label"]["value"]
             label = raw_label + " (Collection)" if "Collection" in concept_type else raw_label
-            response.append({
-                "label": label,
-                "value": b["concept"]["value"],
-                "type": concept_type
-            })
+            response.append({"label": label, "value": b["concept"]["value"], "type": concept_type})
     return response
 
+
 @router.get("/getTopConcepts")
-async def get_top_concepts(lang: str = Query("en")) -> List[Any]:
+async def get_top_concepts(lang: str = Query("en")) -> list[Any]:
     return []
 
+
 @router.post("/getParagraphWithConcept")
-async def get_paragraph_with_concept(payload: ParagraphWithConceptRequest) -> List[Dict[str, Any]]:
+async def get_paragraph_with_concept(payload: ParagraphWithConceptRequest) -> list[dict[str, Any]]:
     subpart_clauses = []
     for i, c in enumerate(payload.concepts):
-        safe_c = c.value.replace('>', '').replace('<', '')
+        safe_c = c.value.replace(">", "").replace("<", "")
         subpart_clauses.append(f"""
         ?annotation{i} oa:hasBody <{safe_c}>;
                        oa:hasTarget [ oa:hasSource ?paragraph ].
         """)
     subpart = "\n".join(subpart_clauses)
-    safe_uri = payload.uri.replace('>', '').replace('<', '')
+    safe_uri = payload.uri.replace(">", "").replace("<", "")
 
     sparql = f"""
     prefix schema: <http://schema.org/>
@@ -322,21 +471,24 @@ async def get_paragraph_with_concept(payload: ParagraphWithConceptRequest) -> Li
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "paragraph" in b:
-            response.append({
-                "uri": b["paragraph"]["value"],
-                "text": b.get("text", {}).get("value"),
-                "title": b.get("title", {}).get("value"),
-                "id": b.get("id", {}).get("value")
-            })
+            response.append(
+                {
+                    "uri": b["paragraph"]["value"],
+                    "text": b.get("text", {}).get("value"),
+                    "title": b.get("title", {}).get("value"),
+                    "id": b.get("id", {}).get("value"),
+                }
+            )
     return response
 
+
 @router.post("/getParagraphsWithConcepts")
-async def get_paragraphs_with_concepts(payload: Dict[str, Any] = Body(...)) -> List[Dict[str, Any]]:
+async def get_paragraphs_with_concepts(payload: dict[str, Any] = Body(...)) -> list[dict[str, Any]]:
     concepts_raw = payload.get("concepts", [])
     subpart_clauses = []
     for i, c in enumerate(concepts_raw):
         c_val = c.get("value", "") if isinstance(c, dict) else str(c)
-        safe_c = c_val.replace('>', '').replace('<', '')
+        safe_c = c_val.replace(">", "").replace("<", "")
         subpart_clauses.append(f"""
         ?annotation{i} oa:hasBody <{safe_c}>;
                        oa:hasTarget [ oa:hasSource ?paragraph ].
@@ -365,13 +517,15 @@ async def get_paragraphs_with_concepts(payload: Dict[str, Any] = Body(...)) -> L
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "paragraph" in b:
-            response.append({
-                "author": b.get("author", {}).get("value"),
-                "bookUri": b.get("uri", {}).get("value"),
-                "bookId": b.get("book", {}).get("value"),
-                "title": b.get("title", {}).get("value"),
-                "uri": b["paragraph"]["value"],
-                "text": b.get("text", {}).get("value"),
-                "id": b.get("id", {}).get("value")
-            })
+            response.append(
+                {
+                    "author": b.get("author", {}).get("value"),
+                    "bookUri": b.get("uri", {}).get("value"),
+                    "bookId": b.get("book", {}).get("value"),
+                    "title": b.get("title", {}).get("value"),
+                    "uri": b["paragraph"]["value"],
+                    "text": b.get("text", {}).get("value"),
+                    "id": b.get("id", {}).get("value"),
+                }
+            )
     return response

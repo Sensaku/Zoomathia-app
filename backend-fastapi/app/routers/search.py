@@ -1,60 +1,70 @@
-from fastapi import APIRouter, Body, HTTPException
-from typing import List, Dict, Any, Optional
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
 from app.services.sparql_client import sparql_client
 from app.services.tree_builder import build_custom_search_tree
 
 router = APIRouter(tags=["Search"])
 
+
 class ConceptCriterion(BaseModel):
     uri: str
-    label: Optional[str] = None
-    type: Optional[str] = None
+    label: str | None = None
+    type: str | None = None
     include_subconcepts: bool = False  # skos:broader+ (taxonomie / sous-concepts)
-    polarity: str = "include"          # "include" | "exclude"
+    polarity: str = "include"  # "include" | "exclude"
+
 
 class CollectionCriterion(BaseModel):
     uri: str
-    label: Optional[str] = None
-    polarity: str = "include"          # "include" | "exclude"
+    label: str | None = None
+    polarity: str = "include"  # "include" | "exclude"
+
 
 class ConceptFilter(BaseModel):
     uri: str
-    type: Optional[str] = None
+    type: str | None = None
+
 
 class CustomSearchPayload(BaseModel):
-    author: List[str] = []
-    work: List[str] = []
-    concepts: List[Any] = []
+    author: list[str] = []
+    work: list[str] = []
+    concepts: list[Any] = []
     checked: bool = False
     collectionMembers: bool = False
     subConcepts: bool = False
-    
+
     # Nouveaux champs pour le constructeur de corpus avancé
-    excluded_works: List[str] = []
-    concept_criteria: Optional[List[ConceptCriterion]] = None
-    collection_criteria: Optional[List[CollectionCriterion]] = None
-    match_mode: Optional[str] = None  # "AND" | "OR"
+    excluded_works: list[str] = []
+    concept_criteria: list[ConceptCriterion] | None = None
+    collection_criteria: list[CollectionCriterion] | None = None
+    match_mode: str | None = None  # "AND" | "OR"
+
 
 def clean_uri(uri: str) -> str:
-    return uri.replace('>', '').replace('<', '').strip()
+    return uri.replace(">", "").replace("<", "").strip()
+
 
 def escape_uri(uri: str) -> str:
     return f"<{clean_uri(uri)}>"
+
 
 def escape_literal(val: str) -> str:
     clean = val.replace('"', '\\"').strip()
     return f'"{clean}"'
 
+
 @router.post("/customSearch")
-async def custom_search(payload: CustomSearchPayload) -> Dict[str, Any]:
+async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
     authors = payload.author
     works = payload.work
     excluded_works = payload.excluded_works
-    
+
     # 1. Normalisation des critères de concepts
-    concept_criteria: List[ConceptCriterion] = []
-    collection_criteria: List[CollectionCriterion] = []
+    concept_criteria: list[ConceptCriterion] = []
+    collection_criteria: list[CollectionCriterion] = []
 
     if payload.concept_criteria is not None:
         concept_criteria = payload.concept_criteria
@@ -65,31 +75,31 @@ async def custom_search(payload: CustomSearchPayload) -> Dict[str, Any]:
                 c_type = c.get("type")
                 label = c.get("label")
             elif hasattr(c, "uri"):
-                uri = getattr(c, "uri")
+                uri = c.uri
                 c_type = getattr(c, "type", None)
                 label = getattr(c, "label", None)
             else:
                 uri = str(c)
                 c_type = None
                 label = None
-            
+
             if not uri:
                 continue
-                
+
             if payload.collectionMembers and c_type and "Collection" in str(c_type):
-                collection_criteria.append(CollectionCriterion(
-                    uri=uri,
-                    label=label,
-                    polarity="include"
-                ))
+                collection_criteria.append(
+                    CollectionCriterion(uri=uri, label=label, polarity="include")
+                )
             else:
-                concept_criteria.append(ConceptCriterion(
-                    uri=uri,
-                    label=label,
-                    type=c_type,
-                    include_subconcepts=payload.subConcepts,
-                    polarity="include"
-                ))
+                concept_criteria.append(
+                    ConceptCriterion(
+                        uri=uri,
+                        label=label,
+                        type=c_type,
+                        include_subconcepts=payload.subConcepts,
+                        polarity="include",
+                    )
+                )
 
     if payload.collection_criteria is not None:
         collection_criteria = payload.collection_criteria
@@ -106,7 +116,7 @@ async def custom_search(payload: CustomSearchPayload) -> Dict[str, Any]:
     if not has_positive and has_exclusions:
         raise HTTPException(
             status_code=400,
-            detail="Une recherche ne peut pas être uniquement composée d'exclusions sans périmètre positif (auteur, œuvre ou concept inclus)."
+            detail="Une recherche ne peut pas être uniquement composée d'exclusions sans périmètre positif (auteur, œuvre ou concept inclus).",
         )
 
     # Détermination de la logique d'inclusion (AND vs OR)
@@ -149,7 +159,7 @@ async def custom_search(payload: CustomSearchPayload) -> Dict[str, Any]:
                     ?ann_c_{i} oa:hasTarget [ oa:hasSource ?paragraph ];
                                oa:hasBody {c_uri}.
                     """)
-            
+
             for j, col in enumerate(included_collections):
                 col_uri = escape_uri(col.uri)
                 positive_clauses.append(f"""
@@ -171,7 +181,7 @@ async def custom_search(payload: CustomSearchPayload) -> Dict[str, Any]:
                            oa:hasBody ?body_concept.
                   FILTER(?body_concept IN ({", ".join(all_direct_uris)}))
                 }}""")
-            
+
             if taxo_uris:
                 or_branches.append(f"""{{
                   ?ann_pos oa:hasTarget [ oa:hasSource ?paragraph ];
@@ -255,7 +265,4 @@ SELECT DISTINCT ?work ?type ?author ?title ?parent ?current ?current_type ?curre
     bindings = res.get("results", {}).get("bindings", [])
     tree = build_custom_search_tree(bindings)
 
-    return {
-        "sparql": build_request,
-        "tree": tree
-    }
+    return {"sparql": build_request, "tree": tree}

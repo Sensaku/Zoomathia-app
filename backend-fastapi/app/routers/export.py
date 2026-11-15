@@ -1,29 +1,32 @@
 import os
-import io
 import re
-from fastapi import APIRouter, Query, HTTPException
-from fastapi.responses import Response, FileResponse, StreamingResponse
-from typing import Dict, Any
-from app.services.sparql_client import sparql_client
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse, Response
+
 from app.core.config import settings
+from app.services.sparql_client import sparql_client
 
 router = APIRouter(tags=["Export & Downloads"])
 
 QUERIES_DIR = settings.QUERIES_DIR
 XML_BASE_DIR = settings.XML_DATA_DIR
 
-def json_to_csv(sparql_json: Dict[str, Any]) -> str:
+
+def json_to_csv(sparql_json: dict[str, Any]) -> str:
     headers = sparql_json.get("head", {}).get("vars", [])
     bindings = sparql_json.get("results", {}).get("bindings", [])
-    
+
     lines = [";".join(headers)]
     for row in bindings:
         temp = []
         for h in headers:
             temp.append(row.get(h, {}).get("value", ""))
         lines.append(";".join(temp))
-        
+
     return "\n".join(lines)
+
 
 def validate_readonly_sparql(query: str):
     """Bloque toute tentative d'injection SPARQL Update destructive."""
@@ -32,6 +35,7 @@ def validate_readonly_sparql(query: str):
     for word in forbidden:
         if re.search(rf"\b{word}\b", upper):
             raise HTTPException(status_code=400, detail=f"Opération SPARQL interdite: {word}")
+
 
 @router.get("/download-xml")
 async def download_xml(file: str = Query(..., description="Chemin ou nom du fichier XML")):
@@ -50,10 +54,9 @@ async def download_xml(file: str = Query(..., description="Chemin ou nom du fich
         raise HTTPException(status_code=404, detail="Fichier XML introuvable")
 
     return FileResponse(
-        target_path,
-        media_type="application/xml",
-        filename=os.path.basename(target_path)
+        target_path, media_type="application/xml", filename=os.path.basename(target_path)
     )
+
 
 @router.get("/download-qc-json")
 async def download_qc_json(id: int = Query(..., description="ID QC")):
@@ -61,17 +64,19 @@ async def download_qc_json(id: int = Query(..., description="ID QC")):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Requête QC introuvable")
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         query = f.read()
 
     result = await sparql_client.query(query)
     import json
+
     content = json.dumps(result, ensure_ascii=False, indent=2)
     return Response(
         content=content,
         media_type="application/json",
-        headers={"Content-Disposition": f'attachment; filename="export_qc{id}.json"'}
+        headers={"Content-Disposition": f'attachment; filename="export_qc{id}.json"'},
     )
+
 
 @router.get("/download-qc-csv")
 async def download_qc_csv(id: int = Query(..., description="ID QC")):
@@ -79,7 +84,7 @@ async def download_qc_csv(id: int = Query(..., description="ID QC")):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Requête QC introuvable")
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         query = f.read()
 
     result = await sparql_client.query(query)
@@ -87,20 +92,23 @@ async def download_qc_csv(id: int = Query(..., description="ID QC")):
     return Response(
         content=csv_text,
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="export_qc{id}.csv"'}
+        headers={"Content-Disposition": f'attachment; filename="export_qc{id}.csv"'},
     )
+
 
 @router.get("/download-custom-search-json")
 async def download_custom_search_json(sparql: str = Query(..., description="Requête SPARQL")):
     validate_readonly_sparql(sparql)
     result = await sparql_client.query(sparql)
     import json
+
     content = json.dumps(result, ensure_ascii=False, indent=2)
     return Response(
         content=content,
         media_type="application/json",
-        headers={"Content-Disposition": 'attachment; filename="export_custom_search.json"'}
+        headers={"Content-Disposition": 'attachment; filename="export_custom_search.json"'},
     )
+
 
 @router.get("/download-custom-search-csv")
 async def download_custom_search_csv(sparql: str = Query(..., description="Requête SPARQL")):
@@ -110,12 +118,13 @@ async def download_custom_search_csv(sparql: str = Query(..., description="Requ�
     return Response(
         content=csv_text,
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="export_custom_search.csv"'}
+        headers={"Content-Disposition": 'attachment; filename="export_custom_search.csv"'},
     )
+
 
 @router.get("/download-turtle")
 async def download_turtle(uri: str = Query(..., description="URI de l'oeuvre")):
-    safe_uri = uri.replace('>', '').replace('<', '')
+    safe_uri = uri.replace(">", "").replace("<", "")
     # Requête CONSTRUCT bornée pour ne pas faire crasher Corese comme le faisait DESCRIBE
     sparql = f"""
     PREFIX zoo: <http://ns.inria.fr/zoomathia/zoo#>
@@ -129,5 +138,5 @@ async def download_turtle(uri: str = Query(..., description="URI de l'oeuvre")):
     return Response(
         content=ttl,
         media_type="text/turtle; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="export_turtle.ttl"'}
+        headers={"Content-Disposition": 'attachment; filename="export_turtle.ttl"'},
     )

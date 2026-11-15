@@ -1,25 +1,29 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+
 from app.core.config import settings
-from app.services.sparql_client import sparql_client
 from app.routers import (
-    works,
-    texts,
-    concepts,
-    competency_questions,
-    search,
-    export,
-    thesaurus,
     annotations,
-    sparql_playground,
+    competency_questions,
+    concepts,
+    export,
     saved_queries,
+    search,
+    sparql_playground,
+    texts,
+    thesaurus,
+    works,
 )
+from app.services.sparql_client import sparql_client
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
     await sparql_client.close()
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -57,6 +61,7 @@ app.include_router(annotations.router)
 app.include_router(sparql_playground.router)
 app.include_router(saved_queries.router)
 
+
 @app.get("/", tags=["Health"])
 async def root():
     return {
@@ -64,5 +69,5 @@ async def root():
         "project": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "sparql_endpoint": settings.SPARQL_ENDPOINT,
-        "documentation": "/docs"
+        "documentation": "/docs",
     }

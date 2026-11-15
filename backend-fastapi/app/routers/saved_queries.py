@@ -4,18 +4,19 @@ Permet d'ajouter, éditer, lister et supprimer des requêtes personnalisées,
 tout en protégeant les Questions de Compétence (CQs) natives du système.
 """
 
-import re
 import json
-from typing import List, Optional
-from fastapi import APIRouter, Query, HTTPException, Response
-from app.services.staging_store import staging_store
-from app.services.sparql_client import sparql_client
+import re
+
+from fastapi import APIRouter, HTTPException, Query, Response
+
 from app.models.annotation_models import (
     CreateSavedQueryRequest,
-    UpdateSavedQueryRequest,
     SavedQueryResponse,
+    UpdateSavedQueryRequest,
 )
-from app.routers.sparql_playground import MUTATION_KEYWORDS, FORBIDDEN_KEYWORDS
+from app.routers.sparql_playground import FORBIDDEN_KEYWORDS
+from app.services.sparql_client import sparql_client
+from app.services.staging_store import staging_store
 
 router = APIRouter(prefix="/queries", tags=["Saved SPARQL Queries"])
 
@@ -28,19 +29,18 @@ def validate_read_only_sparql(query: str):
     if re.search(r"\b(CONSTRUCT|DESCRIBE)\b", query, re.IGNORECASE):
         raise HTTPException(
             status_code=400,
-            detail="Les requêtes CONSTRUCT et DESCRIBE ne sont pas autorisées. Seules les requêtes SELECT (ou ASK) sont permises."
+            detail="Les requêtes CONSTRUCT et DESCRIBE ne sont pas autorisées. Seules les requêtes SELECT (ou ASK) sont permises.",
         )
     if not re.search(r"\b(SELECT|ASK)\b", query, re.IGNORECASE):
         raise HTTPException(
-            status_code=400,
-            detail="La requête doit comporter une clause valide (SELECT ou ASK)."
+            status_code=400, detail="La requête doit comporter une clause valide (SELECT ou ASK)."
         )
 
 
-@router.get("", response_model=List[SavedQueryResponse])
+@router.get("", response_model=list[SavedQueryResponse])
 async def list_saved_queries(
-    category: Optional[str] = Query(None, description="Filtrer par catégorie"),
-    search: Optional[str] = Query(None, description="Recherche textuelle dans titre ou description")
+    category: str | None = Query(None, description="Filtrer par catégorie"),
+    search: str | None = Query(None, description="Recherche textuelle dans titre ou description"),
 ):
     """Retourne la bibliothèque des requêtes SPARQL (natives et personnalisées)."""
     return staging_store.get_saved_queries(category=category, search=search)
@@ -89,7 +89,7 @@ async def delete_saved_query(query_id: int):
     if existing.is_builtin:
         raise HTTPException(
             status_code=403,
-            detail="Action interdite : impossible de supprimer une Question de Compétence native de référence."
+            detail="Action interdite : impossible de supprimer une Question de Compétence native de référence.",
         )
 
     staging_store.delete_saved_query(query_id)
@@ -99,7 +99,9 @@ async def delete_saved_query(query_id: int):
 @router.post("/{query_id}/execute")
 async def execute_saved_query(
     query_id: int,
-    use_spo: bool = Query(False, description="Exécuter la variante SPO pour graphe VENUS si disponible")
+    use_spo: bool = Query(
+        False, description="Exécuter la variante SPO pour graphe VENUS si disponible"
+    ),
 ):
     """Exécute directement une requête enregistrée sur Corese."""
     query = staging_store.get_saved_query_by_id(query_id)
@@ -113,8 +115,7 @@ async def execute_saved_query(
         data = await sparql_client.query(sparql_code)
     except Exception as e:
         raise HTTPException(
-            status_code=502,
-            detail=f"Erreur d'exécution SPARQL sur Corese : {str(e)}"
+            status_code=502, detail=f"Erreur d'exécution SPARQL sur Corese : {str(e)}"
         )
 
     bindings = data.get("results", {}).get("bindings", [])
@@ -138,5 +139,5 @@ async def export_queries_json():
     return Response(
         content=content,
         media_type="application/json",
-        headers={"Content-Disposition": "attachment; filename=zoomathia_sparql_queries.json"}
+        headers={"Content-Disposition": "attachment; filename=zoomathia_sparql_queries.json"},
     )

@@ -1,13 +1,16 @@
-from fastapi import APIRouter, Query, HTTPException
-from typing import List, Dict, Any, Optional
 import re
+from typing import Any
+
+from fastapi import APIRouter, Query
+
 from app.services.sparql_client import sparql_client
 from app.services.witness_dedup import dedupe_zoo_witnesses
 
 router = APIRouter(tags=["Works & Authors"])
 
+
 @router.get("/getAuthors")
-async def get_authors() -> List[Dict[str, str]]:
+async def get_authors() -> list[dict[str, str]]:
     sparql = """
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -17,10 +20,15 @@ async def get_authors() -> List[Dict[str, str]]:
     } ORDER BY ?name
     """
     res = await sparql_client.query(sparql)
-    return [{"name": b["name"]["value"]} for b in res.get("results", {}).get("bindings", []) if "name" in b]
+    return [
+        {"name": b["name"]["value"]}
+        for b in res.get("results", {}).get("bindings", [])
+        if "name" in b
+    ]
+
 
 @router.get("/getWorks")
-async def get_works() -> List[Dict[str, Any]]:
+async def get_works() -> list[dict[str, Any]]:
     sparql = """
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
@@ -34,16 +42,21 @@ async def get_works() -> List[Dict[str, Any]]:
     rows = []
     for b in res.get("results", {}).get("bindings", []):
         if "oeuvre" in b and "title" in b and "author" in b:
-            rows.append({
-                "uri": b["oeuvre"]["value"],
-                "title": b["title"]["value"],
-                "author": b["author"]["value"],
-                "file": b.get("file", {}).get("value")
-            })
+            rows.append(
+                {
+                    "uri": b["oeuvre"]["value"],
+                    "title": b["title"]["value"],
+                    "author": b["author"]["value"],
+                    "file": b.get("file", {}).get("value"),
+                }
+            )
     return dedupe_zoo_witnesses(rows)
 
+
 @router.get("/getWorksFromAuthors")
-async def get_works_from_author(author: str = Query(..., description="Nom de l'auteur")) -> List[Dict[str, Any]]:
+async def get_works_from_author(
+    author: str = Query(..., description="Nom de l'auteur"),
+) -> list[dict[str, Any]]:
     # Échappement des guillemets pour éviter l'injection
     safe_author = author.replace('"', '\\"')
     sparql = f"""
@@ -61,17 +74,22 @@ async def get_works_from_author(author: str = Query(..., description="Nom de l'a
     rows = []
     for b in res.get("results", {}).get("bindings", []):
         if "oeuvre" in b and "title" in b:
-            rows.append({
-                "uri": b["oeuvre"]["value"],
-                "title": b["title"]["value"],
-                "author": author,
-                "file": b.get("file", {}).get("value")
-            })
+            rows.append(
+                {
+                    "uri": b["oeuvre"]["value"],
+                    "title": b["title"]["value"],
+                    "author": author,
+                    "file": b.get("file", {}).get("value"),
+                }
+            )
     return dedupe_zoo_witnesses(rows)
 
+
 @router.get("/getWorkByUri")
-async def get_work_by_uri(uri: str = Query(..., description="URI de l'œuvre ou partie")) -> List[Dict[str, str]]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_work_by_uri(
+    uri: str = Query(..., description="URI de l'œuvre ou partie"),
+) -> list[dict[str, str]]:
+    safe_uri = uri.replace(">", "").replace("<", "")
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -93,16 +111,21 @@ async def get_work_by_uri(uri: str = Query(..., description="URI de l'œuvre ou 
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "work" in b and "title" in b and "author" in b:
-            response.append({
-                "uri": b["work"]["value"],
-                "title": b["title"]["value"],
-                "author": b["author"]["value"]
-            })
+            response.append(
+                {
+                    "uri": b["work"]["value"],
+                    "title": b["title"]["value"],
+                    "author": b["author"]["value"],
+                }
+            )
     return response
 
+
 @router.get("/getTranslation")
-async def get_translation(uri: str = Query(..., description="URI de l'œuvre")) -> Optional[Dict[str, str]]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_translation(
+    uri: str = Query(..., description="URI de l'œuvre"),
+) -> dict[str, str] | None:
+    safe_uri = uri.replace(">", "").replace("<", "")
     file_sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
     SELECT ?file WHERE {{
@@ -115,12 +138,12 @@ async def get_translation(uri: str = Query(..., description="URI de l'œuvre")) 
         return None
 
     file_val = bindings[0]["file"]["value"]
-    match = re.search(r'^(.*\/)(\d+)([a-z])(?:_(\d+))?\.xml$', file_val)
-    if not match or match.group(3) == 'e':
+    match = re.search(r"^(.*\/)(\d+)([a-z])(?:_(\d+))?\.xml$", file_val)
+    if not match or match.group(3) == "e":
         return None
 
     dir_part, number, _, suffix = match.groups()
-    dir_escaped = dir_part.replace('.', '\\\\.')
+    dir_escaped = dir_part.replace(".", "\\\\.")
     cand_sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
     SELECT ?work ?title ?file WHERE {{
@@ -136,7 +159,7 @@ async def get_translation(uri: str = Query(..., description="URI de l'œuvre")) 
 
     def find_by_suffix(s):
         for c in candidates:
-            m = re.search(r'_(\d+)\.xml$', c["file"]["value"])
+            m = re.search(r"_(\d+)\.xml$", c["file"]["value"])
             if s:
                 if m and m.group(1) == s:
                     return c
@@ -146,14 +169,14 @@ async def get_translation(uri: str = Query(..., description="URI de l'œuvre")) 
         return None
 
     chosen = (suffix and find_by_suffix(suffix)) or find_by_suffix(None) or candidates[0]
-    return {
-        "uri": chosen["work"]["value"],
-        "title": chosen["title"]["value"]
-    }
+    return {"uri": chosen["work"]["value"], "title": chosen["title"]["value"]}
+
 
 @router.get("/getWorkPart")
-async def get_work_part(title: str = Query(..., description="URI du livre ou oeuvre")) -> List[Dict[str, Any]]:
-    safe_title = title.replace('>', '').replace('<', '')
+async def get_work_part(
+    title: str = Query(..., description="URI du livre ou oeuvre"),
+) -> list[dict[str, Any]]:
+    safe_title = title.replace(">", "").replace("<", "")
     sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?part ?type ?id ?title WHERE {{    
@@ -167,17 +190,20 @@ async def get_work_part(title: str = Query(..., description="URI du livre ou oeu
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "part" in b:
-            response.append({
-                "uri": b["part"]["value"],
-                "id": b.get("id", {}).get("value"),
-                "title": b.get("title", {}).get("value"),
-                "type": b.get("type", {}).get("value")
-            })
+            response.append(
+                {
+                    "uri": b["part"]["value"],
+                    "id": b.get("id", {}).get("value"),
+                    "title": b.get("title", {}).get("value"),
+                    "type": b.get("type", {}).get("value"),
+                }
+            )
     return response
 
+
 @router.get("/getMetadata")
-async def get_metadata(uri: str = Query(..., description="URI de l'oeuvre")) -> Dict[str, Any]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_metadata(uri: str = Query(..., description="URI de l'oeuvre")) -> dict[str, Any]:
+    safe_uri = uri.replace(">", "").replace("<", "")
     sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     SELECT DISTINCT ?author ?editor ?file ?date WHERE {{
@@ -198,5 +224,5 @@ async def get_metadata(uri: str = Query(..., description="URI de l'oeuvre")) -> 
         "author": elt.get("author", {}).get("value"),
         "editor": elt.get("editor", {}).get("value"),
         "date": elt.get("date", {}).get("value"),
-        "file": elt.get("file", {}).get("value")
+        "file": elt.get("file", {}).get("value"),
     }

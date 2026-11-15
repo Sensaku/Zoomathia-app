@@ -1,7 +1,9 @@
-import re
 import logging
+import re
+from typing import Any
+
 from fastapi import APIRouter, Query
-from typing import List, Dict, Any
+
 from app.services.sparql_client import sparql_client
 from app.services.tree_builder import build_summary_tree
 
@@ -9,9 +11,10 @@ logger = logging.getLogger("zoomathia.texts")
 
 router = APIRouter(tags=["Texts & Hierarchy"])
 
+
 @router.get("/getSummary")
-async def get_summary(uri: str = Query(..., description="URI de l'oeuvre")) -> List[Dict[str, Any]]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_summary(uri: str = Query(..., description="URI de l'oeuvre")) -> list[dict[str, Any]]:
+    safe_uri = uri.replace(">", "").replace("<", "")
     sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
     SELECT DISTINCT ?parent ?current ?type (xsd:integer(?id_t) as ?id) ?title ?file WHERE {{
@@ -30,9 +33,10 @@ async def get_summary(uri: str = Query(..., description="URI de l'oeuvre")) -> L
     bindings = res.get("results", {}).get("bindings", [])
     return build_summary_tree(bindings)
 
+
 @router.get("/getChildren")
-async def get_children(uri: str = Query(..., description="URI du noeud")) -> List[Dict[str, Any]]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_children(uri: str = Query(..., description="URI du noeud")) -> list[dict[str, Any]]:
+    safe_uri = uri.replace(">", "").replace("<", "")
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -48,16 +52,19 @@ async def get_children(uri: str = Query(..., description="URI du noeud")) -> Lis
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "child" in b:
-            response.append({
-                "uri": b["child"]["value"],
-                "title": b.get("title", {}).get("value"),
-                "type": b.get("type", {}).get("value")
-            })
+            response.append(
+                {
+                    "uri": b["child"]["value"],
+                    "title": b.get("title", {}).get("value"),
+                    "type": b.get("type", {}).get("value"),
+                }
+            )
     return response
 
+
 @router.get("/getChildrenType")
-async def get_children_type(uri: str = Query(..., description="URI du noeud")) -> List[str]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_children_type(uri: str = Query(..., description="URI du noeud")) -> list[str]:
+    safe_uri = uri.replace(">", "").replace("<", "")
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -67,11 +74,18 @@ async def get_children_type(uri: str = Query(..., description="URI du noeud")) -
     }}
     """
     res = await sparql_client.query(sparql)
-    return [b["childType"]["value"] for b in res.get("results", {}).get("bindings", []) if "childType" in b]
+    return [
+        b["childType"]["value"]
+        for b in res.get("results", {}).get("bindings", [])
+        if "childType" in b
+    ]
+
 
 @router.get("/getCurrentType")
-async def get_current_type(uri: str = Query(..., description="URI du noeud")) -> List[Dict[str, str]]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_current_type(
+    uri: str = Query(..., description="URI du noeud"),
+) -> list[dict[str, str]]:
+    safe_uri = uri.replace(">", "").replace("<", "")
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -80,11 +94,18 @@ async def get_current_type(uri: str = Query(..., description="URI du noeud")) ->
     }}
     """
     res = await sparql_client.query(sparql)
-    return [{"type": b["type"]["value"]} for b in res.get("results", {}).get("bindings", []) if "type" in b]
+    return [
+        {"type": b["type"]["value"]}
+        for b in res.get("results", {}).get("bindings", [])
+        if "type" in b
+    ]
+
 
 @router.get("/getParagraphs")
-async def get_paragraphs(uri: str = Query(..., description="URI du noeud parent")) -> List[Dict[str, Any]]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_paragraphs(
+    uri: str = Query(..., description="URI du noeud parent"),
+) -> list[dict[str, Any]]:
+    safe_uri = uri.replace(">", "").replace("<", "")
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -100,17 +121,22 @@ async def get_paragraphs(uri: str = Query(..., description="URI du noeud parent"
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "uri" in b:
-            response.append({
-                "title": b.get("title", {}).get("value"),
-                "uri": b["uri"]["value"],
-                "text": b.get("text", {}).get("value"),
-                "id": b.get("id", {}).get("value")
-            })
+            response.append(
+                {
+                    "title": b.get("title", {}).get("value"),
+                    "uri": b["uri"]["value"],
+                    "text": b.get("text", {}).get("value"),
+                    "id": b.get("id", {}).get("value"),
+                }
+            )
     return response
 
+
 @router.get("/getParagraphAlone")
-async def get_paragraph_alone(uri: str = Query(..., description="URI de référence")) -> List[Dict[str, Any]]:
-    safe_uri = uri.replace('>', '').replace('<', '')
+async def get_paragraph_alone(
+    uri: str = Query(..., description="URI de référence"),
+) -> list[dict[str, Any]]:
+    safe_uri = uri.replace(">", "").replace("<", "")
     sparql = f"""
     prefix schema: <http://schema.org/>
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
@@ -128,16 +154,21 @@ async def get_paragraph_alone(uri: str = Query(..., description="URI de référe
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "paragraph" in b:
-            response.append({
-                "uri": b["paragraph"]["value"],
-                "text": b.get("text", {}).get("value"),
-                "id": b.get("id", {}).get("value")
-            })
+            response.append(
+                {
+                    "uri": b["paragraph"]["value"],
+                    "text": b.get("text", {}).get("value"),
+                    "id": b.get("id", {}).get("value"),
+                }
+            )
     return response
 
+
 @router.get("/resolveUri")
-async def resolve_uri(uri: str = Query(..., description="URI à résoudre (oeuvre, section ou paragraphe)")) -> Dict[str, Any]:
-    safe_uri = uri.replace('>', '').replace('<', '').strip()
+async def resolve_uri(
+    uri: str = Query(..., description="URI à résoudre (oeuvre, section ou paragraphe)"),
+) -> dict[str, Any]:
+    safe_uri = uri.replace(">", "").replace("<", "").strip()
     bindings = []
 
     try:
@@ -171,7 +202,9 @@ async def resolve_uri(uri: str = Query(..., description="URI à résoudre (oeuvr
         res = await sparql_client.query(sparql)
         bindings = res.get("results", {}).get("bindings", [])
     except Exception as e:
-        logger.warning(f"Impossible d'exécuter la requête SPARQL de résolution pour {safe_uri}: {e}")
+        logger.warning(
+            f"Impossible d'exécuter la requête SPARQL de résolution pour {safe_uri}: {e}"
+        )
 
     if bindings:
         b = bindings[0]
@@ -184,7 +217,7 @@ async def resolve_uri(uri: str = Query(..., description="URI à résoudre (oeuvr
             "type": uri_type,
             "work": work_uri,
             "section": section_uri,
-            "paragraph": paragraph_uri
+            "paragraph": paragraph_uri,
         }
 
     # Repli heuristique déterministe basé sur l'anatomie canonique des URIs Zoomathia
@@ -200,22 +233,26 @@ async def resolve_uri(uri: str = Query(..., description="URI à résoudre (oeuvr
         if not sub:
             return {"type": "work", "work": work_uri, "section": None, "paragraph": None}
 
-        segments = [s for s in sub.split('/') if s]
+        segments = [s for s in sub.split("/") if s]
         if "text" in segments:
             text_idx = segments.index("text")
             sec_parts = segments[:text_idx]
             section_uri = f"{work_uri}/{'/'.join(sec_parts)}" if sec_parts else None
-            return {"type": "paragraph", "work": work_uri, "section": section_uri, "paragraph": safe_uri}
+            return {
+                "type": "paragraph",
+                "work": work_uri,
+                "section": section_uri,
+                "paragraph": safe_uri,
+            }
         elif len(segments) >= 2:
             section_uri = f"{work_uri}/{'/'.join(segments[:-1])}"
-            return {"type": "paragraph", "work": work_uri, "section": section_uri, "paragraph": safe_uri}
+            return {
+                "type": "paragraph",
+                "work": work_uri,
+                "section": section_uri,
+                "paragraph": safe_uri,
+            }
         elif len(segments) == 1:
             return {"type": "section", "work": work_uri, "section": safe_uri, "paragraph": None}
 
-    return {
-        "type": "unknown",
-        "work": None,
-        "section": None,
-        "paragraph": safe_uri
-    }
-
+    return {"type": "unknown", "work": None, "section": None, "paragraph": safe_uri}

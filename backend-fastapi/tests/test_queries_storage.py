@@ -4,7 +4,8 @@ Vérifie la persistance, l'accès unifié, et la protection contre l'altération
 """
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from app.main import app
 
 
@@ -33,7 +34,7 @@ async def test_saved_queries_crud_lifecycle():
             "description": "Identifier les mentions conjointes dans Aristote",
             "query_text": "SELECT ?para WHERE { ?para a <http://example.org/Paragraph> } LIMIT 10",
             "category": "Faune terrestre",
-            "author_name": "Chercheur Test"
+            "author_name": "Chercheur Test",
         }
         res_create = await ac.post("/queries", json=create_payload)
         assert res_create.status_code == 200
@@ -48,10 +49,7 @@ async def test_saved_queries_crud_lifecycle():
         assert res_get.json()["id"] == query_id
 
         # 3. Mise à jour
-        update_payload = {
-            "title": "Titre Mis à Jour",
-            "category": "Canidés"
-        }
+        update_payload = {"title": "Titre Mis à Jour", "category": "Canidés"}
         res_put = await ac.put(f"/queries/{query_id}", json=update_payload)
         assert res_put.status_code == 200
         assert res_put.json()["title"] == "Titre Mis à Jour"

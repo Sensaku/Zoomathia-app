@@ -1,9 +1,10 @@
-from typing import List, Dict, Any, Set
+from typing import Any
 
-def build_summary_tree(bindings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    tree: List[Dict[str, Any]] = []
-    nodes: Dict[str, Dict[str, Any]] = {}
-    id_in_set: Set[str] = set()
+
+def build_summary_tree(bindings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    tree: list[dict[str, Any]] = []
+    nodes: dict[str, dict[str, Any]] = {}
+    id_in_set: set[str] = set()
 
     for elt in bindings:
         current_uri = elt.get("current", {}).get("value")
@@ -14,7 +15,7 @@ def build_summary_tree(bindings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "id": elt.get("id", {}).get("value"),
             "title": elt.get("title", {}).get("value"),
             "type": elt.get("type", {}).get("value"),
-            "children": []
+            "children": [],
         }
 
     for elt in bindings:
@@ -34,17 +35,19 @@ def build_summary_tree(bindings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
     return tree
 
-def check_paragraph(parent_node: Dict[str, Any], paragraph_id: str) -> bool:
+
+def check_paragraph(parent_node: dict[str, Any], paragraph_id: str) -> bool:
     for child in parent_node.get("children", []):
         if child.get("id") == paragraph_id:
             return True
     return False
 
-def build_custom_search_tree(bindings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    tree: List[Dict[str, Any]] = []
-    nodes: Dict[str, Dict[str, Any]] = {}
-    id_in_set: Set[str] = set()
-    placed_in_set: Set[str] = set()
+
+def build_custom_search_tree(bindings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    tree: list[dict[str, Any]] = []
+    nodes: dict[str, dict[str, Any]] = {}
+    id_in_set: set[str] = set()
+    placed_in_set: set[str] = set()
 
     for elt in bindings:
         work_uri = elt.get("work", {}).get("value")
@@ -58,7 +61,7 @@ def build_custom_search_tree(bindings: List[Dict[str, Any]]) -> List[Dict[str, A
                 "author": author,
                 "title": elt.get("title", {}).get("value"),
                 "type": elt.get("type", {}).get("value"),
-                "children": []
+                "children": [],
             }
 
         if current_uri and current_uri not in nodes:
@@ -68,7 +71,7 @@ def build_custom_search_tree(bindings: List[Dict[str, Any]]) -> List[Dict[str, A
                 "author": author,
                 "title": elt.get("current_title", {}).get("value"),
                 "type": elt.get("current_type", {}).get("value"),
-                "children": []
+                "children": [],
             }
 
     for elt in bindings:
@@ -97,7 +100,7 @@ def build_custom_search_tree(bindings: List[Dict[str, Any]]) -> List[Dict[str, A
             "id": para_id,
             "author": elt.get("author", {}).get("value"),
             "text": elt.get("text", {}).get("value"),
-            "children": []
+            "children": [],
         }
 
         if not check_paragraph(nodes[parent_uri], para_id):
