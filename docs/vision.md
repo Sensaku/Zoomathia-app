@@ -25,7 +25,7 @@ C'est un travail collaboratif.
 
 ## Statut visé : service de recherche ouvert
 
-L'application doit devenir une **plateforme pérenne et publique**, hébergée sur `zoomathia.i3s.unice.fr` et utilisée au-delà de l'équipe du projet. Ce statut entraîne des exigences non négociables :
+L'application doit devenir une **plateforme pérenne et publique**, utilisée au-delà de l'équipe du projet. L'hébergement de production n'est pas encore décidé : l'I3S, sur `zoomathia.i3s.unice.fr` (qui sert aujourd'hui l'ancienne version de l'application), ou l'hébergement du mainteneur, avec un nom de domaine. Ce statut entraîne des exigences non négociables :
 
 | Exigence | Conséquence |
 |---|---|
@@ -34,6 +34,7 @@ L'application doit devenir une **plateforme pérenne et publique**, hébergée s
 | Accessibilité | Conformité RGAA : obligation légale des services en ligne des organismes publics (article 47 de la loi n° 2005-102). |
 | Données personnelles | RGPD : l'identité des contributeurs est une donnée personnelle (minimisation, mentions légales, registre). |
 | Exploitation | Sauvegarde et restauration testées de toutes les données produites dans l'application, supervision du service. |
+| Rapidité, absence de blocage | Réponses rapides, y compris pour les requêtes qui font appel au raisonnement ; aucun utilisateur ni aucune requête ne bloque les autres ; cible : 50 utilisateurs simultanés. |
 | Pérennité des données | Formats ouverts (RDF, W3C Web Annotation, SKOS, TEI), URI stables, exports complets sans perte. |
 
 ## Publics

@@ -60,6 +60,7 @@ No usage quotas. Guardrails are sized so that normal use never reaches them.
 
 ## HTTP hardening (Proposed)
 
+- **HTTPS on every public deployment before local accounts are enabled:** passwords and session cookies never travel over plain HTTP. The preproduction of the redesign is still HTTP only.
 - nginx sends `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy` and `frame-ancestors`; TLS terminates at the reverse proxy.
 - The backend port is not published publicly; `--forwarded-allow-ips` is restricted to the proxy.
 - CORS lists explicit origins; credentials are allowed only if cookie sessions are used.

@@ -4,7 +4,9 @@ Operational guide for AI coding agents (Claude Code, Codex, Cursor…) and human
 
 ## Project in brief
 
-Zoomathia is a research project whose mission is to support the study of the cultural transmission of zoological knowledge from Antiquity to the Middle Ages. This repository is the **Zoomathia application**: an open research service (target: `zoomathia.i3s.unice.fr`) to read, search and collaboratively annotate Greek and Latin zoological texts with the TheZoo thesaurus, publishing open RDF data. AI agents and automated annotation pipelines are first-class clients of the API.
+Zoomathia is a research project whose mission is to support the study of the cultural transmission of zoological knowledge from Antiquity to the Middle Ages. This repository is the **Zoomathia application**: an open research service (production host to be decided; `zoomathia.i3s.unice.fr` still serves the previous version of the application) to read, search and collaboratively annotate Greek and Latin zoological texts with the TheZoo thesaurus, publishing open RDF data. AI agents and automated annotation pipelines are first-class clients of the API.
+
+New to the project? Start with `docs/onboarding.md`.
 
 Read before any functional change (business documents, in French):
 
@@ -12,7 +14,7 @@ Read before any functional change (business documents, in French):
 - `docs/regles-metier.md`: business rules with stable IDs (`RM-XXX-nn`) and a status. **Décidé** = decided, implement. **Proposé** = proposed default, implement only if the task needs it and flag it in the change description. **À trancher** = open, do not implement, ask.
 - `docs/glossaire.md`: French domain terms and their English names in code.
 
-Technical documents (English): `docs/architecture.md` (components, sources of truth, data flows, Corese constraints) and `docs/security.md` (requirements and known gaps).
+Technical documents (English): `docs/architecture.md` (components, sources of truth, data flows, Corese constraints), `docs/security.md` (requirements and known gaps), `docs/development-guidelines.md` (code organization, tooling, tests, CI, documentation, performance) and `docs/design-system.md` (visual identity, tokens, reading experience, accessibility, component catalogue).
 
 ## Repository map
 
@@ -27,6 +29,8 @@ Technical documents (English): `docs/architecture.md` (components, sources of tr
 | `frontend/src/pages/`, `frontend/src/components/` | React UI |
 | `frontend/src/i18n/` | Typed FR/EN translations |
 | `frontend/packages/wimmics-venus/` | Vendored VENUS build (do not edit) |
+
+This map describes the current layout. The target layout (domain modules in the backend, features in the frontend) is defined in `docs/development-guidelines.md`; code moves there progressively, when it is modified.
 
 ## Commands
 
@@ -49,6 +53,8 @@ npx tsc --noEmit     # type check
 npm run build
 ```
 
+The target tooling (Ruff, mypy, Vite+ with oxlint, oxfmt and Vitest, Playwright, MkDocs) and its scripts are defined in `docs/development-guidelines.md` but **not installed yet**. Until it is, the commands above are the only ones that exist.
+
 ## Non-negotiable rules
 
 1. **No request data is interpolated into SPARQL.** Use the shared escaping helpers for IRIs and literals (to be created in the P0 work), or `VALUES`. Never write `f"... <{uri}> ..."` with external input.
@@ -60,21 +66,45 @@ npm run build
 7. **Every user-visible string goes through i18n**, in both French and English.
 8. **Tests never touch `data/staging.db`** and never send unbounded queries to the production Corese endpoint.
 9. **Failures are never masked**: map them to explicit HTTP statuses (400, 403, 404, 502, 504), never to an empty success.
+10. **No request blocks the others**: no blocking I/O in async code, short database transactions, long tasks in background jobs, a timeout on every external call, every list bounded.
+
+## Working method
+
+1. **Start with code-review-graph** (MCP server `code-review-graph`): `get_minimal_context_tool(task=...)`, then `build_or_update_graph_tool` if the graph is stale. Check the impact radius of the files you plan to touch, and find callers with `query_graph_tool` rather than guessing.
+2. **Stay in scope.** Change only what the task requires: no renaming, reformatting or refactoring outside it, no speculative abstraction. Report unrelated problems instead of fixing them in passing.
+3. **Do not reinvent the wheel.** Before writing generic code, look for an existing dependency or a maintained library. Propose any new module to the project owner with its utility, limits and alternatives; add it only once approved.
+4. **Test what matters**, following "Writing relevant tests" in the guidelines, and **document as you go**: docstrings and TSDoc of the public functions you touch, and any document your change makes inaccurate.
+5. **Prepare the review:** update the graph and run `detect_changes_tool` (risk, affected flows, test gaps).
+6. **Get a cross-model review before committing:** a model from another provider reviews the change (for example Codex for Claude's code, and the other way round); otherwise the `cross-model-reviewer` subagent on a different Claude model. Light review if the risk is low, deep review if it is medium or high. Fix or answer every finding; unresolved disagreements go to the project owner.
+
+Details, module catalogue and review checklist: `docs/development-guidelines.md`.
 
 ## Conventions
 
+Full rules in `docs/development-guidelines.md`. The essentials:
+
 - **Language:** code identifiers, comments, docstrings, technical documents and commit messages in English. Business documents (`docs/vision.md`, `docs/regles-metier.md`, `docs/glossaire.md`) stay in French. The UI is bilingual (FR/EN). Translate existing French comments when you modify the surrounding code, not in bulk.
-- **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
-- **Comments** explain intent (why: TEI encoding quirks, SPARQL join choices, business rules), not what the code does.
-- **Python:** typed functions; Pydantic models for every request and response; `logging`, never `print`; no new `Any` without a comment explaining why.
-- **TypeScript:** strict mode; no new `any`; components under ~200 lines (extract hooks and sub-components); explicit loading, error and empty states; colors from design tokens, not new hex literals.
-- **API:** the legacy camelCase routes (`/getWorks`, `/getQC`…) are being replaced in one go by a versioned REST API (`/v1/...`). Do not add new legacy-style routes.
-- **Traceability:** cite the rule ID (`RM-XXX-nn`) in code comments, tests and change descriptions when implementing a business rule.
+- **Structure:** backend modules by domain (thin router, FastAPI-free service, repository); frontend by feature (`src/features/<domain>/`, shared code in `src/shared/`).
+- **Frontend stack (mandatory):** React, React Router and Tailwind CSS. Never introduce another UI framework, router or styling system.
+- **Data access:** SQLAlchemy 2 with Alembic migrations; SPARQL in `.rq` files with named placeholders filled by the escaping helpers, and a typed builder only for the custom search.
+- **Quality tools:** Ruff and mypy (strict) for Python; Vite+ (oxlint, oxfmt, Vitest) for the frontend.
+- **Tests:** unit tests for every decided business rule, API integration tests with simulated Corese, component and hook tests, Playwright journeys with axe. Every bug fix gets a regression test.
+- **Size:** indicative limits of ~200 lines per component, ~50 per function, ~400 per file; beyond that, split or justify.
+- **Accessibility (RGAA):** built into every component: semantic HTML, keyboard navigation, labels, contrast, no information conveyed by color alone.
+- **Visual design:** follow `docs/design-system.md`. There are no separate mockups: screens are built from design tokens and catalogue components, and every visual change goes through its checklist.
+- **Commits:** Conventional Commits, directly on `main` while there is a single developer.
+- **API:** the legacy camelCase routes (`/getWorks`, `/getQC`…) are replaced in one go by a versioned REST API (`/v1/...`). Do not add legacy-style routes.
+- **Comments** explain intent (why), not mechanics. **Traceability:** cite the rule ID (`RM-XXX-nn`) in code, tests and change descriptions.
+- **Design:** DRY applies to knowledge (rules, data, security code), not to code that merely looks alike; SOLID through single responsibility and injected dependencies; KISS and YAGNI against over-engineering.
 
 ## Definition of done
 
-- Backend tests pass with a temporary `STAGING_DB_PATH`; new logic has unit tests that need no network access.
-- `npx tsc --noEmit` and `npm run build` pass.
+- Backend tests pass with a temporary `STAGING_DB_PATH`; new logic has tests at the right level (see the guidelines), none of which needs network access.
+- `npx tsc --noEmit` and `npm run build` pass; once the tooling is installed, lint, format and type checks pass too.
+- New UI works with the keyboard, has labels and passes the automated accessibility checks.
+- The diff contains only what the task requires: no unrelated renaming, reformatting or refactoring.
+- A cross-model review was done (see "Working method") and every finding is fixed or answered.
+- Docstrings, TSDoc and documents touched by the change are up to date; once installed, the documentation site builds in strict mode.
 - New i18n keys exist in both `fr.ts` and `en.ts`.
 - If a business rule changed, `docs/regles-metier.md` is updated in the same change.
 - No secrets, `.env` files, databases or `__pycache__` added to git.
@@ -83,7 +113,7 @@ npm run build
 
 - **Without asking:** read code, edit code, run tests, type checks and builds locally.
 - **Only on explicit request:** `git commit`, `git push`, opening pull requests, any action on external services (Corese writes, OpenTheso, deployments), deleting data.
-- **Never:** add a licence file or licence headers (the code licence is pending, see `docs/vision.md`); modify the corpus in `data/files/`; edit the vendored VENUS bundle; implement a rule marked **À trancher**; change a **Décidé** rule without the project owner.
+- **Never:** add a dependency without the project owner's approval; replace React, React Router or Tailwind CSS; add a licence file or licence headers (the code licence is pending, see `docs/vision.md`); modify the corpus in `data/files/`; edit the vendored VENUS bundle; implement a rule marked **À trancher**; change a **Décidé** rule without the project owner.
 - **When a business rule is missing or ambiguous:** stop and ask. Record the agreed default in `docs/regles-metier.md` with the status **Proposé**.
 
 ## Known pitfalls
@@ -97,6 +127,8 @@ npm run build
 
 ## Current priorities
 
-1. Framing documents (this file and `docs/`): done on 2026-11-15.
-2. P0 security work (`docs/security.md`, "Known gaps"): authentication and roles, server-side status, RDF serialization, unified SPARQL validation and guardrails, escaping helpers.
+1. Framing documents and development guidelines (this file and `docs/`): done on 2026-11-15.
+2. Next, in an order to confirm with the project owner:
+   - install the tooling and the test foundation (`docs/development-guidelines.md`, "Adoption");
+   - P0 security work (`docs/security.md`, "Known gaps"): authentication and roles, server-side status, RDF serialization, unified SPARQL validation and guardrails, escaping helpers.
 3. Then: competency questions in the database, publication of validated annotations to Corese, categories from TheZoo collections, versioned REST API, TEI ingestion and pre-annotation.
