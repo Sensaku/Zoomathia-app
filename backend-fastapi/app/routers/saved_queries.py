@@ -18,14 +18,19 @@ from app.services.sparql_client import sparql_client
 from app.services.staging_store import staging_store
 from app.shared.limits import HeavySlot, limit_heavy_queries
 from app.shared.sparql_guard import prepare_query_async
+from app.shared.validation import MAX_LABEL_LENGTH
 
 router = APIRouter(prefix="/queries", tags=["Saved SPARQL Queries"])
 
 
 @router.get("", response_model=list[SavedQueryResponse])
 async def list_saved_queries(
-    category: str | None = Query(None, description="Filtrer par catégorie"),
-    search: str | None = Query(None, description="Recherche textuelle dans titre ou description"),
+    category: str | None = Query(None, max_length=100, description="Filter by category"),
+    search: str | None = Query(
+        None,
+        max_length=MAX_LABEL_LENGTH,
+        description="Text search in title or description (matched literally)",
+    ),
 ):
     """Retourne la bibliothèque des requêtes SPARQL (natives et personnalisées)."""
     return staging_store.get_saved_queries(category=category, search=search)
@@ -56,10 +61,22 @@ async def create_saved_query(payload: CreateSavedQueryRequest):
     dependencies=[Depends(limit_heavy_queries)],
 )
 async def update_saved_query(query_id: int, payload: UpdateSavedQueryRequest):
-    """Met à jour les métadonnées ou le code d'une requête SPARQL."""
+    """Update the metadata or the code of a saved SPARQL query.
+
+    RM-QC-02: a native competency question answers 403. Personal queries stay editable by
+    anyone until accounts exist (RM-QC-06).
+    """
     existing = staging_store.get_saved_query_by_id(query_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Requête SPARQL introuvable : ID {query_id}")
+    if existing.is_builtin:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Action interdite : une Question de Compétence native ne peut être modifiée "
+                "que par un administrateur (les comptes ne sont pas encore disponibles)."
+            ),
+        )
 
     if payload.query_text:
         await prepare_query_async(payload.query_text)

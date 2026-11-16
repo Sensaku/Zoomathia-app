@@ -125,6 +125,8 @@ Le début se mesure dans le premier paragraphe, la fin dans le dernier, et l'ann
 **RM-ANN-04 — Concept annoté.** *Proposé.*
 Le corps d'une annotation est l'URI d'un concept existant de TheZoo. Si le concept n'existe pas, le contributeur propose d'abord le terme (section 3).
 
+*Décidé (2026-11-16) :* à la création, le serveur vérifie que le concept est une IRI de TheZoo (`https://opentheso.huma-num.fr/?idc=…&idt=th310`), ou l'IRI qu'il a attribuée à un terme proposé dans l'application (`http://zoomathia.i3s.unice.fr/concept/proposal/<n>`) en attendant son intégration dans TheZoo, et que les paragraphes appartiennent à l'espace de noms du corpus (`http://ns.inria.fr/zoomathia/`), sans vérifier leur existence.
+
 **RM-ANN-05 — Justification.** *Proposé (comportement actuel).*
 La justification philologique est facultative.
 

@@ -9,26 +9,41 @@ from app.models.annotation_models import (
     ThesaurusProposalResponse,
     UpdateProposalStatusRequest,
 )
-from app.services.opentheso_client import opentheso_client
+from app.services.opentheso_client import (
+    CONCEPT_ID_PATTERN,
+    MAX_AUTOCOMPLETE_LENGTH,
+    MIN_AUTOCOMPLETE_LENGTH,
+    opentheso_client,
+)
 from app.services.staging_store import staging_store
+from app.shared.validation import MAX_LABEL_LENGTH, ProposalStatus
 
 router = APIRouter(prefix="/thesaurus", tags=["thesaurus"])
 
 
 @router.get("/autocomplete")
 async def autocomplete_thesaurus(
-    q: str = Query(..., min_length=2, description="Préfixe de recherche"),
+    q: str = Query(
+        ...,
+        min_length=MIN_AUTOCOMPLETE_LENGTH,
+        max_length=MAX_AUTOCOMPLETE_LENGTH,
+        description="Search prefix",
+    ),
 ):
-    """Recherche temps réel de concepts dans TheZoo (th310) via l'API OpenTheso d'Huma-Num."""
+    """Real-time search of TheZoo (th310) concepts through the Huma-Num OpenTheso API."""
     results = await opentheso_client.autocomplete(q)
     return results
 
 
 @router.get("/concept")
 async def get_thesaurus_concept(
-    id: str = Query(..., description="Identifiant OpenTheso du concept (ex: 105466)"),
+    id: str = Query(
+        ...,
+        pattern=CONCEPT_ID_PATTERN,
+        description="OpenTheso identifier of the concept (alphanumeric, e.g. 105466)",
+    ),
 ):
-    """Récupère la notice sémantique JSON-LD d'un concept du thésaurus."""
+    """Return the JSON-LD record of a thesaurus concept."""
     data = await opentheso_client.get_concept_details(id)
     if not data:
         raise HTTPException(status_code=404, detail="Concept introuvable sur OpenTheso")
@@ -46,22 +61,18 @@ async def submit_thesaurus_proposal(proposal: ThesaurusProposalRequest):
 
 @router.get("/proposals", response_model=list[ThesaurusProposalResponse])
 async def list_thesaurus_proposals(
-    status: str | None = Query(None, description="Filtrer par statut"),
-    q: str | None = Query(None, description="Recherche textuelle libre"),
+    status: ProposalStatus | None = Query(None, description="Filter by status"),
+    q: str | None = Query(
+        None, max_length=MAX_LABEL_LENGTH, description="Free text search (matched literally)"
+    ),
 ):
-    """Liste les propositions de termes enregistrées avec filtrage optionnel."""
+    """List the stored term proposals, with optional filters."""
     return staging_store.get_proposals(status=status, search=q)
 
 
 @router.patch("/proposals/{proposal_id}/status", response_model=ThesaurusProposalResponse)
 async def update_thesaurus_proposal_status(proposal_id: int, req: UpdateProposalStatusRequest):
-    """Met à jour le statut d'une proposition (Validé, Rejeté, En attente de révision)."""
-    valid_statuses = {"En attente de révision", "Validé", "Rejeté"}
-    if req.status not in valid_statuses:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Statut invalide '{req.status}'. Valeurs permises: {', '.join(valid_statuses)}",
-        )
+    """Update the review status of a proposal (an unknown status gives 422)."""
     updated = staging_store.update_proposal_status(proposal_id, req.status)
     if not updated:
         raise HTTPException(status_code=404, detail="Proposition introuvable")
@@ -79,10 +90,16 @@ async def delete_thesaurus_proposal(proposal_id: int):
 
 @router.get("/proposals/export-ttl")
 async def export_proposals_turtle():
-    """Télécharge les propositions de concepts au format SKOS Turtle."""
-    ttl_content = staging_store.export_proposals_to_turtle()
+    """Download the concept proposals as SKOS Turtle (RM-PUB-01).
+
+    `X-Skipped-Rows` counts the stored rows left out because they hold an unsafe value.
+    """
+    export = staging_store.export_proposals_to_turtle()
     return Response(
-        content=ttl_content,
+        content=export.turtle,
         media_type="text/turtle",
-        headers={"Content-Disposition": "attachment; filename=thezoo_proposals.ttl"},
+        headers={
+            "Content-Disposition": "attachment; filename=thezoo_proposals.ttl",
+            "X-Skipped-Rows": str(export.skipped_rows),
+        },
     )

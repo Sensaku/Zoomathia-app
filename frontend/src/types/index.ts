@@ -178,7 +178,6 @@ export interface CreateAnnotationInput {
   scope_type?: AnnotationScopeType;
   end_paragraph_uri?: string;
   target_paragraphs?: string[];
-  status?: AnnotationStatus;
 }
 
 export interface SectionAnnotationsResponse {

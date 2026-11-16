@@ -6,10 +6,15 @@ only from the payload, with the escaping helpers of `app.shared.sparql`: the cus
 and its CSV and JSON exports send exactly the same query to Corese.
 """
 
-from typing import Any
+from pydantic import ValidationError
 
-from app.corpus.schemas import CollectionCriterion, ConceptCriterion, CustomSearchPayload
-from app.shared.sparql import sparql_iri, sparql_literal
+from app.corpus.schemas import (
+    CollectionCriterion,
+    ConceptCriterion,
+    CustomSearchPayload,
+    LegacyConcept,
+)
+from app.shared.sparql import InvalidSparqlValue, sparql_iri, sparql_literal
 
 _PREFIXES = (
     "PREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n"
@@ -40,33 +45,34 @@ def criteria_count(payload: CustomSearchPayload) -> int:
 
 
 def _legacy_concept(
-    item: Any, payload: CustomSearchPayload
+    item: str | LegacyConcept, payload: CustomSearchPayload
 ) -> ConceptCriterion | CollectionCriterion | None:
     """Turn one entry of the legacy `concepts` list into a criterion (None to skip it)."""
-    if isinstance(item, dict):
-        uri = item.get("uri") or item.get("value", "")
-        c_type = item.get("type")
-        label = item.get("label")
-    elif hasattr(item, "uri"):
-        uri = item.uri
-        c_type = getattr(item, "type", None)
-        label = getattr(item, "label", None)
+    if isinstance(item, LegacyConcept):
+        uri = item.uri or item.value or ""
+        c_type = item.type
+        label = item.label
     else:
-        uri = str(item)
+        uri = item
         c_type = None
         label = None
 
     if not uri:
         return None
-    if payload.collectionMembers and c_type and "Collection" in str(c_type):
-        return CollectionCriterion(uri=uri, label=label, polarity="include")
-    return ConceptCriterion(
-        uri=uri,
-        label=label,
-        type=c_type,
-        include_subconcepts=payload.subConcepts,
-        polarity="include",
-    )
+    try:
+        if payload.collectionMembers and c_type and "Collection" in str(c_type):
+            return CollectionCriterion(uri=uri, label=label, polarity="include")
+        return ConceptCriterion(
+            uri=uri,
+            label=label,
+            type=c_type,
+            include_subconcepts=payload.subConcepts,
+            polarity="include",
+        )
+    except ValidationError as error:
+        # A legacy entry is only length-bounded by the request model; the criterion models
+        # check the IRI. The message never echoes the value.
+        raise InvalidSparqlValue("Invalid IRI in a concept criterion.") from error
 
 
 def _normalize_criteria(

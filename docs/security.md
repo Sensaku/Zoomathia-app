@@ -61,10 +61,35 @@ No usage quotas. Guardrails are sized so that normal use never reaches them.
 
 ## Input validation and output encoding
 
-- Every string field has a maximum length. IRIs are validated (`http`/`https`). Language tags come from the allowed list (RM-THE-05).
-- SPARQL is built with escaping helpers or `VALUES`, never by interpolating request data.
-- RDF exports use `rdflib`. CSV exports use the `csv` module and neutralize formulas (cells starting with `=`, `+`, `-`, `@`).
-- External URLs (OpenTheso) are built with proper URL encoding.
+- **Scope.** The request models of the contributions (annotations and their status updates), the term proposals (and their status updates), the saved queries, the custom search and its CSV and JSON exports, and the OpenTheso parameters (autocomplete text, concept identifier) bound every string, close every enumeration and validate every IRI: a value that breaks a rule gives 422 before it reaches the store or Corese (RM-ACC-02, RM-ANN-04, RM-THE-05). The other request strings are not bounded by a declared maximum yet (see the known gaps). The rules exist once, in `app/shared/validation.py`, and the Pydantic request models use them through annotated types. The response models do not validate, so that rows stored before these rules can still be read.
+- **IRIs:** `http` or `https`, at most 2,048 characters, no whitespace or control character, and none of `<>"{}|\^` or the backtick (the rule of `sparql_iri`, which the validator reuses).
+- **Concept IRIs** (`concept_uri` of an annotation, `broader_concept_uri` of a proposal) are TheZoo IRIs: `https://opentheso.huma-num.fr/?idc=<id>&idt=th310`, with an alphanumeric `<id>` of at most 64 characters (RM-ANN-04, decided 2026-11-16). An annotation may also target the IRI that the server minted for a concept proposed on the fly (`http://zoomathia.i3s.unice.fr/concept/proposal/<number>`), pending its integration in TheZoo: decided by the owner on 2026-11-16 (RM-ANN-04), and the annotation modal selects it right after the proposal. **Paragraph IRIs** (`paragraph_uri`, `end_paragraph_uri`, each `target_paragraphs` item) belong to the corpus namespace `http://ns.inria.fr/zoomathia/`. The existence of a concept or of a paragraph is not checked.
+- **Enumerations:** `scope_type` (`word`, `word_sequence`, `sentence`, `paragraph`, `multi_paragraph`), `concept_type` (`skos:Concept`, `skos:Collection`), `language` (`fr`, `en`, `la`, `grc`, RM-THE-05), the `status` of the list filters and of the status updates (`En attente de validation`, `Validé`, `Rejeté` for annotations; `En attente de révision`, `Validé`, `Rejeté` for proposals; an unknown status gives 422), and, in a custom search, the `polarity` of a criterion (`include`, `exclude`) and the `match_mode` (`AND`, `OR`).
+- **Text:** no lone surrogate, no C0 control character other than tab, line feed and carriage return, and no delete character. Quotes, backslashes, line breaks and Greek are legitimate.
+- **Maximum lengths** (*proposed* values, from the corpus measured on 2026-11-16: 48,378 paragraphs, the longest text 18,197 characters, the longest paragraph IRI 160 characters, the longest concept IRI and label 89 characters). A value at the limit is accepted, one character more gives 422.
+
+| Field | Maximum |
+|---|---|
+| `target_text` of an annotation | 50,000 characters |
+| `start_offset`, `end_offset` | between 0 and 50,000 |
+| `target_paragraphs` | 50 IRIs |
+| `concept_label`, `pref_label`, each alternative label, `broader_concept_label` | 200 characters |
+| `alt_labels` | 20 labels |
+| `annotator_name`, `contributor_name`, `author_name` | 200 characters |
+| `justification`, `definition` | 5,000 characters |
+| Saved query: `title` / `description` / `category` | 200 / 2,000 / 100 characters |
+| Saved query: `query_text`, `query_spo_text` (the limit of the SPARQL guard) | 5,000 characters |
+| Query parameters: proposal search `q`, saved-query `search` | 200 characters |
+| Query parameters: saved-query `category`, OpenTheso autocomplete `q` | 100 characters (autocomplete: 2 to 100) |
+| Query parameter: `paragraph_uri` filter | 2,048 characters |
+| Custom search: author name / work IRI (included or excluded) | 200 / 2,048 characters |
+| Custom search criteria: IRI of a concept or collection criterion (generic IRI rule, not the TheZoo form: collections use other OpenTheso forms) / `label` / concept criterion `type` | 2,048 / 200 / 2,048 characters |
+| Legacy `concepts` item of a custom search: string, or `uri`, `value` and `type` / `label` | 2,048 / 200 characters |
+
+- The legacy `concepts` list of a custom search is strictly typed (an IRI, or an object with string `uri` or `value`, and optional string `type` and `label`): a malformed item gives 422 instead of a server error.
+- SPARQL is built with escaping helpers or `VALUES`, never by interpolating request data. The text that reaches a SQL `LIKE` (proposal and saved-query searches) is escaped, so `%` and `_` match themselves, and an annotation is listed for a paragraph by exact membership of its JSON list of paragraphs, not by substring.
+- RDF exports use `rdflib` (`app/services/rdf_export.py`): a name, a label or a text cannot add a triple, whatever it contains. A row stored before the validation existed whose IRI, language tag or text is unsafe is left out of the export, logged by identifier and counted in the `X-Skipped-Rows` response header (`0` when nothing is left out). CSV exports use the `csv` module and neutralize formulas (cells starting with `=`, `+`, `-`, `@`).
+- External URLs (OpenTheso) are built with proper URL encoding: the autocomplete text is one percent-encoded path segment (a text made only of dots is encoded too, because an HTTP client would otherwise drop it from the path), and a concept identifier must be alphanumeric, at most 64 characters, or the route answers 422 without any outgoing request. The OpenTheso cache keeps at most 1,000 entries (*proposed*), least recently used first out, for 10 minutes.
 - Links rendered from user data are restricted to `http`/`https`.
 
 ## Corese write access (RM-PUB-01)
@@ -104,13 +129,14 @@ Fixed so far:
 - Heavy queries: a short wait for a slot instead of an immediate 429, and the slot of a query that Corese still evaluates is kept until it answers, with a 600 s cap, instead of being freed at the API's 30 s timeout (P0-2b).
 - CSV exports are built with the `csv` module (Greek `;`, quotes and line breaks are quoted) and neutralize formulas (P0-2b).
 - The paragraph search by concept no longer sends a label pattern unconnected to the search (it paired every matching paragraph with the 25,910 English labels of Corese before `DISTINCT`: 0.65 to 0.95 s, against 0.04 s without it, for a concept annotated on 5 paragraphs, same rows) (P0-2b).
+- Integrity of contributions (P0-3): the Turtle exports of annotations and proposals are built with rdflib and can no longer receive an injected triple (RM-PUB-01); the server sets the initial status of an annotation, and a `status` sent by a client is ignored (RM-CTB-04, *proposed*); `PUT /queries/{id}` on a native competency question answers 403 (RM-QC-02); the request fields of the contributions, term proposals, saved queries, custom search and OpenTheso parameters have a maximum length, an enumeration or an IRI format (RM-ACC-02, RM-ANN-04, RM-THE-05); the paragraph filter of the annotation list is an exact match, and the searches of proposals and saved queries match `%` and `_` literally; the OpenTheso client encodes its URLs, validates concept identifiers and keeps a bounded cache.
+
+Still open until accounts exist (P0-4, RM-CTB-01, RM-MOD-01): anyone can still change the status of an annotation or of a proposal (peer review needs accounts), and can still edit or delete a personal saved query (RM-QC-06). The author of a contribution is still a free name sent by the client (RM-CTB-03).
 
 | Priority | Gap | Rules |
 |---|---|---|
 | P0 | No authentication or authorization on write endpoints | RM-CTB-01, RM-MOD-01 |
-| P0 | Client can set `status` at creation; native QCs can be overwritten with `PUT /queries/{id}` | RM-CTB-04, RM-QC-02 |
-| P0 | Turtle injection in `/annotations/export-ttl` and `/thesaurus/proposals/export-ttl` | RM-PUB-01 |
-| P1 | Unbounded OpenTheso cache (the SPARQL result cache is bounded since P0-2a); no maximum length on fields | RM-ACC-02 |
 | P1 | Corese has no query timeout of its own (confirmed 2026-11-15: none is configured, and Corese only offers one for federated `SERVICE` calls), and its public endpoint can be queried directly, outside the guardrails of the API. The API keeps the heavy-query slot until Corese answers (600 s cap), but a costly query sent straight to the endpoint is neither limited nor stopped. To raise with the Corese team and I3S: a query timeout in Corese, or an endpoint reachable by the API only | RM-ACC-02 |
-| P1 | OpenTheso URLs built without encoding | — |
+| P1 | Request strings without a declared maximum: the query parameters of the read routes (`uri`, `title`, `author`, `input`, `lang`, `section_uri`, `/getConcepts` and the like), the bodies of `POST /getParagraphWithConcept` (typed, but its strings are not bounded) and `POST /getParagraphsWithConcepts` (an untyped dictionary), and the `query` of the playground. Nothing unsafe gets through: the escaping helpers (`sparql_iri` 2,048, `sparql_literal` 1,000, `sparql_lang` 35) and the SPARQL guard (5,000) refuse an over-long value with 400 or 403 after it was read, the number of concepts is capped (`MAX_CRITERIA`) and nginx caps a body at 1 MB; what is missing is the early, uniform 422 | RM-ACC-02 |
+| P1 | OpenTheso failures are returned as empty results (`/thesaurus/autocomplete`) or as a 404 (`/thesaurus/concept`) instead of an explicit 502 or 504 (AGENTS.md rule 9) | — |
 | P2 | Error details leaked; health endpoint exposes the SPARQL URL; no nginx security headers; CORS credentials; Google Fonts; `staging.db` tracked | — |

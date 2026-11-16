@@ -229,8 +229,7 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
       justification: justification.trim() || undefined,
       scope_type: scopeType,
       end_paragraph_uri: endParagraphUri,
-      target_paragraphs: targetParagraphs,
-      status: 'En attente de validation'
+      target_paragraphs: targetParagraphs
     })
   }
 

@@ -13,6 +13,7 @@ from typing import Any
 from app.core.config import settings
 from app.core.qcs_data import QCS_DATA
 from app.models.annotation_models import (
+    INITIAL_ANNOTATION_STATUS,
     AnnotationResponse,
     CreateAnnotationRequest,
     CreateSavedQueryRequest,
@@ -21,9 +22,27 @@ from app.models.annotation_models import (
     ThesaurusProposalResponse,
     UpdateSavedQueryRequest,
 )
+from app.services.rdf_export import RdfExport, annotations_to_turtle, proposals_to_turtle
 
-# Emplacement configurable de la base SQLite de staging
+# Configurable location of the staging SQLite database
 DB_PATH = Path(settings.STAGING_DB_PATH)
+
+# Escape character of the `LIKE` patterns built from user text (a backslash).
+LIKE_ESCAPE = chr(92)
+LIKE_ESCAPE_CLAUSE = f" ESCAPE '{LIKE_ESCAPE}'"
+
+
+def escape_like(text: str) -> str:
+    """Escape `%`, `_` and the escape character, so that `text` is matched literally by `LIKE`.
+
+    The pattern must be used with `LIKE_ESCAPE_CLAUSE`. Without it, a search for `50%` or
+    `a_b` would match anything (RM-ACC-02: a user value never changes the shape of a query).
+    """
+    return (
+        text.replace(LIKE_ESCAPE, LIKE_ESCAPE * 2)
+        .replace("%", LIKE_ESCAPE + "%")
+        .replace("_", LIKE_ESCAPE + "_")
+    )
 
 
 class StagingStore:
@@ -175,13 +194,16 @@ class StagingStore:
     # --- Gestion des Annotations ---
 
     def add_annotation(self, req: CreateAnnotationRequest) -> AnnotationResponse:
-        """Enregistre une nouvelle annotation de texte (mot, séquence, phrase, paragraphe, multi-paragraphes)."""
+        """Store a new text annotation (word, sequence, sentence, paragraph, several paragraphs).
+
+        RM-CTB-04: the status is always `INITIAL_ANNOTATION_STATUS`, whatever the client sent.
+        """
         created_at = datetime.now(timezone.utc).isoformat()
         target_paras = req.target_paragraphs or [req.paragraph_uri]
         if req.end_paragraph_uri and req.end_paragraph_uri not in target_paras:
             target_paras.append(req.end_paragraph_uri)
         target_paras_json = json.dumps(target_paras, ensure_ascii=False)
-        status = req.status or "En attente de validation"
+        status = INITIAL_ANNOTATION_STATUS
         scope_type = req.scope_type or "word_sequence"
 
         with self._get_connection() as conn:
@@ -239,19 +261,33 @@ class StagingStore:
         status: str | None = None,
         section_paragraphs: list[str] | None = None,
     ) -> list[AnnotationResponse]:
-        """Retourne la liste des annotations en staging, filtrable par paragraphe, statut, ou ensemble de paragraphes."""
+        """List the staged annotations, filtered by paragraph, status or set of paragraphs.
+
+        `paragraph_uri` matches an annotation whose first paragraph, or one of whose covered
+        paragraphs, is exactly this IRI (never a longer IRI that merely contains it).
+        `section_paragraphs` keeps the annotations that cover at least one of these
+        paragraphs; an empty collection therefore matches nothing, while `None` does not
+        filter.
+        """
         query = "SELECT * FROM staged_annotations WHERE 1=1"
         params: list[Any] = []
 
         if paragraph_uri:
-            query += " AND (paragraph_uri = ? OR target_paragraphs LIKE ?)"
-            params.extend([paragraph_uri, f"%{paragraph_uri}%"])
+            # `target_paragraphs` is a JSON array: exact membership through `json_each`. The
+            # CASE keeps `json_each` from running on a legacy row that is not valid JSON.
+            query += (
+                " AND (paragraph_uri = ? OR CASE WHEN json_valid(target_paragraphs)"
+                " THEN EXISTS (SELECT 1 FROM json_each(target_paragraphs) WHERE value = ?)"
+                " ELSE 0 END)"
+            )
+            params.extend([paragraph_uri, paragraph_uri])
 
         if status:
             query += " AND status = ?"
             params.append(status)
 
         query += " ORDER BY id DESC"
+        section_set = set(section_paragraphs) if section_paragraphs is not None else None
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -273,10 +309,9 @@ class StagingStore:
                 except Exception:
                     paras_list = [row["paragraph_uri"]]
 
-                # Si un filtre section_paragraphs est fourni, vérifier si au moins un paragraphe correspond
-                if section_paragraphs:
-                    if not any(p in section_paragraphs for p in paras_list):
-                        continue
+                # With a section filter, at least one covered paragraph must belong to it.
+                if section_set is not None and not any(p in section_set for p in paras_list):
+                    continue
 
                 results.append(
                     AnnotationResponse(
@@ -423,7 +458,10 @@ class StagingStore:
     def get_proposals(
         self, status: str | None = None, search: str | None = None
     ) -> list[ThesaurusProposalResponse]:
-        """Retourne la liste des propositions de concepts enregistrées avec filtres optionnels."""
+        """List the stored concept proposals, with optional status and text filters.
+
+        The text is matched literally: `%` and `_` have no special meaning in it.
+        """
         query = "SELECT * FROM thesaurus_proposals WHERE 1=1"
         params: list[Any] = []
 
@@ -432,8 +470,13 @@ class StagingStore:
             params.append(status)
 
         if search:
-            search_like = f"%{search.strip().lower()}%"
-            query += " AND (LOWER(pref_label) LIKE ? OR LOWER(alt_labels) LIKE ? OR LOWER(contributor_name) LIKE ? OR LOWER(definition) LIKE ? OR LOWER(COALESCE(broader_concept_label, '')) LIKE ?)"
+            search_like = f"%{escape_like(search.strip().lower())}%"
+            like = "LIKE ?" + LIKE_ESCAPE_CLAUSE
+            query += (
+                f" AND (LOWER(pref_label) {like} OR LOWER(alt_labels) {like}"
+                f" OR LOWER(contributor_name) {like} OR LOWER(definition) {like}"
+                f" OR LOWER(COALESCE(broader_concept_label, '')) {like})"
+            )
             params.extend([search_like, search_like, search_like, search_like, search_like])
 
         query += " ORDER BY id DESC"
@@ -497,94 +540,25 @@ class StagingStore:
                 created_at=row["created_at"],
             )
 
-    # --- Sérialiseurs RDF Turtle (Standards W3C Web Annotation & SKOS) ---
+    # --- RDF Turtle serializers (W3C Web Annotation and SKOS), see `app.services.rdf_export` ---
 
-    def export_annotations_to_turtle(self) -> str:
+    def export_annotations_to_turtle(self) -> RdfExport:
+        """Serialize every staged annotation as W3C Web Annotation Turtle (RM-PUB-01).
+
+        Returns:
+            The Turtle document and the number of rows left out because they hold an unsafe
+            value (see `app.services.rdf_export`).
         """
-        Sérialise toutes les annotations de staging en RDF Turtle au standard W3C Web Annotation.
-        Compatible avec l'ontologie Open Annotation (oa:).
+        return annotations_to_turtle(self.get_annotations())
+
+    def export_proposals_to_turtle(self) -> RdfExport:
+        """Serialize every thesaurus proposal as SKOS Turtle (RM-PUB-01).
+
+        Returns:
+            The Turtle document and the number of rows left out because they hold an unsafe
+            value (see `app.services.rdf_export`).
         """
-        annotations = self.get_annotations()
-        lines = [
-            "@prefix oa: <http://www.w3.org/ns/oa#> .",
-            "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .",
-            "@prefix dcterms: <http://purl.org/dc/terms/> .",
-            "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .",
-            "@prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> .",
-            "",
-            f"# Export de {len(annotations)} annotation(s) W3C en staging - Zoomathia",
-            f"# Date de génération : {datetime.now(timezone.utc).isoformat()}Z",
-            "",
-        ]
-
-        for a in annotations:
-            annot_uri = f"<http://zoomathia.i3s.unice.fr/annotation/staging/{a.id}>"
-            target_blank = f"_:target_{a.id}"
-            selector_blank = f"_:selector_{a.id}"
-            escaped_text = (
-                a.target_text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
-            )
-
-            lines.append(f"{annot_uri} a oa:Annotation ;")
-            lines.append(f"    oa:hasBody <{a.concept_uri}> ;")
-            lines.append(f"    oa:hasTarget {target_blank} ;")
-            lines.append(f'    dcterms:creator "{a.annotator_name}" ;')
-            lines.append(f'    zoo:proposalStatus "{a.status}" ;')
-            lines.append(f'    zoo:scopeType "{a.scope_type}" ;')
-            if a.justification:
-                escaped_just = (
-                    a.justification.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
-                )
-                lines.append(f'    dcterms:description "{escaped_just}" ;')
-            lines.append(f'    dcterms:created "{a.created_at}"^^xsd:dateTime .')
-            lines.append("")
-            lines.append(f"{target_blank} a oa:SpecificResource ;")
-            lines.append(f"    oa:hasSource <{a.paragraph_uri}> ;")
-            if a.end_paragraph_uri and a.end_paragraph_uri != a.paragraph_uri:
-                lines.append(f"    zoo:endSource <{a.end_paragraph_uri}> ;")
-            lines.append(f"    oa:hasSelector {selector_blank} .")
-            lines.append("")
-            lines.append(f"{selector_blank} a oa:TextPositionSelector ;")
-            lines.append(f'    oa:exact "{escaped_text}" ;')
-            lines.append(f"    oa:start {a.start_offset} ;")
-            lines.append(f"    oa:end {a.end_offset} .")
-            lines.append("")
-
-        return "\n".join(lines)
-
-    def export_proposals_to_turtle(self) -> str:
-        """
-        Sérialise les propositions de concepts du thésaurus au format SKOS Turtle.
-        """
-        proposals = self.get_proposals()
-        lines = [
-            "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .",
-            "@prefix dcterms: <http://purl.org/dc/terms/> .",
-            "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .",
-            "",
-            f"# Export de {len(proposals)} proposition(s) SKOS - TheZoo",
-            f"# Date de génération : {datetime.now(timezone.utc).isoformat()}Z",
-            "",
-        ]
-
-        for p in proposals:
-            concept_uri = f"<http://zoomathia.i3s.unice.fr/concept/proposal/{p.id}>"
-            escaped_pref = p.pref_label.replace('"', '\\"')
-            lines.append(f"{concept_uri} a skos:Concept ;")
-            lines.append(f'    skos:prefLabel "{escaped_pref}"@{p.language} ;')
-            for alt in p.alt_labels:
-                escaped_alt = alt.replace('"', '\\"')
-                lines.append(f'    skos:altLabel "{escaped_alt}"@{p.language} ;')
-            if p.broader_concept_uri:
-                lines.append(f"    skos:broader <{p.broader_concept_uri}> ;")
-            if p.definition:
-                escaped_def = p.definition.replace("\\", "\\\\").replace('"', '\\"')
-                lines.append(f'    skos:definition "{escaped_def}"@{p.language} ;')
-            lines.append(f'    dcterms:creator "{p.contributor_name}" ;')
-            lines.append(f'    dcterms:created "{p.created_at}"^^xsd:dateTime .')
-            lines.append("")
-
-        return "\n".join(lines)
+        return proposals_to_turtle(self.get_proposals())
 
     # --- Gestion des Requêtes SPARQL Sauvegardées ---
 
@@ -620,7 +594,10 @@ class StagingStore:
     def get_saved_queries(
         self, category: str | None = None, search: str | None = None
     ) -> list[SavedQueryResponse]:
-        """Retourne les requêtes sauvegardées avec filtrage optionnel."""
+        """List the saved queries, with optional category and text filters.
+
+        The text is matched literally in the title and the description.
+        """
         query_sql = "SELECT * FROM saved_queries WHERE 1=1"
         params: list[Any] = []
 
@@ -629,8 +606,10 @@ class StagingStore:
             params.append(category)
 
         if search:
-            query_sql += " AND (title LIKE ? OR description LIKE ?)"
-            params.extend([f"%{search}%", f"%{search}%"])
+            like = "LIKE ?" + LIKE_ESCAPE_CLAUSE
+            query_sql += f" AND (title {like} OR description {like})"
+            pattern = f"%{escape_like(search)}%"
+            params.extend([pattern, pattern])
 
         query_sql += " ORDER BY is_builtin DESC, id ASC"
 
@@ -678,10 +657,17 @@ class StagingStore:
     def update_saved_query(
         self, query_id: int, req: UpdateSavedQueryRequest
     ) -> SavedQueryResponse | None:
-        """Met à jour une requête existante."""
+        """Update a saved query.
+
+        Raises:
+            ValueError: If the query is a native competency question (RM-QC-02): only an
+                administrator may edit it, and accounts do not exist yet.
+        """
         existing = self.get_saved_query_by_id(query_id)
         if not existing:
             return None
+        if existing.is_builtin:
+            raise ValueError("A native competency question cannot be modified.")
 
         now = datetime.now(timezone.utc).isoformat()
         new_title = req.title.strip() if req.title is not None else existing.title

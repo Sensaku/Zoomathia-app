@@ -15,14 +15,19 @@ from app.models.annotation_models import (
 from app.routers.concepts import classify_concept
 from app.services.sparql_client import sparql_client
 from app.services.staging_store import staging_store
-from app.shared.sparql import sparql_iri, sparql_lang
+from app.shared.sparql import MAX_IRI_LENGTH, sparql_iri, sparql_lang
+from app.shared.validation import AnnotationStatus
 
 router = APIRouter(prefix="/annotations", tags=["annotations"])
 
 
 @router.post("", response_model=AnnotationResponse)
 async def create_annotation(annotation: CreateAnnotationRequest):
-    """Enregistre une nouvelle annotation sémantique (mot, séquence, phrase, paragraphe ou multi-paragraphes)."""
+    """Store a new annotation (word, sequence, sentence, paragraph or several paragraphs).
+
+    RM-CTB-04: the server sets the status ("En attente de validation"); a `status` in the
+    body is ignored.
+    """
     # Si intra-paragraphe, l'offset de fin doit être strictement supérieur au début
     if not annotation.end_paragraph_uri or annotation.end_paragraph_uri == annotation.paragraph_uri:
         if annotation.end_offset <= annotation.start_offset:
@@ -35,24 +40,20 @@ async def create_annotation(annotation: CreateAnnotationRequest):
 
 @router.get("", response_model=list[AnnotationResponse])
 async def list_annotations(
-    paragraph_uri: str | None = Query(None, description="URI du paragraphe"),
-    status: str | None = Query(
-        None, description="Filtrer par statut ('En attente de validation', 'Validé', 'Rejeté')"
+    paragraph_uri: str | None = Query(
+        None, max_length=MAX_IRI_LENGTH, description="IRI of the paragraph (exact match)"
+    ),
+    status: AnnotationStatus | None = Query(
+        None, description="Filter by status ('En attente de validation', 'Validé', 'Rejeté')"
     ),
 ):
-    """Liste les annotations enregistrées en staging, filtrables par paragraphe et par statut."""
+    """List the staged annotations, filterable by paragraph and by status."""
     return staging_store.get_annotations(paragraph_uri=paragraph_uri, status=status)
 
 
 @router.patch("/{annotation_id}/status", response_model=AnnotationResponse)
 async def update_annotation_status(annotation_id: int, req: UpdateAnnotationStatusRequest):
-    """Met à jour le statut de validation d'une annotation ('En attente de validation', 'Validé', 'Rejeté')."""
-    valid_statuses = {"En attente de validation", "Validé", "Rejeté"}
-    if req.status not in valid_statuses:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Statut invalide. Valeurs autorisées : {', '.join(valid_statuses)}",
-        )
+    """Update the validation status of an annotation (an unknown status gives 422)."""
     updated = staging_store.update_annotation_status(annotation_id, req.status)
     if not updated:
         raise HTTPException(status_code=404, detail="Annotation introuvable")
@@ -196,10 +197,16 @@ async def delete_annotation(annotation_id: int):
 
 @router.get("/export-ttl")
 async def export_annotations_turtle():
-    """Télécharge l'ensemble des annotations de staging au format RDF Turtle W3C."""
-    ttl_content = staging_store.export_annotations_to_turtle()
+    """Download every staged annotation as W3C Web Annotation Turtle (RM-PUB-01).
+
+    `X-Skipped-Rows` counts the stored rows left out because they hold an unsafe value.
+    """
+    export = staging_store.export_annotations_to_turtle()
     return Response(
-        content=ttl_content,
+        content=export.turtle,
         media_type="text/turtle",
-        headers={"Content-Disposition": "attachment; filename=zoomathia_staging_annotations.ttl"},
+        headers={
+            "Content-Disposition": "attachment; filename=zoomathia_staging_annotations.ttl",
+            "X-Skipped-Rows": str(export.skipped_rows),
+        },
     )

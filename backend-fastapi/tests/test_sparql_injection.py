@@ -57,22 +57,18 @@ IRI_POST_BODIES = [
     ("/customSearch", {"work": [IRI_BREAKOUT]}),
     ("/customSearch", {"author": ["Aelian"], "excluded_works": [IRI_BREAKOUT]}),
     ("/customSearch", {"concepts": [{"uri": IRI_BREAKOUT}]}),
-    ("/customSearch", {"concept_criteria": [{"uri": IRI_BREAKOUT}]}),
-    ("/customSearch", {"concept_criteria": [{"uri": IRI_BREAKOUT, "include_subconcepts": True}]}),
-    ("/customSearch", {"concept_criteria": [{"uri": IRI_BREAKOUT}], "match_mode": "AND"}),
-    (
-        "/customSearch",
-        {"author": ["Aelian"], "concept_criteria": [{"uri": IRI_BREAKOUT, "polarity": "exclude"}]},
-    ),
-    ("/customSearch", {"collection_criteria": [{"uri": IRI_BREAKOUT}]}),
-    ("/customSearch", {"collection_criteria": [{"uri": IRI_BREAKOUT}], "match_mode": "AND"}),
-    (
-        "/customSearch",
-        {
-            "author": ["Aelian"],
-            "collection_criteria": [{"uri": IRI_BREAKOUT, "polarity": "exclude"}],
-        },
-    ),
+]
+
+# The IRIs of the criteria of a custom search are checked by the request model (generic IRI
+# validator): 422 before the query builder runs. The builder still escapes them.
+CRITERIA_IRI_BODIES = [
+    {"concept_criteria": [{"uri": IRI_BREAKOUT}]},
+    {"concept_criteria": [{"uri": IRI_BREAKOUT, "include_subconcepts": True}]},
+    {"concept_criteria": [{"uri": IRI_BREAKOUT}], "match_mode": "AND"},
+    {"author": ["Aelian"], "concept_criteria": [{"uri": IRI_BREAKOUT, "polarity": "exclude"}]},
+    {"collection_criteria": [{"uri": IRI_BREAKOUT}]},
+    {"collection_criteria": [{"uri": IRI_BREAKOUT}], "match_mode": "AND"},
+    {"author": ["Aelian"], "collection_criteria": [{"uri": IRI_BREAKOUT, "polarity": "exclude"}]},
 ]
 
 
@@ -122,6 +118,16 @@ async def test_injected_iri_in_a_post_body_is_refused_before_reaching_corese(
 
     assert response.status_code == 400
     assert_not_echoed(response, IRI_BREAKOUT)
+    assert corese.queries == []
+
+
+@pytest.mark.parametrize("body", CRITERIA_IRI_BODIES)
+async def test_injected_iri_in_a_search_criterion_is_refused_by_the_request_model(
+    client: httpx.AsyncClient, corese: FakeCorese, body: dict[str, Any]
+) -> None:
+    response = await client.post("/customSearch", json=body)
+
+    assert response.status_code == 422
     assert corese.queries == []
 
 

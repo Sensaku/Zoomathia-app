@@ -1,19 +1,18 @@
 """Known gaps from the 2026-11-15 audit, written as executable specifications.
 
-Each test states the expected behaviour and is marked `xfail(strict=True)`.
-When the P0/P1 work fixes a gap, the test passes, pytest reports an unexpected
-pass, and the marker must be removed: the test then guards against regressions.
+Each test states the expected behaviour. A gap that is still open is marked
+`xfail(strict=True)`: when the P0/P1 work fixes it, pytest reports an unexpected pass and
+the marker must be removed, so that the test then guards against regressions. Every gap of
+the audit that was written here is fixed (RM-CTB-04, RM-QC-02 and the exact paragraph match
+by P0-3), so the tests below are plain regression tests.
 """
 
 import httpx
-import pytest
 
 from tests.conftest import FakeCorese
 
-
-def known_gap(reason: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, reason=reason)
-
+PARAGRAPH_1 = "http://ns.inria.fr/zoomathia/Ex/work/text/1"
+PARAGRAPH_10 = "http://ns.inria.fr/zoomathia/Ex/work/text/10"
 
 ANNOTATION = {
     "target_text": "leo",
@@ -24,19 +23,17 @@ ANNOTATION = {
 }
 
 
-@known_gap("RM-CTB-04: the client can set the status of a new annotation")
 async def test_rm_ctb_04_client_cannot_create_a_validated_annotation(
     client: httpx.AsyncClient,
 ) -> None:
     response = await client.post(
-        "/annotations", json={**ANNOTATION, "paragraph_uri": "http://ex/p/1", "status": "Validé"}
+        "/annotations", json={**ANNOTATION, "paragraph_uri": PARAGRAPH_1, "status": "Validé"}
     )
 
     assert response.status_code in (200, 201)
     assert response.json().get("status") != "Validé"
 
 
-@known_gap("RM-QC-02: anyone can overwrite a native competency question")
 async def test_rm_qc_02_native_question_cannot_be_overwritten_anonymously(
     client: httpx.AsyncClient,
 ) -> None:
@@ -45,9 +42,8 @@ async def test_rm_qc_02_native_question_cannot_be_overwritten_anonymously(
     assert response.status_code in (401, 403)
 
 
-@known_gap("LIKE '%uri%' matches paragraph 10 when listing paragraph 1")
 async def test_listing_by_paragraph_matches_the_exact_uri(client: httpx.AsyncClient) -> None:
-    paragraph_10 = "http://ex/work/text/10"
+    paragraph_10 = PARAGRAPH_10
     await client.post(
         "/annotations",
         json={**ANNOTATION, "paragraph_uri": paragraph_10, "target_paragraphs": [paragraph_10]},
@@ -57,7 +53,7 @@ async def test_listing_by_paragraph_matches_the_exact_uri(client: httpx.AsyncCli
     assert own.status_code == 200
     assert [item["paragraph_uri"] for item in own.json()] == [paragraph_10]
 
-    response = await client.get("/annotations", params={"paragraph_uri": "http://ex/work/text/1"})
+    response = await client.get("/annotations", params={"paragraph_uri": PARAGRAPH_1})
 
     assert response.status_code == 200
     assert all(item["paragraph_uri"] != paragraph_10 for item in response.json())

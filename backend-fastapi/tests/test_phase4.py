@@ -29,7 +29,7 @@ async def test_thesaurus_autocomplete():
 @pytest.mark.asyncio
 async def test_create_and_list_annotation():
     transport = ASGITransport(app=app)
-    test_para = "http://zoomathia.i3s.unice.fr/corpus/test_para_42"
+    test_para = "http://ns.inria.fr/zoomathia/corpus/test_para_42"
 
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # 1. Création
@@ -73,7 +73,7 @@ async def test_invalid_annotation_offset():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         invalid_payload = {
-            "paragraph_uri": "http://zoomathia.i3s.unice.fr/corpus/test",
+            "paragraph_uri": "http://ns.inria.fr/zoomathia/corpus/test",
             "target_text": "invalide",
             "start_offset": 20,
             "end_offset": 10,  # Erreur : fin < début
@@ -165,7 +165,7 @@ async def test_sparql_playground_valid_query():
 @pytest.mark.asyncio
 async def test_annotation_status_and_justification():
     transport = ASGITransport(app=app)
-    test_para = "http://zoomathia.i3s.unice.fr/corpus/test_para_validation"
+    test_para = "http://ns.inria.fr/zoomathia/corpus/test_para_validation"
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # Création avec justification et statut par défaut
         payload = {
@@ -205,8 +205,8 @@ async def test_annotation_status_and_justification():
 @pytest.mark.asyncio
 async def test_multi_paragraph_annotation():
     transport = ASGITransport(app=app)
-    p1 = "http://zoomathia.i3s.unice.fr/corpus/p1"
-    p2 = "http://zoomathia.i3s.unice.fr/corpus/p2"
+    p1 = "http://ns.inria.fr/zoomathia/corpus/p1"
+    p2 = "http://ns.inria.fr/zoomathia/corpus/p2"
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         payload = {
             "paragraph_uri": p1,

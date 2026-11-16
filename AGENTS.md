@@ -123,7 +123,7 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 ## Known pitfalls
 
 - Tests force a temporary database and block network access (`tests/conftest.py`). Only the tests marked `live` reach the production Corese or OpenTheso, and they are excluded by default. `backend-fastapi/data/staging.db` is still tracked by git: never commit changes to it.
-- Known gaps of the 2026-11-15 audit are written as strict `xfail` tests in `tests/test_known_gaps.py`. When a fix makes one pass, remove its marker: the test then guards against regressions.
+- Known gaps of the 2026-11-15 audit are written as tests in `tests/test_known_gaps.py`; one that is still open carries a strict `xfail` marker (none does since P0-3). When a fix makes one pass, remove its marker: the test then guards against regressions.
 - The default SPARQL endpoint (`http://zoomathia.i3s.unice.fr/sparql`) is the **shared production** Corese. Unbounded queries (`SELECT *` without `LIMIT`, global `DESCRIBE`) can crash it (out of memory).
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite) until RM-QC-01 is implemented. Keep them consistent if you must touch them.
 - Concept categories are computed twice (backend `classify_concept`, frontend `getConceptCategoryInfo`) with diverging rules, until RM-CON-01 and RM-CON-02 are implemented.
@@ -135,5 +135,5 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 1. Framing documents and development guidelines (this file and `docs/`): done on 2026-11-15.
 2. Next:
    - tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend, tests, documentation site and CI done on 2026-11-15; frontend (Vite+, Playwright, TypeDoc) after the upgrade to Node 24;
-   - P0 security work (`docs/security.md`, "Known gaps"): authentication and roles, server-side status, RDF serialization, unified SPARQL validation and guardrails, escaping helpers.
+   - P0 security work (`docs/security.md`, "Known gaps"): the escaping helpers (P0-1), the unified SPARQL validation and guardrails (P0-2a, P0-2b) and the integrity of contributions (P0-3: server-side status, RDF serialization, protected native competency questions, input validation) are done; authentication and roles (P0-4, P0-5) remain.
 3. Then: competency questions in the database, publication of validated annotations to Corese, categories from TheZoo collections, versioned REST API, TEI ingestion and pre-annotation.
