@@ -7,8 +7,12 @@ import {
   searchConcepts,
   fetchConcepts,
   fetchSectionAnnotations,
-  postCustomSearch
+  postCustomSearch,
+  downloadCustomSearch,
+  CustomSearchExportFormat
 } from '../api/client'
+import { getApiErrorMessage } from '../api/errors'
+import { saveBlob } from '../utils/saveBlob'
 import {
   Search,
   FileSpreadsheet,
@@ -120,6 +124,26 @@ export const ExploreCorpus: React.FC = () => {
     }
   })
 
+  // Search export (RM-EXP-01): the server rebuilds the query from the criteria of the last
+  // successful search, then the file is saved in the browser.
+  const [exportingFormat, setExportingFormat] = useState<CustomSearchExportFormat | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  const handleExport = async (format: CustomSearchExportFormat) => {
+    const payload = searchMutation.variables
+    if (!payload || exportingFormat) return
+    setExportError(null)
+    setExportingFormat(format)
+    try {
+      const blob = await downloadCustomSearch(payload, format)
+      saveBlob(blob, `export_custom_search.${format}`)
+    } catch (err) {
+      setExportError(getApiErrorMessage(err, t))
+    } finally {
+      setExportingFormat(null)
+    }
+  }
+
   // Concepts & annotations du paragraphe actif sélectionné
   const { data: activeAnnotations = {}, isLoading: isAnnotationsLoading } = useQuery({
     queryKey: ['concepts', activeParagraphUri, language],
@@ -198,6 +222,7 @@ export const ExploreCorpus: React.FC = () => {
   const handleSearch = () => {
     if (isInvalidPureNegative) return
 
+    setExportError(null)
     searchMutation.mutate({
       author: selectedAuthors,
       work: selectedWorks,
@@ -220,7 +245,6 @@ export const ExploreCorpus: React.FC = () => {
   }
 
   const resultTree = searchMutation.data?.tree || []
-  const sparqlQuery = searchMutation.data?.sparql || ''
 
   // Décompte total des paragraphes extraits
   const totalParagraphsExtracted = useMemo(() => {
@@ -662,6 +686,20 @@ export const ExploreCorpus: React.FC = () => {
             </div>
           )}
 
+          {/* Search failure (backend guardrails: RM-ACC-02) */}
+          {searchMutation.isError && (
+            <div
+              role="alert"
+              className="mx-6 mb-4 p-4 rounded-none bg-red-50 border border-red-200 text-red-700 text-sm flex items-start space-x-3"
+            >
+              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+              <span>
+                <span className="font-semibold">{t.corpus.searchFailed}</span>{' '}
+                {getApiErrorMessage(searchMutation.error, t)}
+              </span>
+            </div>
+          )}
+
           {/* Barre de Synthèse & Déclenchement de la Recherche */}
           <div className="p-5 sm:p-6 bg-[#faf9f6] border-t border-[#f0eae0] rounded-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
             <div className="flex items-center space-x-4 text-sm text-[#595248]">
@@ -742,27 +780,51 @@ export const ExploreCorpus: React.FC = () => {
               </span>
             </div>
 
-            {sparqlQuery && (
+            {searchMutation.variables && (
               <div className="flex items-center space-x-2 shrink-0">
-                <a
-                  href={`/api/download-custom-search-json?sparql=${encodeURIComponent(sparqlQuery)}`}
-                  download
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs sm:text-sm font-medium text-[#3b6ea5] hover:bg-[#f4ede2] transition-colors shadow-2xs whitespace-nowrap"
+                <button
+                  type="button"
+                  onClick={() => handleExport('json')}
+                  disabled={exportingFormat !== null}
+                  aria-busy={exportingFormat === 'json'}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs sm:text-sm font-medium text-[#3b6ea5] hover:bg-[#f4ede2] transition-colors shadow-2xs whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-default"
                 >
-                  <FileCode className="w-4 h-4 shrink-0" />
+                  {exportingFormat === 'json' ? (
+                    <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+                  ) : (
+                    <FileCode className="w-4 h-4 shrink-0" />
+                  )}
                   <span>{t.common.exportJson}</span>
-                </a>
-                <a
-                  href={`/api/download-custom-search-csv?sparql=${encodeURIComponent(sparqlQuery)}`}
-                  download
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs sm:text-sm font-medium text-emerald-700 hover:bg-[#f4ede2] transition-colors shadow-2xs whitespace-nowrap"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExport('csv')}
+                  disabled={exportingFormat !== null}
+                  aria-busy={exportingFormat === 'csv'}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs sm:text-sm font-medium text-emerald-700 hover:bg-[#f4ede2] transition-colors shadow-2xs whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-default"
                 >
-                  <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                  {exportingFormat === 'csv' ? (
+                    <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                  )}
                   <span>{t.common.exportCsv}</span>
-                </a>
+                </button>
               </div>
             )}
           </div>
+
+          {exportError && (
+            <div
+              role="alert"
+              className="p-3.5 rounded-none bg-red-50 border border-red-200 text-red-700 text-sm flex items-start space-x-3"
+            >
+              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+              <span>
+                <span className="font-semibold">{t.corpus.exportFailed}</span> {exportError}
+              </span>
+            </div>
+          )}
 
           {resultTree.length === 0 ? (
             <div className="bg-white rounded-none border border-[#e6dfd3] p-12 text-center text-sm text-[#736a5f]">

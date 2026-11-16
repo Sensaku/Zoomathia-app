@@ -12,7 +12,7 @@ from typing import Any
 import httpx
 import pytest
 
-from app.routers import concepts as concepts_router
+from app.routers import export as export_router
 from app.routers import search as search_router
 from app.services import sparql_client as sparql_client_module
 from app.services.sparql_client import (
@@ -213,30 +213,6 @@ async def test_rm_acc_02_get_qc_keeps_its_response_shape(
     assert response.json()["table"] == {"columns": ["s"], "data": [["a"]]}
 
 
-@pytest.mark.parametrize("path", ["/download-custom-search-json", "/download-custom-search-csv"])
-async def test_rm_acc_02_export_refuses_service_and_updates(
-    client: httpx.AsyncClient, corese: FakeCorese, path: str
-) -> None:
-    federated = await client.get(path, params={"sparql": SERVICE_QUERY})
-    update = await client.get(path, params={"sparql": "DROP ALL"})
-
-    assert federated.status_code == 403
-    assert update.status_code == 403
-    assert corese.queries == []
-
-
-@pytest.mark.parametrize("path", ["/download-custom-search-json", "/download-custom-search-csv"])
-async def test_rm_acc_02_export_bounds_an_unbounded_select(
-    client: httpx.AsyncClient, corese: FakeCorese, path: str
-) -> None:
-    corese.returns(["s"], [{"s": "a"}])
-
-    response = await client.get(path, params={"sparql": UNBOUNDED_QUERY})
-
-    assert response.status_code == 200
-    assert sent_with_limit(corese)
-
-
 # --- size of the answers of Corese -----------------------------------------------------
 
 
@@ -260,19 +236,20 @@ def small_default_cap(monkeypatch: pytest.MonkeyPatch) -> int:
 
 @pytest.fixture
 def small_search_cap(monkeypatch: pytest.MonkeyPatch, small_default_cap: int) -> int:
-    """Shrink both caps, to test the searches without 64 MB.
+    """Shrink both caps, to test the custom search and its export without 64 MB.
 
     The routers bind `MAX_SEARCH_RESPONSE_BYTES` at import time, so the attribute is
     patched on each router module.
     """
     monkeypatch.setattr(search_router, "MAX_SEARCH_RESPONSE_BYTES", SMALL_SEARCH_CAP)
-    monkeypatch.setattr(concepts_router, "MAX_SEARCH_RESPONSE_BYTES", SMALL_SEARCH_CAP)
+    monkeypatch.setattr(export_router, "MAX_SEARCH_RESPONSE_BYTES", SMALL_SEARCH_CAP)
     return SMALL_SEARCH_CAP
 
 
 def test_rm_acc_02_the_caps_fit_the_measured_results() -> None:
     # Largest competency question: 2.1 MB. Author-only custom search for Diodorus
-    # Siculus: about 48 MB, which only the searches (heavy-query slot) may hold.
+    # Siculus: about 48 MB, which only the custom search and its export may hold. The
+    # paragraph searches by concept stay under 3 MB (measured 2026-11-16).
     assert MAX_RESPONSE_BYTES == 10 * 1024 * 1024
     assert MAX_SEARCH_RESPONSE_BYTES == 64 * 1024 * 1024
     assert MAX_CACHE_BYTES == 32 * 1024 * 1024
@@ -308,8 +285,6 @@ async def test_rm_acc_02_a_user_query_result_of_exactly_10_mb_is_accepted(
         ("GET", "/getQCspo", {"params": {"id": 1}}),
         ("GET", "/download-qc-json", {"params": {"id": 1}}),
         ("GET", "/download-qc-csv", {"params": {"id": 1}}),
-        ("GET", "/download-custom-search-json", {"params": {"sparql": UNBOUNDED_QUERY}}),
-        ("GET", "/download-custom-search-csv", {"params": {"sparql": UNBOUNDED_QUERY}}),
     ],
 )
 async def test_rm_acc_02_every_route_that_validates_a_query_text_keeps_the_10_mb_cap(
@@ -379,30 +354,31 @@ async def test_rm_acc_02_the_custom_search_refuses_a_result_above_the_search_cap
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize(("path", "body"), CONCEPT_PARAGRAPH_REQUESTS)
-async def test_rm_acc_02_a_paragraph_search_accepts_a_result_above_the_default_cap(
-    client: httpx.AsyncClient,
-    corese: FakeCorese,
-    small_search_cap: int,
-    path: str,
-    body: dict[str, Any],
+@pytest.mark.parametrize("path", ["/download-custom-search-json", "/download-custom-search-csv"])
+async def test_rm_acc_02_the_custom_search_export_has_the_cap_of_the_search(
+    client: httpx.AsyncClient, corese: FakeCorese, small_search_cap: int, path: str
 ) -> None:
     corese.returns_large(SMALL_DEFAULT_CAP + 1, declare_length=False)
+    accepted = await client.post(path, json={"author": ["Aelian"]})
+    sparql_client_module.sparql_client.clear_cache()
+    corese.returns_large(small_search_cap + 1, declare_length=False)
 
-    response = await client.post(path, json=body)
+    refused = await client.post(path, json={"author": ["Aelian"]})
 
-    assert response.status_code == 200
+    assert accepted.status_code == 200
+    assert refused.status_code == 422
 
 
 @pytest.mark.parametrize(("path", "body"), CONCEPT_PARAGRAPH_REQUESTS)
-async def test_rm_acc_02_a_paragraph_search_refuses_a_result_above_the_search_cap(
+async def test_rm_acc_02_a_paragraph_search_keeps_the_default_cap(
     client: httpx.AsyncClient,
     corese: FakeCorese,
     small_search_cap: int,
     path: str,
     body: dict[str, Any],
 ) -> None:
-    corese.returns_large(small_search_cap + 1, declare_length=False)
+    # Measured 2026-11-16: at most about 2.8 MB, so these routes need no larger cap.
+    corese.returns_large(SMALL_DEFAULT_CAP + 1, declare_length=False)
 
     response = await client.post(path, json=body)
 
@@ -491,8 +467,8 @@ HEAVY_REQUESTS: list[tuple[str, str, dict[str, Any]]] = [
     ("GET", "/getQCspo", {"params": {"id": 1}}),
     ("GET", "/download-qc-json", {"params": {"id": 1}}),
     ("GET", "/download-qc-csv", {"params": {"id": 1}}),
-    ("GET", "/download-custom-search-json", {"params": {"sparql": UNBOUNDED_QUERY}}),
-    ("GET", "/download-custom-search-csv", {"params": {"sparql": UNBOUNDED_QUERY}}),
+    ("POST", "/download-custom-search-json", {"json": {"author": ["Aelian"]}}),
+    ("POST", "/download-custom-search-csv", {"json": {"author": ["Aelian"]}}),
     (
         "POST",
         "/getParagraphWithConcept",

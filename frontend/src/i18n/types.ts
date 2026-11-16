@@ -178,6 +178,8 @@ export interface TranslationDictionary {
     selectParagraphHint: string;
     noParagraphSelected: string;
     filterTocPlaceholder: string;
+    searchFailed: string;
+    exportFailed: string;
   };
   cqs: {
     title: string;
@@ -473,6 +475,14 @@ export interface TranslationDictionary {
     createConceptBtn: string;
     creatingConcept: string;
     conceptCreatedSuccess: string;
+  };
+  apiErrors: {
+    generic: string;
+    tooManyHeavyQueries: string;
+    resultTooLarge: string;
+    sparqlTimeout: string;
+    sparqlUnavailable: string;
+    requestRejected: string;
   };
 }
 

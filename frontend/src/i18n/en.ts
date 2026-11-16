@@ -173,6 +173,8 @@ export const en: TranslationDictionary = {
     selectParagraphHint: 'Click on a passage to inspect its semantic concepts and annotations.',
     noParagraphSelected: 'No paragraph selected',
     filterTocPlaceholder: 'Filter works or sections...',
+    searchFailed: 'The search failed.',
+    exportFailed: 'The export failed.',
   },
   cqs: {
     title: 'Competency & Research Questions',
@@ -468,5 +470,13 @@ export const en: TranslationDictionary = {
     createConceptBtn: 'Create & Link Concept',
     creatingConcept: 'Creating concept...',
     conceptCreatedSuccess: 'New concept proposed successfully and selected!',
+  },
+  apiErrors: {
+    generic: 'Something went wrong. Please try again in a moment.',
+    tooManyHeavyQueries: 'Too many heavy queries are running, including earlier ones that the SPARQL server is still computing. Please try again in a moment.',
+    resultTooLarge: 'The result is too large to be returned. Narrow the search (fewer criteria, a specific work or author) and try again.',
+    sparqlTimeout: 'The SPARQL server did not answer in time. Simplify the query or narrow the search, then try again.',
+    sparqlUnavailable: 'The SPARQL server is unreachable or failed. Please try again later.',
+    requestRejected: 'Request rejected by the server:',
   },
 };

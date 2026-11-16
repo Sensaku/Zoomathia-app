@@ -1,12 +1,12 @@
 import os
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.config import settings
 from app.core.qcs_data import QCS_DATA
 from app.services.sparql_client import sparql_client
-from app.shared.limits import limit_heavy_queries
+from app.shared.limits import HeavySlot, limit_heavy_queries
 from app.shared.sparql_guard import prepare_query_async
 
 router = APIRouter(tags=["Competency Questions"])
@@ -26,8 +26,9 @@ async def get_qc_list() -> list[dict[str, Any]]:
     return QCS_DATA
 
 
-@router.get("/getQCspo", dependencies=[Depends(limit_heavy_queries)])
+@router.get("/getQCspo")
 async def get_qc_spo(
+    slot: Annotated[HeavySlot, Depends(limit_heavy_queries)],
     id: int = Query(..., description="ID de la question de compétence"),
 ) -> dict[str, Any]:
     get_qc_metadata(id)
@@ -40,11 +41,12 @@ async def get_qc_spo(
     with open(file_path, encoding="utf-8") as f:
         sparql_query = f.read()
 
-    return await sparql_client.query(await prepare_query_async(sparql_query))
+    return await sparql_client.query(await prepare_query_async(sparql_query), slot=slot)
 
 
-@router.get("/getQC", dependencies=[Depends(limit_heavy_queries)])
+@router.get("/getQC")
 async def get_qc(
+    slot: Annotated[HeavySlot, Depends(limit_heavy_queries)],
     id: int = Query(..., description="ID de la question de compétence"),
 ) -> dict[str, Any]:
     qc = get_qc_metadata(id)
@@ -62,7 +64,7 @@ async def get_qc(
         with open(spo_path, encoding="utf-8") as f:
             spo_content = f.read()
 
-    result = await sparql_client.query(await prepare_query_async(sparql_query))
+    result = await sparql_client.query(await prepare_query_async(sparql_query), slot=slot)
     vars_list = result.get("head", {}).get("vars", [])
     bindings = result.get("results", {}).get("bindings", [])
 

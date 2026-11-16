@@ -1,12 +1,17 @@
+import csv
+import io
+import json
 import os
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 
 from app.core.config import settings
-from app.services.sparql_client import sparql_client
-from app.shared.limits import limit_heavy_queries
+from app.corpus.custom_search import build_custom_search_query, criteria_count
+from app.corpus.schemas import CustomSearchPayload
+from app.services.sparql_client import MAX_SEARCH_RESPONSE_BYTES, sparql_client
+from app.shared.limits import HeavySlot, check_criteria_count, limit_heavy_queries
 from app.shared.sparql import sparql_iri
 from app.shared.sparql_guard import prepare_query_async
 
@@ -15,19 +20,31 @@ router = APIRouter(tags=["Export & Downloads"])
 QUERIES_DIR = settings.QUERIES_DIR
 XML_BASE_DIR = settings.XML_DATA_DIR
 
+# A spreadsheet reads a cell starting with one of these as a formula (CSV injection).
+_FORMULA_PREFIXES = ("=", "+", "-", "@")
+
+
+def _csv_cell(value: str) -> str:
+    """Neutralize a cell that a spreadsheet would execute as a formula (docs/security.md)."""
+    return "'" + value if value.startswith(_FORMULA_PREFIXES) else value
+
 
 def json_to_csv(sparql_json: dict[str, Any]) -> str:
+    """Convert SPARQL JSON results to CSV: `head.vars` as columns, one row per binding.
+
+    The `csv` module quotes the values that contain the `;` delimiter, quotes or line
+    breaks (Greek text has `;` as its question mark). Cells starting with `=`, `+`, `-`
+    or `@` get a leading `'`, so that a spreadsheet does not run them as formulas.
+    """
     headers = sparql_json.get("head", {}).get("vars", [])
     bindings = sparql_json.get("results", {}).get("bindings", [])
 
-    lines = [";".join(headers)]
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, delimiter=";", lineterminator="\n")
+    writer.writerow([_csv_cell(h) for h in headers])
     for row in bindings:
-        temp = []
-        for h in headers:
-            temp.append(row.get(h, {}).get("value", ""))
-        lines.append(";".join(temp))
-
-    return "\n".join(lines)
+        writer.writerow([_csv_cell(row.get(h, {}).get("value", "")) for h in headers])
+    return buffer.getvalue()
 
 
 @router.get("/download-xml")
@@ -51,8 +68,11 @@ async def download_xml(file: str = Query(..., description="Chemin ou nom du fich
     )
 
 
-@router.get("/download-qc-json", dependencies=[Depends(limit_heavy_queries)])
-async def download_qc_json(id: int = Query(..., description="ID QC")):
+@router.get("/download-qc-json")
+async def download_qc_json(
+    slot: Annotated[HeavySlot, Depends(limit_heavy_queries)],
+    id: int = Query(..., description="ID QC"),
+):
     file_path = os.path.join(QUERIES_DIR, f"qc{id}.rq")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Requête QC introuvable")
@@ -60,8 +80,7 @@ async def download_qc_json(id: int = Query(..., description="ID QC")):
     with open(file_path, encoding="utf-8") as f:
         query = f.read()
 
-    result = await sparql_client.query(await prepare_query_async(query))
-    import json
+    result = await sparql_client.query(await prepare_query_async(query), slot=slot)
 
     content = json.dumps(result, ensure_ascii=False, indent=2)
     return Response(
@@ -71,8 +90,11 @@ async def download_qc_json(id: int = Query(..., description="ID QC")):
     )
 
 
-@router.get("/download-qc-csv", dependencies=[Depends(limit_heavy_queries)])
-async def download_qc_csv(id: int = Query(..., description="ID QC")):
+@router.get("/download-qc-csv")
+async def download_qc_csv(
+    slot: Annotated[HeavySlot, Depends(limit_heavy_queries)],
+    id: int = Query(..., description="ID QC"),
+):
     file_path = os.path.join(QUERIES_DIR, f"qc{id}.rq")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Requête QC introuvable")
@@ -80,7 +102,7 @@ async def download_qc_csv(id: int = Query(..., description="ID QC")):
     with open(file_path, encoding="utf-8") as f:
         query = f.read()
 
-    result = await sparql_client.query(await prepare_query_async(query))
+    result = await sparql_client.query(await prepare_query_async(query), slot=slot)
     csv_text = json_to_csv(result)
     return Response(
         content=csv_text,
@@ -89,11 +111,24 @@ async def download_qc_csv(id: int = Query(..., description="ID QC")):
     )
 
 
-@router.get("/download-custom-search-json", dependencies=[Depends(limit_heavy_queries)])
-async def download_custom_search_json(sparql: str = Query(..., description="Requête SPARQL")):
-    result = await sparql_client.query(await prepare_query_async(sparql))
-    import json
+async def _run_custom_search(payload: CustomSearchPayload, slot: HeavySlot) -> dict[str, Any]:
+    """Run the query of a custom search, built on the server from its criteria.
 
+    RM-EXP-01: the export holds the raw rows of the search query, the same query as
+    `/customSearch`, with no limit of its own and no `LIMIT` added. RM-ACC-02: it stops at
+    the guardrails of the search (criteria count, heavy-query slot, 64 MB cap).
+    """
+    check_criteria_count(criteria_count(payload))
+    query = build_custom_search_query(payload)
+    return await sparql_client.query(query, max_bytes=MAX_SEARCH_RESPONSE_BYTES, slot=slot)
+
+
+@router.post("/download-custom-search-json")
+async def download_custom_search_json(
+    payload: CustomSearchPayload,
+    slot: Annotated[HeavySlot, Depends(limit_heavy_queries)],
+):
+    result = await _run_custom_search(payload, slot)
     content = json.dumps(result, ensure_ascii=False, indent=2)
     return Response(
         content=content,
@@ -102,9 +137,12 @@ async def download_custom_search_json(sparql: str = Query(..., description="Requ
     )
 
 
-@router.get("/download-custom-search-csv", dependencies=[Depends(limit_heavy_queries)])
-async def download_custom_search_csv(sparql: str = Query(..., description="Requête SPARQL")):
-    result = await sparql_client.query(await prepare_query_async(sparql))
+@router.post("/download-custom-search-csv")
+async def download_custom_search_csv(
+    payload: CustomSearchPayload,
+    slot: Annotated[HeavySlot, Depends(limit_heavy_queries)],
+):
+    result = await _run_custom_search(payload, slot)
     csv_text = json_to_csv(result)
     return Response(
         content=csv_text,

@@ -1,7 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { fetchQCList, fetchQC, fetchQCSpo } from '../api/client'
+import { fetchQCList, fetchQC, fetchQCSpo, downloadQC, QCExportFormat } from '../api/client'
+import { getApiErrorMessage } from '../api/errors'
+import { saveBlob } from '../utils/saveBlob'
 import { VenusViewer } from '../components/visualization/VenusViewer'
 import { SparqlHighlighter } from '../components/common/SparqlHighlighter'
 import { parseCitation } from '../utils/citation'
@@ -99,11 +101,36 @@ export const CompetencyQuestions: React.FC = () => {
   })
 
   // 3. Chargement des données SPO pour le composant VENUS
-  const { data: spoData, isLoading: isSpoLoading } = useQuery({
+  const { data: spoData, isLoading: isSpoLoading, error: spoQueryError } = useQuery({
     queryKey: ['qcSpo', selectedQCId],
     queryFn: () => fetchQCSpo(selectedQCId),
     enabled: !!selectedQCId && viewMode === 'graph',
   })
+
+  // The SPO graph error only counts in graph view (the query is inactive otherwise).
+  const loadError = qcError || (viewMode === 'graph' ? spoQueryError : null)
+
+  // Export of the question results (RM-ACC-02: a backend refusal must not end up saved as a file)
+  const [exportingFormat, setExportingFormat] = useState<QCExportFormat | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setExportError(null)
+  }, [selectedQCId])
+
+  const handleExport = async (format: QCExportFormat) => {
+    if (exportingFormat) return
+    setExportError(null)
+    setExportingFormat(format)
+    try {
+      const blob = await downloadQC(selectedQCId, format)
+      saveBlob(blob, `export_qc${selectedQCId}.${format}`)
+    } catch (err) {
+      setExportError(getApiErrorMessage(err, t))
+    } finally {
+      setExportingFormat(null)
+    }
+  }
 
   // Question active
   const currentQC = qcList.find((q) => q.id === selectedQCId)
@@ -553,24 +580,48 @@ export const CompetencyQuestions: React.FC = () => {
 
         {/* Boutons d'export des données */}
         <div className="flex items-center space-x-2 self-end sm:self-auto">
-          <a
-            href={`/api/download-qc-json?id=${selectedQCId}`}
-            download
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs font-medium text-[#2c2724] hover:bg-[#f4ede2] transition-colors shadow-2xs"
+          <button
+            type="button"
+            onClick={() => handleExport('json')}
+            disabled={exportingFormat !== null}
+            aria-busy={exportingFormat === 'json'}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs font-medium text-[#2c2724] hover:bg-[#f4ede2] transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-default"
           >
-            <FileCode className="w-3.5 h-3.5 text-[#3b6ea5]" />
+            {exportingFormat === 'json' ? (
+              <Loader2 className="w-3.5 h-3.5 text-[#3b6ea5] animate-spin" />
+            ) : (
+              <FileCode className="w-3.5 h-3.5 text-[#3b6ea5]" />
+            )}
             <span>{t.common.exportJson}</span>
-          </a>
-          <a
-            href={`/api/download-qc-csv?id=${selectedQCId}`}
-            download
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs font-medium text-[#2c2724] hover:bg-[#f4ede2] transition-colors shadow-2xs"
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExport('csv')}
+            disabled={exportingFormat !== null}
+            aria-busy={exportingFormat === 'csv'}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs font-medium text-[#2c2724] hover:bg-[#f4ede2] transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-default"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            {exportingFormat === 'csv' ? (
+              <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            )}
             <span>{t.common.exportCsv}</span>
-          </a>
+          </button>
         </div>
       </div>
+
+      {exportError && (
+        <div
+          role="alert"
+          className="p-3.5 rounded-none bg-red-50 border border-red-200 text-red-700 text-sm flex items-start space-x-3"
+        >
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>
+            <span className="font-semibold">{t.corpus.exportFailed}</span> {exportError}
+          </span>
+        </div>
+      )}
 
       {/* 3. Contenu Dynamique Principal */}
       {isQCLoading || isSpoLoading ? (
@@ -578,12 +629,12 @@ export const CompetencyQuestions: React.FC = () => {
           <Loader2 className="w-8 h-8 text-[#9A6530] animate-spin" />
           <p className="text-sm font-semibold text-[#736a5f]">{t.cqs.loadingData}</p>
         </div>
-      ) : qcError ? (
-        <div className="bg-red-50 rounded-none border border-red-200 p-6 flex items-start space-x-3 text-red-700">
+      ) : loadError ? (
+        <div role="alert" className="bg-red-50 rounded-none border border-red-200 p-6 flex items-start space-x-3 text-red-700">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div>
             <h4 className="font-semibold text-sm">{t.cqs.errorExecuting}</h4>
-            <p className="text-xs mt-1">{(qcError as Error).message}</p>
+            <p className="text-xs mt-1">{getApiErrorMessage(loadError, t)}</p>
           </div>
         </div>
       ) : viewMode === 'graph' ? (

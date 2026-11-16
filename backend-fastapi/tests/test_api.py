@@ -122,5 +122,6 @@ async def test_path_traversal_security():
 async def test_sparql_injection_security():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/download-custom-search-json?sparql=DROP%20ALL")
+        federated = "SELECT * WHERE { SERVICE <http://169.254.169.254/> { ?s ?p ?o } }"
+        response = await client.post("/sparql/execute", json={"query": federated})
         assert response.status_code == 403

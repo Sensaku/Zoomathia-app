@@ -13,6 +13,7 @@ import { CorpusAnnotation } from './pages/CorpusAnnotation'
 import { About } from './pages/About'
 import { ArrowUp } from 'lucide-react'
 import { I18nProvider } from './i18n'
+import { isFinalApiError } from './api/errors'
 
 // Configuration de React Query pour le cache et l'élimination des requêtes redondantes
 const queryClient = new QueryClient({
@@ -20,7 +21,8 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 10 * 60 * 1000, // 10 minutes de cache
       refetchOnWindowFocus: false,
-      retry: 1,
+      // A backend refusal (429, 422, 504...) does not fix itself on retry and would add load to the SPARQL server.
+      retry: (failureCount, error) => !isFinalApiError(error) && failureCount < 1,
     },
   },
 })

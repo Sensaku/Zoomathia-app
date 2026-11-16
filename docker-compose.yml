@@ -3,8 +3,10 @@ services:
     image: zoomathia/backend-fastapi:latest
     build:
       context: ./backend-fastapi
-    ports:
-      - "3001:3001"
+    # No published port: only the frontend nginx reaches the backend (backend:3001, inside the
+    # compose network), so the client address cannot be spoofed with a forwarded header.
+    expose:
+      - "3001"
     environment:
       HOST: "0.0.0.0"
       PORT: "3001"

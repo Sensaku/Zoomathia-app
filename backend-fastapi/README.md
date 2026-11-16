@@ -4,7 +4,7 @@ API HTTP de Zoomathia, développée avec FastAPI. Elle expose les œuvres et tex
 
 ## Documentation OpenAPI
 
-Une fois le backend démarré sur le port `3001` :
+Une fois le backend démarré en local sur le port `3001` (avec Docker Compose, ce port n'est pas publié : voir plus bas) :
 
 - Swagger UI : <http://localhost:3001/docs>
 - ReDoc : <http://localhost:3001/redoc>
@@ -45,7 +45,8 @@ Ports publiés sur la machine hôte :
 | Service | Port | URL |
 | --- | ---: | --- |
 | Frontend | `8080` par défaut | <http://localhost:8080> |
-| FastAPI | `3001` | <http://localhost:3001> |
+
+Le port `3001` de FastAPI n'est pas publié : seul Nginx l'atteint, sur le réseau interne du Compose (`backend:3001`). L'API est joignable depuis l'hôte par <http://localhost:8080/api/>.
 
 Le frontend est publié sur le port `8080` par défaut afin de réutiliser le port ouvert de l'ancien service Corese. Il peut être changé avec `FRONTEND_PORT`. Nginx sert l'application React et transmet `/api/*` au backend en retirant le préfixe `/api` attendu uniquement par le frontend.
 

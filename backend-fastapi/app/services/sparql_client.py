@@ -9,6 +9,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.shared.limits import HeavySlot
 
 logger = logging.getLogger("zoomathia.sparql")
 
@@ -17,12 +18,32 @@ logger = logging.getLogger("zoomathia.sparql")
 # Default cap, for every query. The largest competency question result is 2.1 MB, and no
 # reading endpoint is large today.
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024
-# Cap only for the searches that hold a heavy-query slot (so at most `MAX_HEAVY_TOTAL` such
-# results per worker). The largest normal result measured is the author-only custom search
-# for Diodorus Siculus, about 48 MB.
+# Cap only for the custom search and its export, which hold a heavy-query slot (so at most
+# `MAX_HEAVY_TOTAL` such results per worker). The largest normal result measured is the
+# author-only custom search for Diodorus Siculus, about 48 MB.
 MAX_SEARCH_RESPONSE_BYTES = 64 * 1024 * 1024
 MAX_CACHE_BYTES = 32 * 1024 * 1024
 _ERROR_BODY_LOG_BYTES = 2048
+# RM-ACC-02: Corese has no query timeout of its own, so a heavy query keeps evaluating after
+# the caller gave up. Its slot is kept until Corese answers, but never longer than this cap.
+HEAVY_UPSTREAM_TIMEOUT = 600.0
+_CONNECT_TIMEOUT = 10.0
+
+# Strong references to the running upstream exchanges: the event loop only keeps weak ones,
+# and an exchange that outlives its caller must not be garbage-collected half-way.
+_background_tasks: set[asyncio.Task[dict[str, Any]]] = set()
+
+
+class _HeavyRun:
+    """One upstream exchange of a heavy query, shared by the identical queries that overlap it."""
+
+    task: asyncio.Task[dict[str, Any]]
+
+    def __init__(self, query_length: int) -> None:
+        self.started = time.monotonic()
+        self.query_length = query_length
+        # Set when the caller that started the exchange left before its end.
+        self.abandoned = False
 
 
 class _ResponseTooLargeError(Exception):
@@ -84,6 +105,8 @@ class SPARQLClient:
         # key -> (timestamp, result, size of the response in bytes)
         self._cache: OrderedDict[str, tuple[float, dict[str, Any], int]] = OrderedDict()
         self._cache_bytes = 0
+        # (query, byte cap) -> the heavy exchange in progress for it (single flight).
+        self._inflight: dict[tuple[str, int], _HeavyRun] = {}
         self._client: httpx.AsyncClient | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -98,6 +121,11 @@ class SPARQLClient:
         return self._client
 
     async def close(self):
+        # Exchanges that outlived their request must not keep the shutdown waiting.
+        current_loop = asyncio.get_running_loop()
+        for task in list(_background_tasks):
+            if task.get_loop() is current_loop:
+                task.cancel()
         if self._client and not self._client.is_closed:
             await self._client.aclose()
             self._client = None
@@ -128,13 +156,37 @@ class SPARQLClient:
         self._cache_bytes += size
 
     async def query(
-        self, sparql_query: str, use_cache: bool = True, *, max_bytes: int | None = None
+        self,
+        sparql_query: str,
+        use_cache: bool = True,
+        *,
+        max_bytes: int | None = None,
+        slot: HeavySlot | None = None,
     ) -> dict[str, Any]:
         """Exécute une requête SPARQL SELECT et renvoie le JSON standardisé (avec mise en cache TTL).
 
         `max_bytes` is the size above which the result is refused (422); it defaults to
-        `MAX_RESPONSE_BYTES` (10 MB), read at call time. The searches that hold a
-        heavy-query slot pass `MAX_SEARCH_RESPONSE_BYTES`.
+        `MAX_RESPONSE_BYTES` (10 MB), read at call time. The custom search and its export
+        pass `MAX_SEARCH_RESPONSE_BYTES`.
+
+        `slot` is the heavy-query slot of the calling request (RM-ACC-02). Without it, the
+        exchange runs in the caller with the plain `timeout`. With it, the whole exchange
+        (request, headers, status check, capped body read, JSON parse, cache put) runs in a
+        background task with a read timeout of `HEAVY_UPSTREAM_TIMEOUT`, and the caller
+        waits for it at most `timeout` seconds.
+
+        Identical heavy queries (same text, same `max_bytes`) share one evaluation: a call
+        made while the exchange of an identical query is running waits for that exchange
+        instead of sending the query again. Only the caller that started the exchange owns
+        it. If that caller times out (504) or is cancelled, its slot is detached and
+        released only when the task ends, because Corese keeps evaluating the query. A
+        caller that joined never detaches: it adds no load on Corese, and its slot is
+        released with its request.
+
+        The late answer is checked and cached like any other. A retry made after the
+        exchange ended is served from the cache only if the result fits in it (at most
+        `MAX_CACHE_BYTES`, and the entry is not evicted or expired); otherwise Corese
+        evaluates the query again.
         """
         limit = MAX_RESPONSE_BYTES if max_bytes is None else max_bytes
         clean_query = " ".join(sparql_query.split())
@@ -150,12 +202,140 @@ class SPARQLClient:
                 self._cache_pop(clean_query)
 
         client = await self.get_client()
+        if slot is None:
+            return await self._exchange(client, sparql_query, clean_query, use_cache, now, limit)
+
+        key = (clean_query, limit)
+        run = self._inflight.get(key)
+        if run is not None and (
+            run.task.done() or run.task.get_loop() is not asyncio.get_running_loop()
+        ):
+            run = None  # finished (its entry is about to go) or left over by another loop
+        owner = run is None
+        if run is None:
+            run = self._start_heavy(key, client, sparql_query, clean_query, use_cache, now, limit)
+        task = run.task
+
+        leaving = "cancelled"
+        try:
+            return await asyncio.wait_for(asyncio.shield(task), self.timeout)
+        except asyncio.TimeoutError:
+            leaving = "timed out"
+            raise HTTPException(status_code=504, detail="SPARQL query timed out")
+        finally:
+            if owner and not task.done():
+                # The owner leaves (timeout, closed connection) while Corese still works:
+                # the slot follows the task, not the request.
+                self._abandon(run, slot, leaving)
+
+    def _start_heavy(
+        self,
+        key: tuple[str, int],
+        client: httpx.AsyncClient,
+        sparql_query: str,
+        clean_query: str,
+        use_cache: bool,
+        now: float,
+        limit: int,
+    ) -> _HeavyRun:
+        """Start the background exchange of a heavy query and register it for sharing."""
+        run = _HeavyRun(len(clean_query))
+        run.task = asyncio.create_task(
+            self._heavy_exchange(run, client, sparql_query, clean_query, use_cache, now, limit)
+        )
+        self._inflight[key] = run
+        _background_tasks.add(run.task)
+        run.task.add_done_callback(lambda task: self._finish_heavy(key, run, task))
+        return run
+
+    def _finish_heavy(
+        self, key: tuple[str, int], run: _HeavyRun, task: asyncio.Task[dict[str, Any]]
+    ) -> None:
+        """Forget a finished exchange and retrieve its exception, so it is never lost."""
+        _background_tasks.discard(task)
+        if self._inflight.get(key) is run:
+            del self._inflight[key]
+        if not task.cancelled():
+            task.exception()
+
+    @staticmethod
+    def _abandon(run: _HeavyRun, slot: HeavySlot, reason: str) -> None:
+        """The caller that owns a running exchange leaves: the slot waits for its end."""
+        run.abandoned = True
+        logger.warning(
+            "SPARQL heavy query abandoned by its caller (%s) after %.1f s, "
+            "still running upstream (query length %d)",
+            reason,
+            time.monotonic() - run.started,
+            run.query_length,
+        )
+        release = slot.detach()
+        run.task.add_done_callback(lambda _task: release())
+
+    async def _heavy_exchange(
+        self,
+        run: _HeavyRun,
+        client: httpx.AsyncClient,
+        sparql_query: str,
+        clean_query: str,
+        use_cache: bool,
+        now: float,
+        limit: int,
+    ) -> dict[str, Any]:
+        """The upstream exchange of a heavy query: read timeout and total duration capped.
+
+        Logs how it ended, with its duration and the length of the query, never its text:
+        as a warning if its caller left before the end, otherwise as information.
+        """
+        outcome = "answered"
+        try:
+            return await asyncio.wait_for(
+                self._exchange(
+                    client,
+                    sparql_query,
+                    clean_query,
+                    use_cache,
+                    now,
+                    limit,
+                    timeout=httpx.Timeout(HEAVY_UPSTREAM_TIMEOUT, connect=_CONNECT_TIMEOUT),
+                ),
+                HEAVY_UPSTREAM_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            outcome = "safety cap reached"
+            raise HTTPException(status_code=504, detail="SPARQL query timed out")
+        except HTTPException as error:
+            outcome = f"failed with {error.status_code}"
+            raise
+        except asyncio.CancelledError:
+            outcome = "cancelled"
+            raise
+        finally:
+            log = logger.warning if run.abandoned else logger.info
+            log(
+                "SPARQL heavy query %s after %.1f s (query length %d)",
+                outcome,
+                time.monotonic() - run.started,
+                run.query_length,
+            )
+
+    async def _exchange(
+        self,
+        client: httpx.AsyncClient,
+        sparql_query: str,
+        clean_query: str,
+        use_cache: bool,
+        now: float,
+        limit: int,
+        timeout: Any = httpx.USE_CLIENT_DEFAULT,
+    ) -> dict[str, Any]:
+        """Send the query, check and read the answer, cache it; map failures to HTTP errors."""
         params = {"query": sparql_query, "format": "json"}
         headers = {"Accept": "application/sparql-results+json"}
 
         try:
             async with client.stream(
-                "GET", self.endpoint, params=params, headers=headers
+                "GET", self.endpoint, params=params, headers=headers, timeout=timeout
             ) as response:
                 await _refuse_error_status(response)
                 body = await _read_body(response, limit)

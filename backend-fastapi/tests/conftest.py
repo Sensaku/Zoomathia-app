@@ -5,11 +5,12 @@ are blocked: no test touches `data/staging.db` or the production Corese, except
 the tests marked `live`, which are skipped unless `--live` is given.
 """
 
+import asyncio
 import atexit
 import os
 import shutil
 import tempfile
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs
@@ -28,6 +29,7 @@ from app.core.config import settings  # noqa: E402
 from app.main import app  # noqa: E402
 from app.services.sparql_client import sparql_client  # noqa: E402
 from app.services.staging_store import staging_store  # noqa: E402
+from app.shared import limits  # noqa: E402
 from app.shared.sparql_guard import clear_prepared_queries  # noqa: E402
 
 _ENDPOINT = httpx.URL(settings.SPARQL_ENDPOINT)
@@ -85,6 +87,9 @@ class FakeCorese:
     def __init__(self, router: respx.MockRouter) -> None:
         self.queries: list[str] = []
         self.malformed: list[httpx.Request] = []
+        # The timeouts (connect, read, write, pool) that each query was sent with.
+        self.timeouts: list[dict[str, float | None]] = []
+        self._gate: asyncio.Event | None = None
         self._response = httpx.Response(200, json=sparql_json([], []))
         self._factory: Callable[[], httpx.Response] | None = None
         self._turns: list[httpx.Response] = []
@@ -121,16 +126,32 @@ class FakeCorese:
 
         self._factory = build
 
+    def hold(self) -> None:
+        """Keep every following query unanswered, after recording it, until `release_held`."""
+        self._gate = asyncio.Event()
+
+    def release_held(self) -> None:
+        """Answer the queries kept by `hold`, and every following one at once."""
+        if self._gate is not None:
+            self._gate.set()
+
     def raises(self, error: Exception) -> None:
         """Fail every following query with this transport error."""
         self._error = error
 
-    def _handle(self, request: httpx.Request) -> httpx.Response:
+    def _handle(self, request: httpx.Request) -> httpx.Response | Awaitable[httpx.Response]:
         query = _extract_query(request)
         if query is None:
             self.malformed.append(request)
             return httpx.Response(400, text="no SPARQL query in the request")
         self.queries.append(query)
+        self.timeouts.append(dict(request.extensions.get("timeout", {})))
+        gate = self._gate
+        if gate is None:
+            return self._answer()
+        return self._answer_when_released(gate)
+
+    def _answer(self) -> httpx.Response:
         if self._error is not None:
             raise self._error
         if self._factory is not None:
@@ -138,6 +159,10 @@ class FakeCorese:
         if self._turns:
             return self._turns.pop(0) if len(self._turns) > 1 else self._turns[0]
         return self._response
+
+    async def _answer_when_released(self, gate: asyncio.Event) -> httpx.Response:
+        await gate.wait()
+        return self._answer()
 
 
 @pytest.fixture(autouse=True)
@@ -155,6 +180,15 @@ def network_guard(request: pytest.FixtureRequest) -> Iterator[respx.MockRouter |
         stray = unmatched_requests(router)
     if stray:
         pytest.fail("request(s) matched no mocked route: " + ", ".join(stray))
+
+
+@pytest.fixture(autouse=True)
+def short_heavy_wait(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Shorten the wait for a heavy-query slot (10 s), so that a refused request is quick.
+
+    A test that checks the wait itself sets its own value, which replaces this one.
+    """
+    monkeypatch.setattr(limits, "MAX_HEAVY_WAIT_SECONDS", 0.05)
 
 
 @pytest.fixture(autouse=True)

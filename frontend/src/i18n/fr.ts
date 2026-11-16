@@ -173,6 +173,8 @@ export const fr: TranslationDictionary = {
     selectParagraphHint: 'Cliquez sur un passage ci-contre pour inspecter ses concepts et annotations sémantiques.',
     noParagraphSelected: 'Aucun paragraphe sélectionné',
     filterTocPlaceholder: 'Filtrer les œuvres ou sections...',
+    searchFailed: 'La recherche a échoué.',
+    exportFailed: "L'export a échoué.",
   },
   cqs: {
     title: 'Questions de Compétence & Recherche',
@@ -468,5 +470,13 @@ export const fr: TranslationDictionary = {
     createConceptBtn: 'Créer et associer le concept',
     creatingConcept: 'Création du concept...',
     conceptCreatedSuccess: 'Nouveau concept proposé avec succès et sélectionné !',
+  },
+  apiErrors: {
+    generic: 'Une erreur est survenue. Veuillez réessayer dans un instant.',
+    tooManyHeavyQueries: "Trop de requêtes lourdes sont en cours, y compris des requêtes précédentes que le serveur SPARQL est encore en train de calculer. Réessayez dans un instant.",
+    resultTooLarge: 'Le résultat est trop volumineux pour être renvoyé. Restreignez la recherche (moins de critères, une œuvre ou un auteur précis) puis réessayez.',
+    sparqlTimeout: "Le serveur SPARQL n'a pas répondu à temps. Simplifiez la requête ou restreignez la recherche, puis réessayez.",
+    sparqlUnavailable: 'Le serveur SPARQL est injoignable ou a échoué. Réessayez plus tard.',
+    requestRejected: 'Requête refusée par le serveur :',
   },
 };

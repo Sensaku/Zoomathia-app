@@ -224,6 +224,13 @@ Le contributeur accepte la licence lors de son inscription. Les exports RDF indi
 
 ---
 
+## 7. Recherche et export
+
+**RM-EXP-01 — Export de la recherche personnalisée.** *Décidé (2026-11-16).*
+L'export CSV ou JSON d'une recherche personnalisée contient les lignes brutes de la requête de cette recherche, que le serveur construit à partir des critères : mêmes colonnes, mêmes lignes, un passage apparaissant une fois par niveau de sa hiérarchie. L'export n'a pas de limite propre : il s'arrête aux mêmes garde-fous que la recherche (RM-ACC-02).
+
+---
+
 ## Décisions en attente
 
 Aucune question ouverte dans ce document au 2026-11-15. Les règles « Proposé » restent à valider en relecture.

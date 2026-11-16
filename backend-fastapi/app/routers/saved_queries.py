@@ -5,6 +5,7 @@ tout en protégeant les Questions de Compétence (CQs) natives du système.
 """
 
 import json
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
@@ -15,7 +16,7 @@ from app.models.annotation_models import (
 )
 from app.services.sparql_client import sparql_client
 from app.services.staging_store import staging_store
-from app.shared.limits import limit_heavy_queries
+from app.shared.limits import HeavySlot, limit_heavy_queries
 from app.shared.sparql_guard import prepare_query_async
 
 router = APIRouter(prefix="/queries", tags=["Saved SPARQL Queries"])
@@ -85,9 +86,10 @@ async def delete_saved_query(query_id: int):
     return {"message": "Requête supprimée avec succès", "id": query_id}
 
 
-@router.post("/{query_id}/execute", dependencies=[Depends(limit_heavy_queries)])
+@router.post("/{query_id}/execute")
 async def execute_saved_query(
     query_id: int,
+    slot: Annotated[HeavySlot, Depends(limit_heavy_queries)],
     use_spo: bool = Query(
         False, description="Exécuter la variante SPO pour graphe VENUS si disponible"
     ),
@@ -101,7 +103,7 @@ async def execute_saved_query(
     sparql_code = await prepare_query_async(sparql_code)
 
     try:
-        data = await sparql_client.query(sparql_code)
+        data = await sparql_client.query(sparql_code, slot=slot)
     except HTTPException:
         raise
     except Exception as e:

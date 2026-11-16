@@ -19,10 +19,10 @@ Corese ou endpoint SPARQL  Service externe au Compose
 | Composant | Rôle | Port |
 | --- | --- | ---: |
 | `frontend/` | Interface web et visualisations | `8080` en production, `5173` en développement |
-| `backend-fastapi/` | API HTTP, annotations, thésaurus et requêtes | `3001` |
+| `backend-fastapi/` | API HTTP, annotations, thésaurus et requêtes | `3001` (réseau interne du Compose, non publié) |
 | Corese / SPARQL | Source des données interrogée par l'API | configurable |
 
-Le backend est publié sur `3001` et le frontend sur `8080` par défaut, les deux ports déjà ouverts sur la machine d'hébergement. Le port du frontend peut être changé avec `FRONTEND_PORT` si un service externe utilise déjà `8080`.
+Seul le frontend est publié, sur `8080` par défaut, port déjà ouvert sur la machine d'hébergement ; il peut être changé avec `FRONTEND_PORT` si un service externe utilise déjà `8080`. Le port `3001` du backend n'est pas publié : l'API n'est joignable que par l'Nginx du frontend (`/api/*`), qui identifie les clients (limites par adresse, RM-ACC-02) et doit donc rester le premier maillon devant le backend (voir `docs/security.md`).
 
 ## Démarrage recommandé avec Docker
 
@@ -39,10 +39,9 @@ docker compose logs -f backend frontend
 Services disponibles :
 
 - Frontend : <http://localhost:8080>
-- API FastAPI : <http://localhost:3001>
-- Swagger UI : <http://localhost:3001/docs>
-- ReDoc : <http://localhost:3001/redoc>
-- Schéma OpenAPI : <http://localhost:3001/openapi.json>
+- API FastAPI, via le frontend : <http://localhost:8080/api/>
+- Schéma OpenAPI : <http://localhost:8080/api/openapi.json>
+- Swagger UI et ReDoc : démarrer le backend en local (`uv run uvicorn app.main:app --port 3001`, voir plus bas), sur <http://localhost:3001/docs> et <http://localhost:3001/redoc>
 
 Pour arrêter les conteneurs sans supprimer les données persistantes :
 

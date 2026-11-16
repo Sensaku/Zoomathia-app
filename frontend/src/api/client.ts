@@ -28,14 +28,31 @@ import {
   ConceptCategory,
   SectionAnnotationsResponse
 } from '../types'
+import { ApiError } from './errors'
+
+export { ApiError }
 
 export const BASE_URL = import.meta.env.VITE_API_URL || '/api'
+
+/** Throws an `ApiError` for an unsuccessful response, with the backend `detail` when the body is JSON. */
+async function throwApiError(res: Response): Promise<never> {
+  const errorBody = await res.text().catch(() => '')
+  let detail: unknown
+  try {
+    const parsed: unknown = JSON.parse(errorBody)
+    if (parsed && typeof parsed === 'object' && 'detail' in parsed) {
+      detail = (parsed as { detail: unknown }).detail
+    }
+  } catch {
+    // Non-JSON body (a proxy error page, for example): no structured detail.
+  }
+  throw new ApiError(res.status, `Erreur API [${res.status}] ${res.statusText}: ${errorBody}`, detail)
+}
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options)
   if (!res.ok) {
-    const errorBody = await res.text().catch(() => '')
-    throw new Error(`Erreur API [${res.status}] ${res.statusText}: ${errorBody}`)
+    await throwApiError(res)
   }
   return res.json() as Promise<T>
 }
@@ -127,6 +144,17 @@ export async function fetchQCSpo(id: number): Promise<any> {
   return fetchJson<any>(`${BASE_URL}/getQCspo?id=${id}`)
 }
 
+export type QCExportFormat = 'json' | 'csv'
+
+/** Exports the results of a competency question (GET route of the backend, `id` as parameter). */
+export async function downloadQC(id: number, format: QCExportFormat): Promise<Blob> {
+  const res = await fetch(`${BASE_URL}/download-qc-${format}?id=${id}`)
+  if (!res.ok) {
+    await throwApiError(res)
+  }
+  return res.blob()
+}
+
 // --- Recherche personnalisée ---
 
 export async function postCustomSearch(payload: CustomSearchParams): Promise<{ sparql: string; tree: SummaryNode[] }> {
@@ -135,6 +163,27 @@ export async function postCustomSearch(payload: CustomSearchParams): Promise<{ s
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
+}
+
+export type CustomSearchExportFormat = 'json' | 'csv'
+
+/**
+ * Exports the custom search (RM-EXP-01): the server rebuilds the query from the criteria, the
+ * client never sends SPARQL. Returns the file as a Blob.
+ */
+export async function downloadCustomSearch(
+  payload: CustomSearchParams,
+  format: CustomSearchExportFormat
+): Promise<Blob> {
+  const res = await fetch(`${BASE_URL}/download-custom-search-${format}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  if (!res.ok) {
+    await throwApiError(res)
+  }
+  return res.blob()
 }
 
 // --- Phase 4 : Thésaurus OpenTheso, Annotations W3C et SPARQL Playground ---

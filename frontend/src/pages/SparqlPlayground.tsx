@@ -6,6 +6,7 @@ import {
   fetchSavedQueries,
   deleteSavedQuery
 } from '../api/client'
+import { getApiErrorMessage } from '../api/errors'
 import { SavedSparqlQuery } from '../types'
 import { VenusViewer } from '../components/visualization/VenusViewer'
 import { SaveQueryModal } from '../components/SaveQueryModal'
@@ -214,7 +215,7 @@ export const SparqlPlayground: React.FC = () => {
     },
     onError: (err: any) => {
       setExecutionDuration(null)
-      setError(err?.message || "Erreur lors de l'exécution de la requête SPARQL.")
+      setError(getApiErrorMessage(err, t))
     }
   })
 
@@ -559,7 +560,7 @@ export const SparqlPlayground: React.FC = () => {
 
             {/* Affichage d'erreur avec message soigné */}
             {error && (
-              <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-none text-xs leading-relaxed flex items-start space-x-2">
+              <div role="alert" className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-none text-xs leading-relaxed flex items-start space-x-2">
                 <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold">{t.common.error} :</span> {error}
