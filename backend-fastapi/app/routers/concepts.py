@@ -528,8 +528,6 @@ async def get_paragraphs_with_concepts(
            zoo:title ?title.
       ?oeuvre zoo:author ?author;
               zoo:hasPart+ ?uri.
-      ?concept skos:prefLabel ?label.
-      FILTER(lang(?label) = "en")
     }} ORDER BY ?book ?id
     """
     res = await sparql_client.query(sparql, slot=slot)

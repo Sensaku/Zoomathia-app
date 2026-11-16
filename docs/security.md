@@ -103,6 +103,7 @@ Fixed so far:
 - The custom-search exports no longer execute raw client SPARQL: they are built on the server from the criteria of the search, with the guardrails of the search (P0-2b, RM-EXP-01).
 - Heavy queries: a short wait for a slot instead of an immediate 429, and the slot of a query that Corese still evaluates is kept until it answers, with a 600 s cap, instead of being freed at the API's 30 s timeout (P0-2b).
 - CSV exports are built with the `csv` module (Greek `;`, quotes and line breaks are quoted) and neutralize formulas (P0-2b).
+- The paragraph search by concept no longer sends a label pattern unconnected to the search (it paired every matching paragraph with the 25,910 English labels of Corese before `DISTINCT`: 0.65 to 0.95 s, against 0.04 s without it, for a concept annotated on 5 paragraphs, same rows) (P0-2b).
 
 | Priority | Gap | Rules |
 |---|---|---|
