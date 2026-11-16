@@ -113,4 +113,4 @@ Fixed so far:
 | P1 | Unbounded OpenTheso cache (the SPARQL result cache is bounded since P0-2a); no maximum length on fields | RM-ACC-02 |
 | P1 | Corese has no query timeout of its own (confirmed 2026-11-15: none is configured, and Corese only offers one for federated `SERVICE` calls), and its public endpoint can be queried directly, outside the guardrails of the API. The API keeps the heavy-query slot until Corese answers (600 s cap), but a costly query sent straight to the endpoint is neither limited nor stopped. To raise with the Corese team and I3S: a query timeout in Corese, or an endpoint reachable by the API only | RM-ACC-02 |
 | P1 | OpenTheso URLs built without encoding | — |
-| P2 | Error details leaked; health endpoint exposes the SPARQL URL; no nginx security headers; CORS credentials; Google Fonts; `staging.db` and `__pycache__` tracked | — |
+| P2 | Error details leaked; health endpoint exposes the SPARQL URL; no nginx security headers; CORS credentials; Google Fonts; `staging.db` tracked | — |
