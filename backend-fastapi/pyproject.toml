@@ -3,7 +3,7 @@ name = "zoomathia-backend"
 version = "0.1.0"
 description = "FastAPI backend for Zoomathia zoo-archaeological knowledge exploration"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
@@ -12,6 +12,10 @@ dependencies = [
     "pydantic-settings>=2.4.0",
     "python-multipart>=0.0.9",
     "rdflib>=7.6.0",
+    "sqlalchemy[asyncio]>=2.0.57",
+    "alembic>=1.20.1",
+    "aiosqlite>=0.22.1",
+    "pwdlib[argon2]>=0.3.1",
 ]
 
 [dependency-groups]
@@ -56,8 +60,10 @@ extend-immutable-calls = ["fastapi.Body", "fastapi.Depends", "fastapi.Path", "fa
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
-# `assert` is the point of a test.
-"tests/**" = ["S101"]
+# `assert` is the point of a test, and test passwords are fake.
+"tests/**" = ["S101", "S105", "S106"]
+# The domain errors are named as in the development guidelines (`NotFound`, `Forbidden`...).
+"app/shared/domain_errors.py" = ["N818"]
 # Legacy debt (2026-11-15): issues left after the mechanical formatting commit.
 # Remove an entry when its file is refactored; new files get the full rule set.
 "app/core/config.py" = ["S104"]
@@ -85,7 +91,8 @@ files = ["app", "tests"]
 # until they are refactored. New modules are checked in strict mode.
 module = [
     "app.main",
-    "app.core.*",
+    "app.core.config",
+    "app.core.qcs_data",
     "app.models.*",
     "app.routers.*",
     "app.services.*",

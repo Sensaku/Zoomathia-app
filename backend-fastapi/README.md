@@ -66,7 +66,7 @@ docker compose down --volumes
 
 ## Développement local
 
-Prérequis : Python 3.10 ou supérieur et [uv](https://docs.astral.sh/uv/).
+Prérequis : Python 3.12 ou supérieur et [uv](https://docs.astral.sh/uv/).
 
 Depuis `backend-fastapi/` :
 

@@ -32,8 +32,12 @@ Backend, from `backend-fastapi/`:
 
 ```bash
 uv sync
+uv run alembic upgrade head   # creates or updates the local database; repeat after a pull that brings a migration
+uv run python -m app.accounts.cli create-admin --email you@example.org --name "Your Name" --affiliation "Your Lab"
 uv run uvicorn app.main:app --reload --port 3001
 ```
+
+The `create-admin` command asks for the password twice and creates an active administrator in your local database (optional: only needed to try the accounts). The session cookie is `Secure`, so a browser sends it only over HTTPS: if it refuses the cookie on plain `http://localhost`, run the backend with `SESSION_COOKIE_SECURE=false` (local development only, never on a deployment). Registrations are closed unless `REGISTRATION_ENABLED=true`.
 
 Frontend, from `frontend/`:
 

@@ -107,7 +107,7 @@ TEI-XML (texts), W3C Web Annotation (annotations), SKOS (thesaurus and proposals
 | Concept categories | Computed once in the backend from TheZoo collections (RM-CON-01, RM-CON-02). | Decided |
 | Frontend stack | React, React Router and Tailwind CSS, mandatory. | Decided |
 | Named graphs | One graph per origin: corpus, thesaurus, legacy annotations, validated contributions. | Proposed |
-| Application database | SQLite in WAL mode first, PostgreSQL later (see "Performance and concurrency"); SQLAlchemy 2 with Alembic migrations. | Decided |
+| Application database | SQLite in WAL mode first, PostgreSQL later (see "Performance and concurrency"); SQLAlchemy 2 with its async engine (`aiosqlite`, approved 2026-11-16) and Alembic migrations. Alembic owns the schema and is applied before the API starts: the container runs `alembic upgrade head` first, and the application refuses to start on a database that is not at the latest revision. | Decided |
 | Documentation site | MkDocs Material with mkdocstrings, TypeDoc and the OpenAPI schema, built by the CI. | Decided |
 | Corese access | A single access layer (SPARQL client); queries sent with POST; no query built by concatenating external values. | Proposed |
 | API contract | Pydantic response models on every route; TypeScript types generated from the OpenAPI schema. | Proposed |
@@ -116,7 +116,8 @@ TEI-XML (texts), W3C Web Annotation (annotations), SKOS (thesaurus and proposals
 
 - Validated annotations stay in SQLite and never reach Corese.
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite table).
-- No authentication; author and status are sent by the client.
+- Accounts, sessions and CSRF exist (P0-4a) but the contribution routes ignore them: the author is still sent by the client, and anyone can change a status (P0-4b).
+- The staging store (annotations, proposals, saved queries) still uses synchronous `sqlite3` beside the async SQLAlchemy engine of the accounts, until its code moves to its domain package; the schema of both is owned by Alembic.
 - SPARQL queries are built with f-strings and sent with GET.
 - Concept categories are computed twice (backend and frontend) with diverging rules.
 - Legacy RPC routes are still the only API.

@@ -1,8 +1,9 @@
 """Shared test fixtures.
 
-Every test runs against a temporary SQLite database, and outgoing HTTP requests
-are blocked: no test touches `data/staging.db` or the production Corese, except
-the tests marked `live`, which are skipped unless `--live` is given.
+Every test runs against a temporary SQLite database built from the Alembic migrations,
+and outgoing HTTP requests are blocked: no test touches `data/staging.db` or the
+production Corese, except the tests marked `live`, which are skipped unless `--live` is
+given.
 """
 
 import asyncio
@@ -15,20 +16,25 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs
 
-# The staging store opens its database when `app` is imported, so the temporary
+# The settings read the database path when `app` is imported, so the temporary
 # path must be set before the first `app` import below.
 _TMP_DIR = Path(tempfile.mkdtemp(prefix="zoomathia-tests-"))
 atexit.register(shutil.rmtree, _TMP_DIR, ignore_errors=True)
-os.environ["STAGING_DB_PATH"] = str(_TMP_DIR / "staging.db")
+_SHARED_DB = _TMP_DIR / "staging.db"
+os.environ["STAGING_DB_PATH"] = str(_SHARED_DB)
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
 import respx  # noqa: E402
+from alembic import command  # noqa: E402
+from sqlalchemy.engine import URL  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
+from app.core.database import Database  # noqa: E402
+from app.core.migrations import alembic_config  # noqa: E402
 from app.main import app  # noqa: E402
 from app.services.sparql_client import sparql_client  # noqa: E402
-from app.services.staging_store import staging_store  # noqa: E402
+from app.services.staging_store import StagingStore, staging_store  # noqa: E402
 from app.shared import limits  # noqa: E402
 from app.shared.sparql_guard import clear_prepared_queries  # noqa: E402
 
@@ -207,14 +213,46 @@ def fresh_prepared_queries() -> Iterator[None]:
     clear_prepared_queries()
 
 
+_template_database: Path | None = None
+
+
+def template_database() -> Path:
+    """A database migrated to the head revision and seeded, built once per test session.
+
+    Every test gets a copy (`fresh_database`). The template is built by the migrations, like
+    a real database, and no connection stays open on it, so copying the file loses nothing.
+    """
+    global _template_database
+    if _template_database is None:
+        template = _TMP_DIR / "template.db"
+        url = URL.create("sqlite", database=str(template)).render_as_string(hide_password=False)
+        command.upgrade(alembic_config(url), "head")
+        StagingStore(template).seed_builtin_queries()
+        _template_database = template
+    return _template_database
+
+
 @pytest.fixture(autouse=True)
-def fresh_database(tmp_path: Path) -> Iterator[None]:
-    """Give every test its own empty staging database, built like a real one."""
-    shared_path = staging_store.db_path
-    staging_store.db_path = tmp_path / "staging.db"
-    staging_store._init_db()
+def fresh_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Give every test its own copy of the migrated database.
+
+    The staging store and the settings (hence the SQLAlchemy engine and the Alembic URL)
+    point at the copy for the duration of the test.
+    """
+    path = tmp_path / "staging.db"
+    shutil.copyfile(template_database(), path)
+    monkeypatch.setattr(settings, "STAGING_DB_PATH", str(path))
+    monkeypatch.setattr(staging_store, "db_path", path)
     yield
-    staging_store.db_path = shared_path
+
+
+@pytest.fixture
+async def database(fresh_database: None) -> AsyncIterator[Database]:
+    """The SQLAlchemy engine of the application, on the database of the test."""
+    test_database = Database(settings.DATABASE_URL)
+    app.state.database = test_database
+    yield test_database
+    await test_database.dispose()
 
 
 @pytest.fixture
@@ -229,9 +267,12 @@ def corese(network_guard: respx.MockRouter | None) -> Iterator[FakeCorese]:
 
 
 @pytest.fixture
-async def client() -> AsyncIterator[httpx.AsyncClient]:
-    """HTTP client calling the FastAPI application in process."""
+async def client(database: Database) -> AsyncIterator[httpx.AsyncClient]:
+    """HTTP client calling the FastAPI application in process.
+
+    It uses `https://` so that its cookie jar sends the `Secure` session cookie.
+    """
     async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app), base_url="http://test"
+        transport=httpx.ASGITransport(app=app), base_url="https://test"
     ) as http_client:
         yield http_client

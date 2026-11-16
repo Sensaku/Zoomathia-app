@@ -1,9 +1,14 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.accounts.router import router as accounts_router
 from app.core.config import settings
+from app.core.database import Database
+from app.core.migrations import ensure_database_is_current
 from app.routers import (
     annotations,
     competency_questions,
@@ -17,13 +22,33 @@ from app.routers import (
     works,
 )
 from app.services.sparql_client import sparql_client
+from app.services.staging_store import staging_store
 from app.shared.errors import register_error_handlers
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
-    await sparql_client.close()
+    """Check that the database is migrated, seed the native questions, then serve.
+
+    The schema belongs to Alembic: an application whose database is not at the latest
+    revision refuses to start, with the command to run.
+    """
+    if not settings.SESSION_COOKIE_SECURE:
+        logger.warning(
+            "SESSION_COOKIE_SECURE is false: the session cookie is sent over plain HTTP. "
+            "Only acceptable for local development."
+        )
+    database = Database(settings.DATABASE_URL)
+    app.state.database = database
+    try:
+        await ensure_database_is_current(database)
+        await asyncio.to_thread(staging_store.seed_builtin_queries)
+        yield
+    finally:
+        await database.dispose()
+        await sparql_client.close()
 
 
 app = FastAPI(
@@ -47,7 +72,7 @@ register_error_handlers(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -63,6 +88,7 @@ app.include_router(thesaurus.router)
 app.include_router(annotations.router)
 app.include_router(sparql_playground.router)
 app.include_router(saved_queries.router)
+app.include_router(accounts_router)
 
 
 @app.get("/", tags=["Health"])

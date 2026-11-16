@@ -85,7 +85,7 @@ Tests mirror this layout in `backend-fastapi/tests/<domain>/`.
 - **Services do not import FastAPI** and never raise `HTTPException`. They raise domain errors (`NotFound`, `Forbidden`, `Conflict`, `UpstreamUnavailable`…), mapped to HTTP statuses by handlers in `core/`.
 - **Dependencies are injected** with `Depends` (database session, SPARQL client, current user), so tests can override them.
 - **Pydantic v2 schemas for every request and response.** Statuses, roles, polarities and modes are enumerations, never free strings.
-- **No blocking I/O in `async` handlers.** *Proposed:* SQLAlchemy's async engine (`aiosqlite`), consistent with the async SPARQL client.
+- **No blocking I/O in `async` handlers.** SQLAlchemy's async engine (`aiosqlite`, decided and approved 2026-11-16), consistent with the async SPARQL client. The staging store still uses synchronous `sqlite3` until its domain moves to the target structure.
 - **Errors** use one format for all clients. *Proposed:* Problem Details (RFC 9457, `application/problem+json`).
 - **List endpoints are paginated**, within the bounds of RM-ACC-02.
 - **Logging** through the `logging` module, without secrets or personal data; never `print`.
@@ -112,6 +112,7 @@ Tests mirror this layout in `backend-fastapi/tests/<domain>/`.
 - **Ruff** for linting and formatting (`ruff check`, `ruff format`). *Proposed rule set:* `E, F, W, I, B, UP, SIM, N, S, C90`.
 - **mypy in strict mode** on new modules, extended to existing modules as they are refactored (per-module overrides in `pyproject.toml`).
 - **uv** for dependencies (`uv add`); `uv.lock` is committed.
+- **Python 3.12 or later** (decided 2026-11-16, as in CI, Docker and `.python-version`): `requires-python` is `>=3.12`, so the lock resolves each dependency once. Ruff's `target-version` (`py310`) and mypy's `python_version` (`3.10`) are left unchanged until a dedicated change raises them, because a newer target would make Ruff's `UP` rules rewrite legacy files.
 
 ## Frontend (React, React Router, Tailwind CSS)
 
@@ -192,7 +193,10 @@ Modules identified for the coming work. Check each one's version and maintenance
 |---|---|---|---|
 | RDF exports, SPARQL validation | `rdflib` (approved 2026-11-15) | Correct Turtle serialization; SPARQL 1.1 parser to check the query form and reject `SERVICE` | Does not parse Corese-specific extensions (such queries are rejected) |
 | Password hashing | `pwdlib` (Argon2, approved 2026-11-15) | Argon2id, the option used in the FastAPI documentation | Hashing only, no account management; avoid `passlib`, unmaintained |
-| Local accounts (registration, sessions, roles) | Minimal in-house flow on `pwdlib` with server-side sessions (decided 2026-11-15) | Full control of admin activation and peer review; hashing from a maintained library | Security-sensitive code to own: tests and Opus review required. `fastapi-users` was rejected: maintenance mode since 2026 |
+| Local accounts (registration, sessions, roles) | Minimal in-house flow on `pwdlib` with server-side sessions (decided 2026-11-15; account foundation implemented in P0-4a, `app/accounts/`) | Full control of admin activation and peer review; hashing from a maintained library | Security-sensitive code to own: tests and Opus review required. `fastapi-users` was rejected: maintenance mode since 2026 |
+| Application database, ORM | `sqlalchemy[asyncio]` (SQLAlchemy 2, approved 2026-11-16) | Typed models (`Mapped[...]`), async sessions, the same code on SQLite now and PostgreSQL later | Pulls `greenlet`; more to learn than raw SQL; the staging store still uses `sqlite3` until it moves |
+| Schema migrations | `alembic` (approved 2026-11-16) | One reviewed revision per schema change, applied before the API starts; builds the temporary databases of the tests | Autogenerate does not see everything (SQLite batch mode, check constraints): read every generated revision |
+| Async SQLite driver | `aiosqlite` (approved 2026-11-16) | Lets SQLAlchemy's async engine use SQLite without blocking the event loop | A thread per connection under the hood; goes away with a PostgreSQL driver |
 | Anti-flood throttling | nginx `limit_req` | Already in the stack, no code to write | Per IP only; per-route business limits would need `slowapi` |
 | Corese and OpenTheso doubles in tests | `respx` | Intercepts `httpx` at transport level: realistic tests without network | `httpx` only; fixtures must stay in line with real responses (`live` tests) |
 | TEI-XML parsing (ingestion) | `lxml` | Fast, XPath, the usual choice for TEI | Must be configured against XXE (`resolve_entities=False`, `no_network=True`) |

@@ -60,9 +60,14 @@ L'authentification repose sur des comptes gérés par l'application (email et mo
 **RM-CPT-02 — Activation par un administrateur.** *Décidé.*
 L'inscription crée un compte **en attente**. Un administrateur l'active après vérification de l'email et de l'identité déclarée (nom, affiliation). Un compte en attente ne peut rien écrire.
 *Mécanisme (décidé le 2026-11-15) :* tant qu'aucun serveur SMTP n'est disponible, l'administrateur vérifie lui-même l'adresse et l'identité, active le compte et réinitialise les mots de passe.
+*Premier administrateur (décidé le 2026-11-16) :* il est créé par une commande serveur (`python -m app.accounts.cli create-admin`), le mot de passe étant saisi à l'invite, jamais dans l'environnement, la ligne de commande ni les journaux. Les administrateurs suivants sont désignés par un administrateur existant.
 
 **RM-CPT-03 — Désactivation.** *Proposé.*
 Un administrateur peut désactiver un compte. Ses contributions restent publiées et attribuées.
+La désactivation révoque aussitôt les sessions du compte et ses jetons de réinitialisation inutilisés ; un administrateur ne peut pas désactiver son propre compte (un autre administrateur doit le faire), et la désactivation ou la rétrogradation d'un administrateur actif n'aboutit que si un autre administrateur actif subsiste (vérifié dans la requête elle-même, y compris si deux administrateurs agissent l'un sur l'autre au même instant), pour qu'il en reste toujours un.
+
+**RM-CPT-04 — Suppression d'une inscription non activée.** *Proposé.*
+Un administrateur peut supprimer un compte **en attente** qui n'a jamais été activé (inscription refusée ou indésirable) : les données personnelles inutiles ne sont pas conservées. Un compte activé un jour ne se supprime pas, il se désactive (RM-CPT-03) ; un administrateur ne peut pas supprimer son propre compte.
 
 **RM-CTB-01 — Toute contribution exige un compte actif.** *Décidé.*
 Créer une annotation ou proposer un terme nécessite un compte contributeur actif. Seule exception : le formulaire de soumission de texte (RM-CTB-02).
@@ -91,6 +96,7 @@ Le relecteur et la date de relecture sont enregistrés. Un rejet est accompagné
 
 **RM-MOD-04 — Contributions automatiques.** *Décidé.*
 Chaque agent IA ou pipeline dispose d'un compte de service avec un jeton d'API. Ses annotations portent leur provenance (outil, version, score de confiance) et restent des **suggestions** jusqu'à la relecture d'un contributeur humain. Un compte de service ne relit jamais.
+*Décidé (2026-11-16) :* la mise en œuvre des comptes de service est reportée au chantier de pré-annotation. Jusqu'alors, l'application n'a que deux rôles, `contributor` et `admin`.
 
 ### Cycle de vie d'une contribution
 

@@ -49,8 +49,9 @@ class StagingStore:
     """Gestionnaire de persistance SQLite pour les données de recherche en cours d'évaluation."""
 
     def __init__(self, db_path: Path = DB_PATH):
+        # No database access here: the schema belongs to Alembic (migrations/) and the native
+        # questions are seeded at startup, after the migration check (`seed_builtin_queries`).
         self.db_path = db_path
-        self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -58,82 +59,13 @@ class StagingStore:
         conn.row_factory = sqlite3.Row
         return conn
 
-    def _init_db(self):
-        """Initialise le schéma relationnel SQLite si la base n'existe pas encore."""
+    def seed_builtin_queries(self) -> None:
+        """Insert the native competency questions that the database does not hold yet.
+
+        Idempotent. The tables must exist: run `alembic upgrade head` first.
+        """
         with self._get_connection() as conn:
             cursor = conn.cursor()
-
-            # Table des annotations manuelles W3C
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS staged_annotations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    paragraph_uri TEXT NOT NULL,
-                    target_text TEXT NOT NULL,
-                    start_offset INTEGER NOT NULL,
-                    end_offset INTEGER NOT NULL,
-                    concept_uri TEXT NOT NULL,
-                    concept_label TEXT NOT NULL,
-                    concept_type TEXT NOT NULL,
-                    annotator_name TEXT NOT NULL,
-                    justification TEXT,
-                    scope_type TEXT NOT NULL DEFAULT 'word_sequence',
-                    end_paragraph_uri TEXT,
-                    target_paragraphs TEXT,
-                    status TEXT NOT NULL DEFAULT 'En attente de validation',
-                    created_at TEXT NOT NULL
-                )
-            """)
-
-            # Migrations pour colonnes additionnelles sur staged_annotations existantes
-            for col, col_def in [
-                ("justification", "TEXT"),
-                ("scope_type", "TEXT NOT NULL DEFAULT 'word_sequence'"),
-                ("end_paragraph_uri", "TEXT"),
-                ("target_paragraphs", "TEXT"),
-                ("status", "TEXT NOT NULL DEFAULT 'En attente de validation'"),
-            ]:
-                try:
-                    cursor.execute(f"ALTER TABLE staged_annotations ADD COLUMN {col} {col_def}")
-                except sqlite3.OperationalError:
-                    pass
-
-            # Table des propositions d'enrichissement du thésaurus TheZoo
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS thesaurus_proposals (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    pref_label TEXT NOT NULL,
-                    language TEXT NOT NULL,
-                    alt_labels TEXT NOT NULL,
-                    broader_concept_uri TEXT,
-                    broader_concept_label TEXT,
-                    definition TEXT,
-                    contributor_name TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                )
-            """)
-            try:
-                cursor.execute(
-                    "ALTER TABLE thesaurus_proposals ADD COLUMN broader_concept_label TEXT"
-                )
-            except sqlite3.OperationalError:
-                pass
-
-            # Table unifiée des requêtes SPARQL sauvegardées et questions de recherche
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS saved_queries (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    query_text TEXT NOT NULL,
-                    query_spo_text TEXT,
-                    category TEXT NOT NULL,
-                    author_name TEXT NOT NULL,
-                    is_builtin INTEGER NOT NULL DEFAULT 0,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                )
-            """)
             self._seed_builtin_queries(cursor)
             conn.commit()
 

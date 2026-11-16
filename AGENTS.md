@@ -23,6 +23,9 @@ Technical documents (English): `docs/architecture.md` (components, sources of tr
 | `backend-fastapi/app/routers/` | HTTP endpoints: thin, validation and calls to services only |
 | `backend-fastapi/app/services/` | Business logic, SPARQL and OpenTheso clients, SQLite store |
 | `backend-fastapi/app/models/` | Pydantic models |
+| `backend-fastapi/app/accounts/` | Accounts domain (target layout): users, roles, sessions, CSRF, administration, `cli.py` for the first admin |
+| `backend-fastapi/app/core/database.py` | Async SQLAlchemy engine, `Base`, `get_db`; `clock.py` and `migrations.py` beside it |
+| `backend-fastapi/migrations/` | Alembic revisions: the only owner of the database schema |
 | `backend-fastapi/data/files/` | TEI-XML corpus (do not modify) |
 | `backend-fastapi/data/queries/` | Competency question SPARQL files, to be migrated to the database (RM-QC-01) |
 | `frontend/src/api/client.ts` | The only module that calls the backend |
@@ -38,6 +41,8 @@ Backend, from `backend-fastapi/`:
 
 ```bash
 uv sync
+uv run alembic upgrade head      # apply the migrations: once, then after each pull that brings one
+uv run python -m app.accounts.cli create-admin --email E --name N --affiliation A   # first admin, password typed at the prompt
 uv run uvicorn app.main:app --reload --port 3001
 uv run ruff check .        # lint (add --fix for safe fixes)
 uv run ruff format .       # format
@@ -122,7 +127,9 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 
 ## Known pitfalls
 
-- Tests force a temporary database and block network access (`tests/conftest.py`). Only the tests marked `live` reach the production Corese or OpenTheso, and they are excluded by default. `backend-fastapi/data/staging.db` is still tracked by git: never commit changes to it.
+- Tests force a temporary database, built from the migrations, and block network access (`tests/conftest.py`). Only the tests marked `live` reach the production Corese or OpenTheso, and they are excluded by default. `backend-fastapi/data/*.db` is git-ignored because the database now holds accounts (emails, password hashes); `data/staging.db` was tracked before and is untracked at commit time: never commit it.
+- The application refuses to start on a database that is not at the latest Alembic revision: run `uv run alembic upgrade head` from `backend-fastapi/` (the Docker image does it at start). Never run it against `data/staging.db` from an agent session.
+- Accounts need HTTPS: the session cookie is `Secure`. For local development over plain HTTP only, set `SESSION_COOKIE_SECURE=false`; registrations are closed unless `REGISTRATION_ENABLED=true`.
 - Known gaps of the 2026-11-15 audit are written as tests in `tests/test_known_gaps.py`; one that is still open carries a strict `xfail` marker (none does since P0-3). When a fix makes one pass, remove its marker: the test then guards against regressions.
 - The default SPARQL endpoint (`http://zoomathia.i3s.unice.fr/sparql`) is the **shared production** Corese. Unbounded queries (`SELECT *` without `LIMIT`, global `DESCRIBE`) can crash it (out of memory).
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite) until RM-QC-01 is implemented. Keep them consistent if you must touch them.
@@ -135,5 +142,5 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 1. Framing documents and development guidelines (this file and `docs/`): done on 2026-11-15.
 2. Next:
    - tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend, tests, documentation site and CI done on 2026-11-15; frontend (Vite+, Playwright, TypeDoc) after the upgrade to Node 24;
-   - P0 security work (`docs/security.md`, "Known gaps"): the escaping helpers (P0-1), the unified SPARQL validation and guardrails (P0-2a, P0-2b) and the integrity of contributions (P0-3: server-side status, RDF serialization, protected native competency questions, input validation) are done; authentication and roles (P0-4, P0-5) remain.
+   - P0 security work (`docs/security.md`, "Known gaps"): the escaping helpers (P0-1), the unified SPARQL validation and guardrails (P0-2a, P0-2b) and the integrity of contributions (P0-3: server-side status, RDF serialization, protected native competency questions, input validation) are done; the account foundation (P0-4a: application database under SQLAlchemy 2 and Alembic, local accounts with admin activation, sessions with CSRF, admin endpoints, first-admin command) is done on 2026-11-16; P0-4b (the contribution endpoints require an active account, author from the session, peer review) ships together with the screens of P0-5.
 3. Then: competency questions in the database, publication of validated annotations to Corese, categories from TheZoo collections, versioned REST API, TEI ingestion and pre-annotation.
