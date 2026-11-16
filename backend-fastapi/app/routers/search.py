@@ -154,7 +154,7 @@ async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
                     positive_clauses.append(f"""
                     ?ann_c_{i} oa:hasTarget [ oa:hasSource ?paragraph ];
                                oa:hasBody ?c_body_{i}.
-                    {{ ?c_body_{i} = {c_uri} }} UNION {{ ?c_body_{i} skos:broader+ {c_uri} }}
+                    ?c_body_{i} skos:broader* {c_uri}.
                     """)
                 else:
                     positive_clauses.append(f"""
@@ -218,7 +218,7 @@ async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
             FILTER NOT EXISTS {{
               ?ann_ex_{k} oa:hasTarget [ oa:hasSource ?paragraph ];
                           oa:hasBody ?ex_body_{k}.
-              {{ ?ex_body_{k} = {exc_uri} }} UNION {{ ?ex_body_{k} skos:broader+ {exc_uri} }}
+              ?ex_body_{k} skos:broader* {exc_uri}.
             }}
             """)
         else:
