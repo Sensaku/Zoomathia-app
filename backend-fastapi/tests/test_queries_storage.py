@@ -70,7 +70,7 @@ async def test_security_flaw_prevent_sparql_mutations():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         malicious_payloads = [
-            {"title": "Attaque Drop", "query_text": "DROP ALL GRAPHS ;"},
+            {"title": "Attaque Drop", "query_text": "DROP SILENT ALL"},
             {"title": "Attaque Delete", "query_text": "DELETE WHERE { ?s ?p ?o }"},
             {"title": "Attaque Insert", "query_text": "INSERT DATA { <x> <p> <o> }"},
         ]

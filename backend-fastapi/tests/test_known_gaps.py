@@ -67,7 +67,6 @@ async def test_listing_by_paragraph_matches_the_exact_uri(client: httpx.AsyncCli
     assert all(item["paragraph_uri"] != paragraph_10 for item in response.json())
 
 
-@known_gap("RM-ACC-02: the export endpoints accept a SERVICE clause")
 async def test_rm_acc_02_export_rejects_federated_queries(
     client: httpx.AsyncClient, corese: FakeCorese
 ) -> None:
@@ -79,7 +78,6 @@ async def test_rm_acc_02_export_rejects_federated_queries(
     assert corese.queries == []
 
 
-@known_gap("RM-ACC-02: an unbounded SELECT reaches Corese without a LIMIT")
 async def test_rm_acc_02_unbounded_select_is_limited(
     client: httpx.AsyncClient, corese: FakeCorese
 ) -> None:

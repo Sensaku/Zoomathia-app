@@ -1,9 +1,10 @@
 from typing import Any
 
-from fastapi import APIRouter, Body, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from app.services.sparql_client import sparql_client
+from app.services.sparql_client import MAX_SEARCH_RESPONSE_BYTES, sparql_client
+from app.shared.limits import check_criteria_count, limit_heavy_queries
 from app.shared.sparql import sparql_iri, sparql_lang, sparql_literal
 
 router = APIRouter(tags=["Concepts & Thesaurus"])
@@ -444,8 +445,16 @@ async def get_top_concepts(lang: str = Query("en")) -> list[Any]:
     return []
 
 
-@router.post("/getParagraphWithConcept")
+def _check_concept_count(count: int) -> None:
+    """Refuse an empty concept list (no annotation constraint) or one above the cap (400)."""
+    if count == 0:
+        raise HTTPException(status_code=400, detail="At least one concept is required.")
+    check_criteria_count(count)
+
+
+@router.post("/getParagraphWithConcept", dependencies=[Depends(limit_heavy_queries)])
 async def get_paragraph_with_concept(payload: ParagraphWithConceptRequest) -> list[dict[str, Any]]:
+    _check_concept_count(len(payload.concepts))
     subpart_clauses = []
     for i, c in enumerate(payload.concepts):
         concept_iri = sparql_iri(c.value)
@@ -468,7 +477,8 @@ async def get_paragraph_with_concept(payload: ParagraphWithConceptRequest) -> li
       {subpart}
     }} ORDER BY ?id
     """
-    res = await sparql_client.query(sparql)
+    # RM-ACC-02: this route holds a heavy-query slot, so it may hold a larger result.
+    res = await sparql_client.query(sparql, max_bytes=MAX_SEARCH_RESPONSE_BYTES)
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "paragraph" in b:
@@ -483,9 +493,12 @@ async def get_paragraph_with_concept(payload: ParagraphWithConceptRequest) -> li
     return response
 
 
-@router.post("/getParagraphsWithConcepts")
+@router.post("/getParagraphsWithConcepts", dependencies=[Depends(limit_heavy_queries)])
 async def get_paragraphs_with_concepts(payload: dict[str, Any] = Body(...)) -> list[dict[str, Any]]:
     concepts_raw = payload.get("concepts", [])
+    if not isinstance(concepts_raw, list):
+        raise HTTPException(status_code=400, detail="The concepts must be a list.")
+    _check_concept_count(len(concepts_raw))
     subpart_clauses = []
     for i, c in enumerate(concepts_raw):
         c_val = c.get("value", "") if isinstance(c, dict) else str(c)
@@ -514,7 +527,8 @@ async def get_paragraphs_with_concepts(payload: dict[str, Any] = Body(...)) -> l
       FILTER(lang(?label) = "en")
     }} ORDER BY ?book ?id
     """
-    res = await sparql_client.query(sparql)
+    # RM-ACC-02: this route holds a heavy-query slot, so it may hold a larger result.
+    res = await sparql_client.query(sparql, max_bytes=MAX_SEARCH_RESPONSE_BYTES)
     response = []
     for b in res.get("results", {}).get("bindings", []):
         if "paragraph" in b:

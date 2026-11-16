@@ -9,7 +9,7 @@ import atexit
 import os
 import shutil
 import tempfile
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs
@@ -28,6 +28,7 @@ from app.core.config import settings  # noqa: E402
 from app.main import app  # noqa: E402
 from app.services.sparql_client import sparql_client  # noqa: E402
 from app.services.staging_store import staging_store  # noqa: E402
+from app.shared.sparql_guard import clear_prepared_queries  # noqa: E402
 
 _ENDPOINT = httpx.URL(settings.SPARQL_ENDPOINT)
 
@@ -85,12 +86,40 @@ class FakeCorese:
         self.queries: list[str] = []
         self.malformed: list[httpx.Request] = []
         self._response = httpx.Response(200, json=sparql_json([], []))
+        self._factory: Callable[[], httpx.Response] | None = None
+        self._turns: list[httpx.Response] = []
         self._error: Exception | None = None
         router.route(host=_ENDPOINT.host, path=_ENDPOINT.path).side_effect = self._handle
 
     def returns(self, variables: list[str], rows: list[dict[str, str]]) -> None:
         """Answer every following query with these results."""
         self._response = httpx.Response(200, json=sparql_json(variables, rows))
+        self._factory = None
+        self._turns = []
+
+    def returns_in_turn(self, *results: tuple[list[str], list[dict[str, str]]]) -> None:
+        """Answer the following queries one result after the other; the last one repeats."""
+        self._turns = [httpx.Response(200, json=sparql_json(*result)) for result in results]
+
+    def returns_large(self, size: int, declare_length: bool = True) -> None:
+        """Answer every following query with a valid JSON document of `size` bytes.
+
+        With `declare_length=False` the body is streamed in chunks without a
+        `Content-Length`, so only reading it reveals its size.
+        """
+        head = b'{"head": {"vars": []}, "results": {"bindings": []}}'
+        body = head + b" " * max(0, size - len(head))
+
+        async def chunks() -> AsyncIterator[bytes]:
+            for start in range(0, len(body), 64 * 1024):
+                yield body[start : start + 64 * 1024]
+
+        def build() -> httpx.Response:
+            if declare_length:
+                return httpx.Response(200, content=body)
+            return httpx.Response(200, content=chunks())
+
+        self._factory = build
 
     def raises(self, error: Exception) -> None:
         """Fail every following query with this transport error."""
@@ -104,6 +133,10 @@ class FakeCorese:
         self.queries.append(query)
         if self._error is not None:
             raise self._error
+        if self._factory is not None:
+            return self._factory()
+        if self._turns:
+            return self._turns.pop(0) if len(self._turns) > 1 else self._turns[0]
         return self._response
 
 
@@ -130,6 +163,14 @@ def fresh_sparql_cache() -> Iterator[None]:
     sparql_client.clear_cache()
     yield
     sparql_client.clear_cache()
+
+
+@pytest.fixture(autouse=True)
+def fresh_prepared_queries() -> Iterator[None]:
+    """Start every test with an empty cache of validated queries."""
+    clear_prepared_queries()
+    yield
+    clear_prepared_queries()
 
 
 @pytest.fixture(autouse=True)

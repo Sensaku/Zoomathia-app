@@ -5,36 +5,20 @@ tout en protégeant les Questions de Compétence (CQs) natives du système.
 """
 
 import json
-import re
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.models.annotation_models import (
     CreateSavedQueryRequest,
     SavedQueryResponse,
     UpdateSavedQueryRequest,
 )
-from app.routers.sparql_playground import FORBIDDEN_KEYWORDS
 from app.services.sparql_client import sparql_client
 from app.services.staging_store import staging_store
+from app.shared.limits import limit_heavy_queries
+from app.shared.sparql_guard import prepare_query_async
 
 router = APIRouter(prefix="/queries", tags=["Saved SPARQL Queries"])
-
-
-def validate_read_only_sparql(query: str):
-    """Vérifie qu'une requête SPARQL est strictement en lecture seule et sans clause fédérée SERVICE."""
-    for pattern, error_msg in FORBIDDEN_KEYWORDS:
-        if re.search(pattern, query, re.IGNORECASE):
-            raise HTTPException(status_code=403, detail=error_msg)
-    if re.search(r"\b(CONSTRUCT|DESCRIBE)\b", query, re.IGNORECASE):
-        raise HTTPException(
-            status_code=400,
-            detail="Les requêtes CONSTRUCT et DESCRIBE ne sont pas autorisées. Seules les requêtes SELECT (ou ASK) sont permises.",
-        )
-    if not re.search(r"\b(SELECT|ASK)\b", query, re.IGNORECASE):
-        raise HTTPException(
-            status_code=400, detail="La requête doit comporter une clause valide (SELECT ou ASK)."
-        )
 
 
 @router.get("", response_model=list[SavedQueryResponse])
@@ -55,16 +39,21 @@ async def get_saved_query(query_id: int):
     return query
 
 
-@router.post("", response_model=SavedQueryResponse)
+@router.post("", response_model=SavedQueryResponse, dependencies=[Depends(limit_heavy_queries)])
 async def create_saved_query(payload: CreateSavedQueryRequest):
     """Enregistre une nouvelle requête SPARQL dans la bibliothèque."""
-    validate_read_only_sparql(payload.query_text)
+    # Validated only: the text is stored as written, `prepare_query_async` runs again at execution.
+    await prepare_query_async(payload.query_text)
     if payload.query_spo_text:
-        validate_read_only_sparql(payload.query_spo_text)
+        await prepare_query_async(payload.query_spo_text)
     return staging_store.add_saved_query(payload)
 
 
-@router.put("/{query_id}", response_model=SavedQueryResponse)
+@router.put(
+    "/{query_id}",
+    response_model=SavedQueryResponse,
+    dependencies=[Depends(limit_heavy_queries)],
+)
 async def update_saved_query(query_id: int, payload: UpdateSavedQueryRequest):
     """Met à jour les métadonnées ou le code d'une requête SPARQL."""
     existing = staging_store.get_saved_query_by_id(query_id)
@@ -72,9 +61,9 @@ async def update_saved_query(query_id: int, payload: UpdateSavedQueryRequest):
         raise HTTPException(status_code=404, detail=f"Requête SPARQL introuvable : ID {query_id}")
 
     if payload.query_text:
-        validate_read_only_sparql(payload.query_text)
+        await prepare_query_async(payload.query_text)
     if payload.query_spo_text:
-        validate_read_only_sparql(payload.query_spo_text)
+        await prepare_query_async(payload.query_spo_text)
 
     updated = staging_store.update_saved_query(query_id, payload)
     return updated
@@ -96,7 +85,7 @@ async def delete_saved_query(query_id: int):
     return {"message": "Requête supprimée avec succès", "id": query_id}
 
 
-@router.post("/{query_id}/execute")
+@router.post("/{query_id}/execute", dependencies=[Depends(limit_heavy_queries)])
 async def execute_saved_query(
     query_id: int,
     use_spo: bool = Query(
@@ -109,10 +98,12 @@ async def execute_saved_query(
         raise HTTPException(status_code=404, detail=f"Requête introuvable : ID {query_id}")
 
     sparql_code = query.query_spo_text if (use_spo and query.query_spo_text) else query.query_text
-    validate_read_only_sparql(sparql_code)
+    sparql_code = await prepare_query_async(sparql_code)
 
     try:
         data = await sparql_client.query(sparql_code)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=502, detail=f"Erreur d'exécution SPARQL sur Corese : {str(e)}"

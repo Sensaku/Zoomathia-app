@@ -52,6 +52,7 @@ Each piece of data has exactly one source of truth. Any copy is derived, read-on
 
 - **Corese is imposed** (decided 2026-11-15): no migration to another triplestore.
 - **Unbounded queries** (global `SELECT *`, `DESCRIBE`) exhaust Corese memory. Every query goes through the guardrails of RM-ACC-02 (see [security.md](security.md)).
+- **Corese has no query timeout** (confirmed 2026-11-15): none is configured on the shared instance, and Corese only offers one for federated `SERVICE` calls (`SERVICE_TIMEOUT`). A query runs until it completes or exhausts memory, even after the client has given up: the API's timeout protects the API, not Corese.
 - **The API writes to Corese** (RM-PUB-01). Writes must use authenticated access, separate from the public read endpoint. Mechanism (SPARQL Update, Graph Store Protocol, protection) *to be confirmed with the Corese / I3S team.*
 - **The endpoint `http://zoomathia.i3s.unice.fr/sparql` is public.** API guardrails do not protect it from direct access; protecting it is a matter of Corese configuration and I3S infrastructure.
 - **Standard SPARQL 1.1 only**, unless a Corese extension is explicitly needed and documented.

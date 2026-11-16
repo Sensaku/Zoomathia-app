@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 
 from app.services.sparql_client import sparql_client
 from app.services.witness_dedup import dedupe_zoo_witnesses
-from app.shared.sparql import sparql_iri, sparql_literal
+from app.shared.sparql import InvalidSparqlValue, sparql_iri, sparql_literal
 
 router = APIRouter(tags=["Works & Authors"])
 
@@ -143,17 +143,27 @@ async def get_translation(
         return None
 
     dir_part, number, _, suffix = match.groups()
-    dir_escaped = dir_part.replace(".", "\\\\.")
+    # The directory comes from Corese data: it is escaped as a literal, never interpolated
+    # as is, and the exact file name pattern is checked in Python below.
+    try:
+        prefix_literal = sparql_literal(dir_part + number + "e")
+    except InvalidSparqlValue:
+        return None
     cand_sparql = f"""
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#>
     SELECT ?work ?title ?file WHERE {{
       ?work zoo:file ?file;
             zoo:title ?title.
-      FILTER(REGEX(STR(?file), "^{dir_escaped}{number}e(_[0-9]+)?\\\\.xml$"))
+      FILTER(STRSTARTS(STR(?file), {prefix_literal}))
     }}
     """
     cand_res = await sparql_client.query(cand_sparql)
-    candidates = cand_res.get("results", {}).get("bindings", [])
+    exact_name = re.compile(rf"^{re.escape(dir_part + number)}e(_[0-9]+)?\.xml$")
+    candidates = [
+        c
+        for c in cand_res.get("results", {}).get("bindings", [])
+        if "file" in c and exact_name.fullmatch(c["file"]["value"])
+    ]
     if not candidates:
         return None
 

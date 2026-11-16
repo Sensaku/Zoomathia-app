@@ -1,13 +1,14 @@
 import os
-import re
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 
 from app.core.config import settings
 from app.services.sparql_client import sparql_client
+from app.shared.limits import limit_heavy_queries
 from app.shared.sparql import sparql_iri
+from app.shared.sparql_guard import prepare_query_async
 
 router = APIRouter(tags=["Export & Downloads"])
 
@@ -27,15 +28,6 @@ def json_to_csv(sparql_json: dict[str, Any]) -> str:
         lines.append(";".join(temp))
 
     return "\n".join(lines)
-
-
-def validate_readonly_sparql(query: str):
-    """Bloque toute tentative d'injection SPARQL Update destructive."""
-    forbidden = ["DELETE", "DROP", "INSERT", "CLEAR", "LOAD", "CREATE", "COPY", "MOVE", "ADD"]
-    upper = query.upper()
-    for word in forbidden:
-        if re.search(rf"\b{word}\b", upper):
-            raise HTTPException(status_code=400, detail=f"Opération SPARQL interdite: {word}")
 
 
 @router.get("/download-xml")
@@ -59,7 +51,7 @@ async def download_xml(file: str = Query(..., description="Chemin ou nom du fich
     )
 
 
-@router.get("/download-qc-json")
+@router.get("/download-qc-json", dependencies=[Depends(limit_heavy_queries)])
 async def download_qc_json(id: int = Query(..., description="ID QC")):
     file_path = os.path.join(QUERIES_DIR, f"qc{id}.rq")
     if not os.path.exists(file_path):
@@ -68,7 +60,7 @@ async def download_qc_json(id: int = Query(..., description="ID QC")):
     with open(file_path, encoding="utf-8") as f:
         query = f.read()
 
-    result = await sparql_client.query(query)
+    result = await sparql_client.query(await prepare_query_async(query))
     import json
 
     content = json.dumps(result, ensure_ascii=False, indent=2)
@@ -79,7 +71,7 @@ async def download_qc_json(id: int = Query(..., description="ID QC")):
     )
 
 
-@router.get("/download-qc-csv")
+@router.get("/download-qc-csv", dependencies=[Depends(limit_heavy_queries)])
 async def download_qc_csv(id: int = Query(..., description="ID QC")):
     file_path = os.path.join(QUERIES_DIR, f"qc{id}.rq")
     if not os.path.exists(file_path):
@@ -88,7 +80,7 @@ async def download_qc_csv(id: int = Query(..., description="ID QC")):
     with open(file_path, encoding="utf-8") as f:
         query = f.read()
 
-    result = await sparql_client.query(query)
+    result = await sparql_client.query(await prepare_query_async(query))
     csv_text = json_to_csv(result)
     return Response(
         content=csv_text,
@@ -97,10 +89,9 @@ async def download_qc_csv(id: int = Query(..., description="ID QC")):
     )
 
 
-@router.get("/download-custom-search-json")
+@router.get("/download-custom-search-json", dependencies=[Depends(limit_heavy_queries)])
 async def download_custom_search_json(sparql: str = Query(..., description="Requête SPARQL")):
-    validate_readonly_sparql(sparql)
-    result = await sparql_client.query(sparql)
+    result = await sparql_client.query(await prepare_query_async(sparql))
     import json
 
     content = json.dumps(result, ensure_ascii=False, indent=2)
@@ -111,10 +102,9 @@ async def download_custom_search_json(sparql: str = Query(..., description="Requ
     )
 
 
-@router.get("/download-custom-search-csv")
+@router.get("/download-custom-search-csv", dependencies=[Depends(limit_heavy_queries)])
 async def download_custom_search_csv(sparql: str = Query(..., description="Requête SPARQL")):
-    validate_readonly_sparql(sparql)
-    result = await sparql_client.query(sparql)
+    result = await sparql_client.query(await prepare_query_async(sparql))
     csv_text = json_to_csv(result)
     return Response(
         content=csv_text,

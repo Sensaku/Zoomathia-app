@@ -1,10 +1,11 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.services.sparql_client import sparql_client
+from app.services.sparql_client import MAX_SEARCH_RESPONSE_BYTES, sparql_client
 from app.services.tree_builder import build_custom_search_tree
+from app.shared.limits import check_criteria_count, limit_heavy_queries
 from app.shared.sparql import sparql_iri, sparql_literal
 
 router = APIRouter(tags=["Search"])
@@ -44,8 +45,21 @@ class CustomSearchPayload(BaseModel):
     match_mode: str | None = None  # "AND" | "OR"
 
 
-@router.post("/customSearch")
+@router.post("/customSearch", dependencies=[Depends(limit_heavy_queries)])
 async def custom_search(payload: CustomSearchPayload) -> dict[str, Any]:
+    # RM-ACC-02: counted before anything is normalized or built.
+    check_criteria_count(
+        len(payload.author)
+        + len(payload.work)
+        + len(payload.excluded_works)
+        + (
+            len(payload.concept_criteria)
+            if payload.concept_criteria is not None
+            else len(payload.concepts)
+        )
+        + len(payload.collection_criteria or [])
+    )
+
     authors = payload.author
     works = payload.work
     excluded_works = payload.excluded_works
@@ -253,7 +267,8 @@ SELECT DISTINCT ?work ?type ?author ?title ?parent ?current ?current_type ?curre
   OPTIONAL {{ ?current zoo:title ?current_title. }}
 }} ORDER BY ?work ?current_id ?id"""
 
-    res = await sparql_client.query(build_request)
+    # RM-ACC-02: this route holds a heavy-query slot, so it may hold a larger result.
+    res = await sparql_client.query(build_request, max_bytes=MAX_SEARCH_RESPONSE_BYTES)
     bindings = res.get("results", {}).get("bindings", [])
     tree = build_custom_search_tree(bindings)
 

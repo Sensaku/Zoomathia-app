@@ -123,4 +123,4 @@ async def test_sparql_injection_security():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/download-custom-search-json?sparql=DROP%20ALL")
-        assert response.status_code == 400
+        assert response.status_code == 403
