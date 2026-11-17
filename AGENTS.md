@@ -55,13 +55,19 @@ uv run --group docs mkdocs serve --config-file ../mkdocs.yml   # documentation s
 Frontend, from `frontend/`:
 
 ```bash
-npm ci
-npm run dev          # http://localhost:5173, proxies /api to port 3001
-npx tsc --noEmit     # type check
+npm ci                       # Node 24 (frontend/.nvmrc)
+npm run dev                  # http://localhost:5173, proxies /api to port 3001
+npm run typecheck            # tsc on src and on e2e + config files (two TS projects); tsc stays the only type checker
+npm run lint                 # Oxlint (react, jsx-a11y, type-aware); legacy findings are warnings
+npm run format               # Oxfmt (format:check in CI)
+npm run test                 # Vitest + Testing Library + MSW, no network
 npm run build
+npx playwright install chromium   # once
+npm run test:e2e             # Playwright with axe, against the build: run npm run build first
+npm run docs                 # TypeDoc reference into docs/reference/frontend (not committed)
 ```
 
-The frontend tooling (Vite+ with oxlint, oxfmt and Vitest, Playwright, TypeDoc) is defined in `docs/development-guidelines.md` but **not installed yet**: it waits for Node 24 on the maintainer's machine. Until then, the frontend commands above are the only ones that exist.
+The frontend tooling (Vite+ with Oxlint, Oxfmt and Vitest, Playwright with axe, TypeDoc) is installed (decision record: `docs/decisions/0001-frontend-tooling.md`). Run `npm run docs` in `frontend/` before the MkDocs command: the site includes the generated TypeScript reference.
 
 ## Non-negotiable rules
 
@@ -109,7 +115,7 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 ## Definition of done
 
 - `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` and `uv run pytest` pass; new logic has tests at the right level (see the guidelines), none of which needs network access.
-- `npx tsc --noEmit` and `npm run build` pass; once Vite+ is installed, its lint, format and tests pass too.
+- In `frontend/`: `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm run test` and `npm run build` pass, and `npm run test:e2e` passes when a journey or a page changed; new files get the full lint rules (no new legacy override).
 - New UI works with the keyboard, has labels and passes the automated accessibility checks.
 - The diff contains only what the task requires: no unrelated renaming, reformatting or refactoring.
 - A cross-model review was done (see "Working method") and every finding is fixed or answered.
@@ -136,11 +142,12 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 - Concept categories are computed twice (backend `classify_concept`, frontend `getConceptCategoryInfo`) with diverging rules, until RM-CON-01 and RM-CON-02 are implemented.
 - Statuses are stored as French labels ("En attente de validation", "Validé"…) and compared as strings in the frontend; migration to codes is planned.
 - Annotation offsets in the free-text selection handlers are computed with `indexOf` (first occurrence): known bug, see RM-ANN-01.
+- Keep `vite-plus`, the `vite` alias (`npm:@voidzero-dev/vite-plus-core`) and the `vitest` pin aligned: each appears in `devDependencies` and in `overrides` of `frontend/package.json`, with the same version. Upgrade them together (procedure in the decision record); a dependency bot must never bump one alone.
 
 ## Current priorities
 
 1. Framing documents and development guidelines (this file and `docs/`): done on 2026-11-15.
 2. Next:
-   - tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend, tests, documentation site and CI done on 2026-11-15; frontend (Vite+, Playwright, TypeDoc) after the upgrade to Node 24;
+   - tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend, tests, documentation site and CI done on 2026-11-15; frontend tooling (Vite+, Vitest, Playwright with axe, TypeDoc, Node 24) done on 2026-11-16; the component catalogue tool is postponed to the start of P0-5a;
    - P0 security work (`docs/security.md`, "Known gaps"): the escaping helpers (P0-1), the unified SPARQL validation and guardrails (P0-2a, P0-2b) and the integrity of contributions (P0-3: server-side status, RDF serialization, protected native competency questions, input validation) are done; the account foundation (P0-4a: application database under SQLAlchemy 2 and Alembic, local accounts with admin activation, sessions with CSRF, admin endpoints, first-admin command) is done on 2026-11-16; P0-4b (the contribution endpoints require an active account, author from the session, peer review) ships together with the screens of P0-5.
 3. Then: competency questions in the database, publication of validated annotations to Corese, categories from TheZoo collections, versioned REST API, TEI ingestion and pre-annotation.

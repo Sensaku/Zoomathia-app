@@ -4,7 +4,7 @@ Interface web de Zoomathia, développée avec React, TypeScript, Vite et Tailwin
 
 ## Prérequis
 
-- Node.js `20.19+` ou `22.12+`
+- Node.js `24.15+` (voir `.nvmrc`)
 - npm
 - Backend Zoomathia disponible sur le port `3001`
 
@@ -25,7 +25,7 @@ Pour cibler un autre backend, créer `frontend/.env.local` :
 VITE_API_URL=https://example.org/api
 ```
 
-Le modèle [`.env.example`](C:/Users/Mazuki/Desktop/zoomathia/web-app/frontend/.env.example) contient la configuration minimale. Copier ce fichier vers `frontend/.env.local` ; ce dernier reste local et n'est pas versionné.
+Le modèle [`.env.example`](.env.example) contient la configuration minimale. Copier ce fichier vers `frontend/.env.local` ; ce dernier reste local et n'est pas versionné.
 
 `VITE_API_URL` est injectée au moment du build. En son absence, le frontend utilise `/api`, qui doit être routé vers FastAPI par Vite en développement ou par le reverse proxy en production.
 
@@ -61,11 +61,21 @@ VITE_API_URL=https://example.org/api
 
 ## Commandes
 
-| Commande | Usage |
-| --- | --- |
-| `npm run dev` | serveur Vite avec rechargement automatique |
-| `npm run build` | contrôle TypeScript et build optimisé |
-| `npm run preview` | prévisualisation locale du build |
+| Commande            | Usage                                                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`       | serveur Vite+ avec rechargement automatique                                                                                      |
+| `npm run build`     | contrôle TypeScript (`tsc`) et build optimisé                                                                                    |
+| `npm run preview`   | prévisualisation locale du build                                                                                                 |
+| `npm run typecheck` | `tsc --noEmit` sur `src` et sur `e2e` + fichiers de config (deux projets TypeScript) ; `tsc` reste le seul vérificateur de types |
+| `npm run lint`      | Oxlint (React, accessibilité `jsx-a11y`, règles typées)                                                                          |
+| `npm run format`    | formatage avec Oxfmt (`npm run format:check` pour vérifier sans modifier)                                                        |
+| `npm run test`      | tests unitaires et de composants (Vitest, Testing Library, MSW), sans réseau                                                     |
+| `npm run test:e2e`  | parcours Playwright avec axe, sur le build                                                                                       |
+| `npm run docs`      | référence TypeDoc générée dans `../docs/reference/frontend` (non versionnée)                                                     |
+
+Tests de bout en bout : installer une fois Chromium avec `npx playwright install chromium`, puis lancer `npm run build` avant chaque `npm run test:e2e` (le serveur de test sert le build sur le port 4173).
+
+Les choix d'outillage et la procédure de mise à jour de Vite+ sont dans [`docs/decisions/0001-frontend-tooling.md`](../docs/decisions/0001-frontend-tooling.md).
 
 ## Organisation
 

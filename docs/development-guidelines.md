@@ -2,7 +2,7 @@
 
 > Decided during the development-guidelines session of 2026-11-15. Every rule is **Decided** unless marked **Proposed** (default to validate).
 > These rules apply to all new code. Existing code is brought in line progressively, when it is modified.
-> The tooling described here is **not installed yet**: see "Adoption" at the end.
+> The tooling described here is installed, except the component catalogue tool (postponed to P0-5a): see "Adoption" at the end.
 
 ## Principles
 
@@ -151,10 +151,10 @@ Each feature contains `components/`, `hooks/` (React Query hooks such as `useWor
 
 ### Frontend tooling: Vite+
 
-- **Vite+** provides linting (oxlint, with the `react`, `react-hooks` and `jsx-a11y` plugins enabled), formatting (oxfmt) and tests (Vitest).
+- **Vite+** provides linting (Oxlint, with the `react`, `jsx-a11y`, `typescript`, `unicorn` and `oxc` plugins), formatting (Oxfmt, with Tailwind class sorting) and tests (Vitest). **Adopted on 2026-11-16**: choices, measured checks and the upgrade procedure are in the [decision record 0001](decisions/0001-frontend-tooling.md).
 - **Versions are pinned** (exact versions, lockfile committed); every upgrade is a deliberate commit.
-- **To check at installation, then record in a decision note:** whether oxfmt is stable or still in beta, Tailwind class sorting support, and oxlint's `jsx-a11y` coverage compared with `eslint-plugin-jsx-a11y`.
-- **npm scripts are the stable contract** used by humans, agents and CI: `dev`, `build`, `typecheck`, `lint`, `format`, `format:check`, `test`, `test:e2e`.
+- **Checked at installation and recorded in the decision note:** Oxfmt is still 0.x (beta), hence the exact pins; Tailwind class sorting is built in; Oxlint covers 36 of the 39 rules of `eslint-plugin-jsx-a11y` (the three missing ones are deprecated upstream).
+- **npm scripts are the stable contract** used by humans, agents and CI: `dev`, `build`, `preview`, `typecheck`, `lint`, `format`, `format:check`, `test`, `test:e2e`, `docs`. `tsc` stays the only type checker while the project pins TypeScript 6.0.
 
 ## Performance and concurrency
 
@@ -201,16 +201,18 @@ Modules identified for the coming work. Check each one's version and maintenance
 | Corese and OpenTheso doubles in tests | `respx` | Intercepts `httpx` at transport level: realistic tests without network | `httpx` only; fixtures must stay in line with real responses (`live` tests) |
 | TEI-XML parsing (ingestion) | `lxml` | Fast, XPath, the usual choice for TEI | Must be configured against XXE (`resolve_entities=False`, `no_network=True`) |
 | API types on the frontend | `openapi-typescript` | Types generated from OpenAPI, no hand-written copies | Types only, no runtime validation; relies on backend response models |
-| Network mocking in frontend tests | `msw` | Mocks the API at network level: hooks and components tested as in production | Handlers to keep in line with the API |
-| User-facing tests | Testing Library, `user-event` | Tests by role and label, the way users interact | — |
-| Accessibility checks | `axe-core` (`@axe-core/playwright`, `vitest-axe`) | Automated WCAG checks in tests | Finds only part of the issues; manual checks remain necessary |
+| Network mocking in frontend tests | `msw` (approved 2026-11-16) | Mocks the API at network level: hooks and components tested as in production | Handlers to keep in line with the API |
+| User-facing tests | Testing Library (`@testing-library/react`, `dom`, `user-event`, `jest-dom`; approved 2026-11-16) | Tests by role and label, the way users interact | — |
+| Node types for e2e tests and configs | `@types/node` 24.19.2 (approved 2026-11-17) | Types for the Playwright tests and the config files (`tsconfig.node.json`) | Never in `src/`: browser code must not see Node globals |
+| DOM for component tests | `jsdom` (approved 2026-11-16) | Browser environment of the Vitest component tests | No layout engine: colour contrast is checked by Playwright, not in these tests |
+| Accessibility checks | `axe-core` and `@axe-core/playwright` (approved 2026-11-16), plus a small helper over axe-core in component tests (`vitest-axe` is unmaintained) | Automated WCAG checks in tests | Finds only part of the issues; manual checks remain necessary |
 | SPARQL editor | CodeMirror 6 with the SPARQL mode of `@codemirror/legacy-modes`, or YASGUI | Replaces the in-house editor, highlighter and tokenizer (~580 lines) with maintained code | **To evaluate:** bundle size (YASGUI is heavy), styling, maintenance status |
 | Changelog | `git-cliff` | `CHANGELOG.md` generated from Conventional Commits | Requires disciplined commit messages |
 | Dependency audit | `pip-audit`, `npm audit` | Known vulnerabilities in dependencies | Known advisories only |
 | Documentation site | `mkdocs-material`, `mkdocstrings[python]` | One site for hand-written and generated documentation; Python reference from docstrings | Docstrings must be maintained; Material for MkDocs reaches end of life on 2027-05-05: migrate to Zensical, its successor reading the same `mkdocs.yml`, before that date |
-| TypeScript reference | `typedoc`, with `typedoc-plugin-markdown` to include it in MkDocs | Reference generated from TSDoc | Documents exported symbols only |
+| TypeScript reference | `typedoc`, with `typedoc-plugin-markdown` (approved 2026-11-16) to include it in MkDocs | Reference generated from TSDoc | Documents exported symbols only |
 | Accessible UI primitives (dialogs, menus, comboboxes) | Radix UI or React Aria, headless and styled with Tailwind | Keyboard and screen-reader behaviour already solved; could replace the in-house `MultiSelectCombobox` (314 lines) | **To evaluate:** one more dependency; check bundle size and fit with the design tokens |
-| Component catalogue | Storybook, or Ladle | Visual reference replacing mockups ([design-system.md](design-system.md)); Storybook adds axe checks and Vitest integration | **To choose at adoption:** Storybook is heavier; Ladle is lighter but has fewer add-ons |
+| Component catalogue | Storybook, or Ladle | Visual reference replacing mockups ([design-system.md](design-system.md)) | **Postponed to the start of P0-5a** (owner decision, 2026-11-16): Storybook 10.6 and 11.0 beta declare an optional peer `vite-plus` `^0.1`, `^0.2` or `^0.3`, which conflicts with Vite+ 1.6 under npm; Ladle has had no release since 2025-11-04 and ships its own Vite 6 |
 | Load testing | `locust`, or k6 | Scenarios simulating the target load (50 concurrent users); Locust is written in Python, like the backend | **To choose at adoption:** k6 is more efficient at high load but uses JavaScript and another runtime |
 
 ## Tests
@@ -298,7 +300,7 @@ Findings are ranked by severity, with file and line, the concrete failure scenar
 - **On every push to `main`:**
   - backend: `ruff check`, `ruff format --check`, mypy, tests without network;
   - frontend: lint, format check, type check, tests, build;
-  - Playwright journeys, once the suite exists.
+  - Playwright smoke journeys (`e2e` job, on every push and pull request); the critical journeys come with P0-5a.
 - **Weekly:** `pip-audit` and `npm audit`, outside the push checks, so they never block a push. A finding makes the scheduled run fail visibly, and the run summary lists the findings.
 - A failing pipeline on `main` is fixed before any other work.
 
@@ -368,7 +370,7 @@ Accessibility is built into every component, not added at the end.
 
 *Proposed order* to bring the repository in line with these guidelines:
 
-1. **Tooling:** Ruff, mypy, Vite+ (oxlint, oxfmt, Vitest), Playwright, MkDocs Material with mkdocstrings and TypeDoc, their configuration files, the npm and uv scripts, the CI workflow. *Status (2026-11-15):* backend tooling, documentation site (Python reference) and CI done; Vite+, Playwright and TypeDoc wait for Node 24 on the maintainer's machine.
+1. **Tooling:** Ruff, mypy, Vite+ (Oxlint, Oxfmt, Vitest), Playwright, MkDocs Material with mkdocstrings and TypeDoc, their configuration files, the npm and uv scripts, the CI workflow. *Status (2026-11-16):* done: backend tooling, documentation site (Python and TypeScript references) and CI on 2026-11-15; Vite+, Vitest, Playwright with axe and TypeDoc on 2026-11-16 (Node 24). Only the component catalogue tool remains, postponed to P0-5a.
 2. **Test foundation:** `conftest.py` with a temporary database and simulated Corese; first unit tests of the decided rules. *Status (2026-11-15):* done for the backend, including the known gaps of the audit written as strict `xfail` tests (`tests/test_known_gaps.py`).
 3. **Progressive restructuring:** new code goes straight into the target structure; existing modules move when they are modified, starting with the domains touched by the P0 security work (accounts, annotations).
 

@@ -107,7 +107,7 @@ A print stylesheet prints the passage with its citation (author, work, reference
 
 - With no separate mockups, the **component catalogue is the visual reference**: every shared component (`src/shared/ui/`) is shown with its variants and states (default, hover, focus, disabled, loading, error).
 - A new screen is assembled from catalogue components first. A new shared component enters the catalogue in the same change.
-- **Tool, to choose at adoption** under the dependency policy: Storybook (the standard; accessibility add-on based on axe, Vitest integration; heavier) or Ladle (light, Vite-native, same story format; fewer add-ons). *Proposed:* Storybook.
+- **Tool: postponed to the start of P0-5a** (owner decision, 2026-11-16), under the dependency policy. Storybook 10.6 and 11.0 beta declare an optional peer `vite-plus` `^0.1`, `^0.2` or `^0.3`, which conflicts with Vite+ 1.6 under npm; Ladle has had no release since 2025-11-04 and ships its own Vite 6. Choose again when P0-5a starts.
 
 ## Checklist for a visual change
 

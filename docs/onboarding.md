@@ -26,7 +26,7 @@ Tip: try a query in the application's SPARQL playground before writing code that
 
 ## 3. Set up your machine (1 hour)
 
-Prerequisites: Git, Python 3.12 and [uv](https://docs.astral.sh/uv/), Node.js 22 and npm. Docker is optional.
+Prerequisites: Git, Python 3.12 and [uv](https://docs.astral.sh/uv/), Node.js 24 (see `frontend/.nvmrc`) and npm. Docker is optional.
 
 Backend, from `backend-fastapi/`:
 
@@ -45,6 +45,8 @@ Frontend, from `frontend/`:
 npm ci
 npm run dev
 ```
+
+Other frontend commands: `npm run lint`, `npm run format`, `npm run typecheck`, `npm run test`, `npm run build`, and `npm run test:e2e` (Playwright: run `npx playwright install chromium` once, then `npm run build` before each run). `npm run docs` generates the TypeScript reference that the documentation site includes.
 
 Open <http://localhost:5173>; the API documentation is at <http://localhost:3001/docs>.
 

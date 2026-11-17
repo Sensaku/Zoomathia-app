@@ -1,0 +1,4 @@
+# Oxfmt always writes LF and has no "auto" line-ending mode. Keep LF in the working copy,
+# even with core.autocrlf=true on Windows; otherwise every file that git rewrites (checkout,
+# pull, reset) gets CRLF and `npm run format:check` fails. Binary files are detected by text=auto.
+* text=auto eol=lf

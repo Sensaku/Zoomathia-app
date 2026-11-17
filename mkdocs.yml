@@ -1,5 +1,6 @@
 # Documentation site of the Zoomathia application.
 # Build from backend-fastapi/ (the docs dependencies live in its "docs" group):
+#   (cd ../frontend && npm ci && npm run docs)   # generates docs/reference/frontend (not committed)
 #   uv run --group docs mkdocs build --strict --config-file ../mkdocs.yml
 # Material for MkDocs reaches end of life on 2027-05-05 (critical fixes until
 # then): migrate before that date to Zensical, which reads this same file.
@@ -48,5 +49,7 @@ nav:
       - Sécurité: security.md
       - Directives de développement: development-guidelines.md
       - Design system: design-system.md
+      - "Décision 0001 : outillage frontend": decisions/0001-frontend-tooling.md
   - Référence:
       - Backend (Python): reference/backend.md
+      - Frontend (TypeScript): reference/frontend/index.md
