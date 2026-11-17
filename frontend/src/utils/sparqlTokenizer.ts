@@ -4,11 +4,12 @@
  */
 
 export interface SparqlToken {
-  type: 'keyword' | 'variable' | 'prefixed' | 'iri' | 'string' | 'comment' | 'number' | 'operator' | 'text';
-  value: string;
+  type: 'keyword' | 'variable' | 'prefixed' | 'iri' | 'string' | 'comment' | 'number' | 'operator' | 'text'
+  value: string
 }
 
-const TOKEN_REGEX = /(#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(<[^>]+>)|(\?[a-zA-Z0-9_]+)|(\b(?:PREFIX|SELECT|CONSTRUCT|DESCRIBE|ASK|WHERE|FILTER|OPTIONAL|UNION|NOT\s+EXISTS|EXISTS|GRAPH|SERVICE|ORDER\s+BY|GROUP\s+BY|HAVING|LIMIT|OFFSET|DISTINCT|REDUCED|AS|BIND|VALUES|REGEX|STR|LANG|LCASE|UCASE|STRLEN|BOUND|COUNT|SUM|AVG|MIN|MAX|SAMPLE|CONCAT|REPLACE|CONTAINS|SUBSTR|NOW|YEAR|MONTH|DAY|a)\b)|([a-zA-Z0-9_]+:[a-zA-Z0-9_-]*)|(\b\d+(?:\.\d+)?\b)|(&&|\|\||!=|<=|>=|[=<>!+\-*/;,.{}()])/gim
+const TOKEN_REGEX =
+  /(#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(<[^>]+>)|(\?[a-zA-Z0-9_]+)|(\b(?:PREFIX|SELECT|CONSTRUCT|DESCRIBE|ASK|WHERE|FILTER|OPTIONAL|UNION|NOT\s+EXISTS|EXISTS|GRAPH|SERVICE|ORDER\s+BY|GROUP\s+BY|HAVING|LIMIT|OFFSET|DISTINCT|REDUCED|AS|BIND|VALUES|REGEX|STR|LANG|LCASE|UCASE|STRLEN|BOUND|COUNT|SUM|AVG|MIN|MAX|SAMPLE|CONCAT|REPLACE|CONTAINS|SUBSTR|NOW|YEAR|MONTH|DAY|a)\b)|([a-zA-Z0-9_]+:[a-zA-Z0-9_-]*)|(\b\d+(?:\.\d+)?\b)|(&&|\|\||!=|<=|>=|[=<>!+\-*/;,.{}()])/gim
 
 export function tokenizeSparql(code: string): SparqlToken[] {
   if (!code) return []

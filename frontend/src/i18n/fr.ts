@@ -1,4 +1,4 @@
-import { TranslationDictionary } from './types';
+import { TranslationDictionary } from './types'
 
 export const fr: TranslationDictionary = {
   common: {
@@ -50,37 +50,47 @@ export const fr: TranslationDictionary = {
   home: {
     badge: 'Projet de recherche ANR & Humanités Numériques',
     heroTitle: 'Transmission culturelle du savoir zoologique antique et médiéval',
-    heroDesc: "Plateforme d'exploration sémantique, d'annotation et d'analyse des textes grecs et latins de zoologie. Interrogez le graphe de connaissances, alignez les témoins textuels et analysez les relations homme-animal.",
+    heroDesc:
+      "Plateforme d'exploration sémantique, d'annotation et d'analyse des textes grecs et latins de zoologie. Interrogez le graphe de connaissances, alignez les témoins textuels et analysez les relations homme-animal.",
     exploreWorkBtn: 'Explorer une œuvre',
     cqsBtn: 'Questions de recherche',
     quickAccess: 'Accès direct :',
     groupTextsDesc: 'Lecture synoptique, fouille transversale et annotation W3C',
     groupDataDesc: 'Questions scientifiques, requêtage SPARQL libre et thésaurus SKOS',
     cardWorkTitle: 'Explorer une œuvre',
-    cardWorkDesc: 'Consultez les textes originaux (Élien, Aristote, Pline, etc.) avec arborescence hiérarchique, alignement bilingue synoptique et surlignage des annotations sémantiques.',
+    cardWorkDesc:
+      'Consultez les textes originaux (Élien, Aristote, Pline, etc.) avec arborescence hiérarchique, alignement bilingue synoptique et surlignage des annotations sémantiques.',
     cardWorkAction: 'Ouvrir la liseuse',
     cardCorpusTitle: 'Explorer le corpus',
-    cardCorpusDesc: 'Filtrez le corpus selon les auteurs, œuvres et concepts du thésaurus TheZoo. Générez et téléchargez des sous-corpus ciblés en JSON ou CSV.',
+    cardCorpusDesc:
+      'Filtrez le corpus selon les auteurs, œuvres et concepts du thésaurus TheZoo. Générez et téléchargez des sous-corpus ciblés en JSON ou CSV.',
     cardCorpusAction: 'Lancer une recherche',
     cardAnnotateTitle: 'Annoter le corpus',
-    cardAnnotateDesc: 'Annotez les textes anciens (mots, phrases, passages) avec les concepts TheZoo selon le standard W3C Web Annotation et contribuez à la validation scientifique.',
+    cardAnnotateDesc:
+      'Annotez les textes anciens (mots, phrases, passages) avec les concepts TheZoo selon le standard W3C Web Annotation et contribuez à la validation scientifique.',
     cardAnnotateAction: 'Lancer l’atelier d’annotation',
     cardCqsTitle: 'Questions de compétence',
-    cardCqsDesc: 'Analysez les questions de recherche zoo-archéologiques via les visualisations interactives développées par le laboratoire Wimmics (VENUS / MGExplorer).',
+    cardCqsDesc:
+      'Analysez les questions de recherche zoo-archéologiques via les visualisations interactives développées par le laboratoire Wimmics (VENUS / MGExplorer).',
     cardCqsAction: 'Explorer les visualisations',
     cardSparqlTitle: 'Playground SPARQL',
-    cardSparqlDesc: 'Console interactive pour interroger directement le triplestore Corese, explorer la bibliothèque de requêtes scientifiques ou composer vos propres requêtes.',
+    cardSparqlDesc:
+      'Console interactive pour interroger directement le triplestore Corese, explorer la bibliothèque de requêtes scientifiques ou composer vos propres requêtes.',
     cardSparqlAction: 'Ouvrir la console SPARQL',
     cardThesaurusTitle: 'Thésaurus TheZoo',
-    cardThesaurusDesc: 'Explorez la terminologie bio-archéologique (SKOS), soumettez de nouvelles propositions de concepts avec synonymes et hiérarchies, et suivez les arbitrages scientifiques.',
+    cardThesaurusDesc:
+      'Explorez la terminologie bio-archéologique (SKOS), soumettez de nouvelles propositions de concepts avec synonymes et hiérarchies, et suivez les arbitrages scientifiques.',
     cardThesaurusAction: 'Consulter le thésaurus',
     pillarsTitle: 'Piliers du projet Zoomathia',
     pillarRdfTitle: 'Web Sémantique & RDF',
-    pillarRdfDesc: "Représentation des connaissances en graphe RDF, ontologies de domaine et thésaurus SKOS (TheZoo) pour l'interopérabilité Open Science.",
+    pillarRdfDesc:
+      "Représentation des connaissances en graphe RDF, ontologies de domaine et thésaurus SKOS (TheZoo) pour l'interopérabilité Open Science.",
     pillarW3cTitle: 'Standard W3C Open Annotation',
-    pillarW3cDesc: 'Traçabilité rigoureuse des mentions textuelles (offsets de caractères, cibles, sélecteurs et corps conceptuels normalisés).',
+    pillarW3cDesc:
+      'Traçabilité rigoureuse des mentions textuelles (offsets de caractères, cibles, sélecteurs et corps conceptuels normalisés).',
     pillarNlpTitle: 'Traitement Automatique des Langues',
-    pillarNlpDesc: "Ingestion de textes anciens structurés en TEI-XML et préparation pour l'alignement semi-automatique avec des modèles d'IA.",
+    pillarNlpDesc:
+      "Ingestion de textes anciens structurés en TEI-XML et préparation pour l'alignement semi-automatique avec des modèles d'IA.",
   },
   work: {
     corpusSelection: 'Sélection du corpus',
@@ -93,7 +103,8 @@ export const fr: TranslationDictionary = {
     sizeXLarge: 'Taille très grande (21px)',
     alignedTranslation: 'Traduction alignée',
     noWorkSelected: 'Aucune œuvre sélectionnée',
-    noWorkDesc: 'Veuillez choisir un auteur et une œuvre dans les sélecteurs ci-dessus pour afficher le texte original et ses annotations sémantiques.',
+    noWorkDesc:
+      'Veuillez choisir un auteur et une œuvre dans les sélecteurs ci-dessus pour afficher le texte original et ses annotations sémantiques.',
     tableOfContents: 'Table des matières',
     sectionsCount: 'sections',
     structureNotSegmented: 'Structure non segmentée.',
@@ -123,7 +134,8 @@ export const fr: TranslationDictionary = {
   },
   corpus: {
     title: 'Explorer le Corpus',
-    subtitle: 'Composez des filtres combinés par auteurs, œuvres et concepts zoologiques pour extraire un sous-corpus sur mesure.',
+    subtitle:
+      'Composez des filtres combinés par auteurs, œuvres et concepts zoologiques pour extraire un sous-corpus sur mesure.',
     authorFilter: 'Filtrer par Auteur(s) :',
     workFilter: 'Filtrer par Œuvre(s) :',
     conceptFilter: 'Concepts du Thésaurus (TheZoo) :',
@@ -155,7 +167,8 @@ export const fr: TranslationDictionary = {
     matchModeAnd: 'Tous les critères requis (ET)',
     conceptCriteriaCount: 'concept(s)',
     collectionCriteriaCount: 'collection(s)',
-    warningOnlyExclusions: 'Une recherche ne peut pas comporter uniquement des exclusions sans critère positif (auteur, œuvre, ou concept inclus).',
+    warningOnlyExclusions:
+      'Une recherche ne peut pas comporter uniquement des exclusions sans critère positif (auteur, œuvre, ou concept inclus).',
     noConceptsSelected: 'Aucun concept ajouté au filtre.',
     noCollectionsSelected: 'Aucune collection sélectionnée.',
     addConceptPrompt: 'Recherchez des espèces, organes ou notions dans le thésaurus ci-dessus.',
@@ -208,7 +221,8 @@ export const fr: TranslationDictionary = {
     hideSparql: 'Masquer la requête SPARQL',
     showSparql: 'Afficher la requête SPARQL',
     inspectionTitle: "Inspection de l'entité",
-    selectNodeHint: 'Cliquez sur un nœud ou une relation du graphe pour inspecter ses occurrences et citations textuelles.',
+    selectNodeHint:
+      'Cliquez sur un nœud ou une relation du graphe pour inspecter ses occurrences et citations textuelles.',
     entityName: 'Entité',
     entityType: 'Rôle dans la relation',
     relatedTo: 'Connexions associées',
@@ -296,11 +310,14 @@ export const fr: TranslationDictionary = {
     queryNameLabel: 'Nom de la requête *',
     queryNamePlaceholder: 'Ex: Distribution des rapaces dans le bassin méditerranéen...',
     queryIntentLabel: 'Intentions scientifiques & Hypothèse de recherche',
-    queryIntentPlaceholder: 'Ex: Identifier et rassembler les passages où un auteur antique mentionne un rapace pour analyser sa classification et son habitat...',
+    queryIntentPlaceholder:
+      'Ex: Identifier et rassembler les passages où un auteur antique mentionne un rapace pour analyser sa classification et son habitat...',
     untitledQuery: 'Requête sans titre',
     adhocQuery: 'Requête ad-hoc',
-    errorServiceBlocked: 'Les requêtes fédérées (clause SERVICE) sont strictement interdites pour des raisons de sécurité.',
-    errorConstructDescribeBlocked: 'Les requêtes CONSTRUCT et DESCRIBE ne sont pas autorisées dans le Playground. Seules les requêtes tabulaires SELECT (ou ASK) sont supportées.',
+    errorServiceBlocked:
+      'Les requêtes fédérées (clause SERVICE) sont strictement interdites pour des raisons de sécurité.',
+    errorConstructDescribeBlocked:
+      'Les requêtes CONSTRUCT et DESCRIBE ne sont pas autorisées dans le Playground. Seules les requêtes tabulaires SELECT (ou ASK) sont supportées.',
     errorSelectAskRequired: 'La requête doit comporter une clause SELECT ou ASK.',
     editorResetConfirm: 'Voulez-vous réinitialiser le code de la requête ?',
     themeLightTooltip: 'Passer au thème clair',
@@ -331,7 +348,8 @@ export const fr: TranslationDictionary = {
   },
   thesaurus: {
     title: 'Thésaurus TheZoo & Propositions',
-    subtitle: "Consultez le thésaurus de bio-archéologie TheZoo et soumettez des propositions d'enrichissement sémantique SKOS.",
+    subtitle:
+      "Consultez le thésaurus de bio-archéologie TheZoo et soumettez des propositions d'enrichissement sémantique SKOS.",
     formTitle: 'Proposer un concept SKOS',
     formSubtitle: "Contribuez à l'enrichissement scientifique de TheZoo en renseignant les propriétés terminologiques.",
     prefLabel: 'Terme préférentiel (skos:prefLabel) *',
@@ -350,10 +368,11 @@ export const fr: TranslationDictionary = {
     successMessage: 'Votre proposition a été enregistrée avec succès dans le registre de révision.',
     prefLabelRequired: 'Le terme préférentiel est obligatoire.',
     proposalsTitle: 'Registre de Révision Scientifique',
-    proposalsAwaiting: "proposition(s) enregistrée(s)",
+    proposalsAwaiting: 'proposition(s) enregistrée(s)',
     selectedParent: 'Parent sélectionné :',
     exportTtlBtn: 'Exporter en SKOS Turtle (.ttl)',
-    noProposals: "Aucune proposition ne correspond aux critères sélectionnés. Utilisez le formulaire pour enrichir TheZoo.",
+    noProposals:
+      'Aucune proposition ne correspond aux critères sélectionnés. Utilisez le formulaire pour enrichir TheZoo.',
     filterAll: 'Tous',
     filterPending: 'En attente',
     filterValidated: 'Validés',
@@ -375,22 +394,27 @@ export const fr: TranslationDictionary = {
   },
   about: {
     title: 'À propos du projet Zoomathia',
-    projectPresentationP1: "Cette application permet l'exploration d'un graphe de connaissances annotant un corpus de textes anciens et médiévaux sur les animaux (textes originaux en grec ancien et latin, ainsi que leurs traductions anglaises). Elle a pour objectif de soutenir l'étude de la transmission culturelle du savoir zoologique de l'Antiquité au Moyen Âge.",
-    projectPresentationP2: "Elle s'appuie sur le thésaurus TheZoo (OpenTheso / Huma-Num). Le pipeline d'annotation automatique a été développé dans le cadre des projets AutomaZoo et HisINum, soutenus par l'IdEx UCA JEDI.",
+    projectPresentationP1:
+      "Cette application permet l'exploration d'un graphe de connaissances annotant un corpus de textes anciens et médiévaux sur les animaux (textes originaux en grec ancien et latin, ainsi que leurs traductions anglaises). Elle a pour objectif de soutenir l'étude de la transmission culturelle du savoir zoologique de l'Antiquité au Moyen Âge.",
+    projectPresentationP2:
+      "Elle s'appuie sur le thésaurus TheZoo (OpenTheso / Huma-Num). Le pipeline d'annotation automatique a été développé dans le cadre des projets AutomaZoo et HisINum, soutenus par l'IdEx UCA JEDI.",
     usefulLinksTitle: 'Ressources & Liens utiles',
     githubRepo: 'Dépôt GitHub du projet',
-    sparqlEndpoint: 'Documentation de l\'API SPARQL',
+    sparqlEndpoint: "Documentation de l'API SPARQL",
     theZooThesaurus: 'Thésaurus TheZoo (Huma-Num)',
     supportPartnersTitle: 'Soutiens et Partenaires',
-    supportP1: "Cette application a été développée au sein des laboratoires I3S et CEPAM, avec le soutien de l'Académie d'Excellence 5 « Homme, Idées et Milieux » de l'IdEx UCA JEDI (Université Côte d'Azur).",
-    supportP2: 'Le corpus textuel a été élaboré en lien avec le réseau de recherche international GDRI Zoomathia soutenu par le CNRS.',
+    supportP1:
+      "Cette application a été développée au sein des laboratoires I3S et CEPAM, avec le soutien de l'Académie d'Excellence 5 « Homme, Idées et Milieux » de l'IdEx UCA JEDI (Université Côte d'Azur).",
+    supportP2:
+      'Le corpus textuel a été élaboré en lien avec le réseau de recherche international GDRI Zoomathia soutenu par le CNRS.',
     scientificLeadsTitle: 'Responsables Scientifiques',
-    catherineFaronRole: 'Professeure, Université Côte d\'Azur / Inria / I3S (Wimmics)',
+    catherineFaronRole: "Professeure, Université Côte d'Azur / Inria / I3S (Wimmics)",
     arnaudZuckerRole: 'Professeur de langue et littérature grecques, UCA / CEPAM',
   },
   annotate: {
     title: 'Annotation de Corpus en Ligne',
-    subtitle: 'Annotez les textes anciens (mots, phrases, paragraphes ou passages continus) avec les concepts TheZoo et participez à la validation scientifique.',
+    subtitle:
+      'Annotez les textes anciens (mots, phrases, paragraphes ou passages continus) avec les concepts TheZoo et participez à la validation scientifique.',
     selectWorkFirst: 'Sélectionnez une œuvre et un chapitre dans la table des matières pour commencer l’annotation.',
     loadingSection: 'Chargement du texte et des annotations...',
     tocTitle: 'Table des matières',
@@ -399,7 +423,8 @@ export const fr: TranslationDictionary = {
     freeSelectionMode: 'Surlignage libre',
     paraSelectionMode: 'Paragraphe entier',
     multiParaMode: 'Multi-paragraphes',
-    multiParaInstruction: 'Sélectionnez le paragraphe de début et le paragraphe de fin pour annoter un passage continu.',
+    multiParaInstruction:
+      'Sélectionnez le paragraphe de début et le paragraphe de fin pour annoter un passage continu.',
     multiParaFrom: 'Du §',
     multiParaTo: 'au §',
     annotateMultiBtn: 'Annoter la sélection multi-paragraphes',
@@ -473,10 +498,13 @@ export const fr: TranslationDictionary = {
   },
   apiErrors: {
     generic: 'Une erreur est survenue. Veuillez réessayer dans un instant.',
-    tooManyHeavyQueries: "Trop de requêtes lourdes sont en cours, y compris des requêtes précédentes que le serveur SPARQL est encore en train de calculer. Réessayez dans un instant.",
-    resultTooLarge: 'Le résultat est trop volumineux pour être renvoyé. Restreignez la recherche (moins de critères, une œuvre ou un auteur précis) puis réessayez.',
-    sparqlTimeout: "Le serveur SPARQL n'a pas répondu à temps. Simplifiez la requête ou restreignez la recherche, puis réessayez.",
+    tooManyHeavyQueries:
+      'Trop de requêtes lourdes sont en cours, y compris des requêtes précédentes que le serveur SPARQL est encore en train de calculer. Réessayez dans un instant.',
+    resultTooLarge:
+      'Le résultat est trop volumineux pour être renvoyé. Restreignez la recherche (moins de critères, une œuvre ou un auteur précis) puis réessayez.',
+    sparqlTimeout:
+      "Le serveur SPARQL n'a pas répondu à temps. Simplifiez la requête ou restreignez la recherche, puis réessayez.",
     sparqlUnavailable: 'Le serveur SPARQL est injoignable ou a échoué. Réessayez plus tard.',
     requestRejected: 'Requête refusée par le serveur :',
   },
-};
+}

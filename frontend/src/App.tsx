@@ -58,15 +58,13 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#fcfbf9] text-[#2c2724] overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#fcfbf9] text-[#2c2724]">
       <Navbar />
-      
+
       <main
         id="main-content-scroll"
-        className={`flex-1 max-w-[1920px] w-full mx-auto px-2 sm:px-4 lg:px-6 min-h-0 ${
-          isWorkExplorer
-            ? 'overflow-hidden flex flex-col'
-            : 'overflow-y-auto scrollbar-thin'
+        className={`mx-auto min-h-0 w-full max-w-[1920px] flex-1 px-2 sm:px-4 lg:px-6 ${
+          isWorkExplorer ? 'flex flex-col overflow-hidden' : 'scrollbar-thin overflow-y-auto'
         }`}
       >
         <Routes>
@@ -79,7 +77,7 @@ const AppContent: React.FC = () => {
           <Route path="/sparql" element={<SparqlPlayground />} />
           <Route path="/thesaurus-proposals" element={<ThesaurusProposals />} />
           <Route path="/about" element={<About />} />
-          
+
           {/* Redirections de compatibilité avec les anciennes URLs */}
           <Route path="/ExploreAWork" element={<ExploreWork />} />
           <Route path="/ExploreTheCorpus" element={<ExploreCorpus />} />
@@ -94,10 +92,10 @@ const AppContent: React.FC = () => {
       {showScrollTop && !isWorkExplorer && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-14 right-6 p-3 rounded-none bg-[#9A6530] text-white shadow-lg hover:bg-[#855424] transition-all z-40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9A6530]"
+          className="fixed right-6 bottom-14 z-40 rounded-none bg-[#9A6530] p-3 text-white shadow-lg transition-all hover:bg-[#855424] focus:ring-2 focus:ring-[#9A6530] focus:ring-offset-2 focus:outline-none"
           aria-label="Retour en haut de page"
         >
-          <ArrowUp className="w-5 h-5" />
+          <ArrowUp className="h-5 w-5" />
         </button>
       )}
     </div>

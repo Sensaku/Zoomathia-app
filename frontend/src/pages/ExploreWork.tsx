@@ -12,7 +12,7 @@ import {
   fetchAnnotations,
   fetchSectionAnnotations,
   deleteAnnotation,
-  resolveUri
+  resolveUri,
 } from '../api/client'
 import {
   SummaryNode,
@@ -22,7 +22,7 @@ import {
   Work,
   ConceptCategory,
   TargetParagraphDetail,
-  AnnotationScopeType
+  AnnotationScopeType,
 } from '../types'
 import { AnnotationModal } from '../components/AnnotationModal'
 import { useI18n } from '../i18n'
@@ -42,7 +42,7 @@ import {
   Tag,
   User,
   X,
-  Layers
+  Layers,
 } from 'lucide-react'
 import {
   ConceptCategoryIcon,
@@ -63,13 +63,9 @@ import {
   CATEGORY_TAG_PINNED,
   CATEGORY_TAG_HOVER,
   CATEGORY_TOC_PINNED,
-  CATEGORY_TOC_HOVER
+  CATEGORY_TOC_HOVER,
 } from '../components/ConceptCategoryBadge'
-import {
-  ReadingParagraphCard,
-  PinnedConceptBanner,
-  useConceptInspection
-} from '../components/reading'
+import { ReadingParagraphCard, PinnedConceptBanner, useConceptInspection } from '../components/reading'
 
 /**
  * Recherche récursive du nœud de section le plus précis dans l'arborescence du sommaire
@@ -166,9 +162,7 @@ export const ExploreWork: React.FC = () => {
       }
     } else {
       // Pré-résolution optimiste immédiate si l'URI commence par une œuvre connue
-      const matchedWork = allWorks.find(
-        (w) => initialUri === w.uri || initialUri.startsWith(w.uri + '/')
-      )
+      const matchedWork = allWorks.find((w) => initialUri === w.uri || initialUri.startsWith(w.uri + '/'))
       if (matchedWork) {
         setSelectedWorkUri(matchedWork.uri)
         if (matchedWork.author) {
@@ -299,7 +293,7 @@ export const ExploreWork: React.FC = () => {
   const {
     data: sectionData,
     isLoading: isSectionDataLoading,
-    refetch: refetchSectionData
+    refetch: refetchSectionData,
   } = useQuery({
     queryKey: ['sectionAnnotations', targetSectionUri, language],
     queryFn: () => fetchSectionAnnotations(targetSectionUri, language),
@@ -320,7 +314,9 @@ export const ExploreWork: React.FC = () => {
   const activeStagedAnnotations = useMemo(() => {
     if (!activeParagraphUri) return []
     return stagedAnnotations.filter(
-      (s) => s.paragraph_uri === activeParagraphUri || (s.target_paragraphs && s.target_paragraphs.includes(activeParagraphUri))
+      (s) =>
+        s.paragraph_uri === activeParagraphUri ||
+        (s.target_paragraphs && s.target_paragraphs.includes(activeParagraphUri)),
     )
   }, [stagedAnnotations, activeParagraphUri])
 
@@ -329,7 +325,7 @@ export const ExploreWork: React.FC = () => {
     referenceAnnotations,
     stagedAnnotations,
     paragraphs,
-    setActiveParagraphUri
+    setActiveParagraphUri,
   })
 
   const {
@@ -346,7 +342,7 @@ export const ExploreWork: React.FC = () => {
     pinnedParagraphsList,
     pinnedParagraphUris,
     hoveredParagraphUris,
-    handleFocusParagraph
+    handleFocusParagraph,
   } = inspectionState
 
   // Gestion de la modal d'annotation interactive
@@ -395,7 +391,7 @@ export const ExploreWork: React.FC = () => {
   const toggleNodeCollapse = (uri: string) => {
     setCollapsedNodes((prev) => ({
       ...prev,
-      [uri]: !prev[uri]
+      [uri]: !prev[uri],
     }))
   }
 
@@ -407,7 +403,7 @@ export const ExploreWork: React.FC = () => {
   const expandToWordBoundaries = (
     fullText: string,
     start: number,
-    end: number
+    end: number,
   ): { start: number; end: number; text: string } => {
     let s = Math.max(0, Math.min(start, fullText.length))
     let e = Math.max(0, Math.min(end, fullText.length))
@@ -438,7 +434,7 @@ export const ExploreWork: React.FC = () => {
     return {
       start: s,
       end: e,
-      text: fullText.slice(s, e)
+      text: fullText.slice(s, e),
     }
   }
 
@@ -474,11 +470,11 @@ export const ExploreWork: React.FC = () => {
       const sOffset = idx !== -1 ? idx : 0
       const eOffset = idx !== -1 ? idx + raw.length : raw.length
 
-      const { start: finalStartOffset, end: finalEndOffset, text: finalRaw } = expandToWordBoundaries(
-        currentP.text,
-        sOffset,
-        eOffset
-      )
+      const {
+        start: finalStartOffset,
+        end: finalEndOffset,
+        text: finalRaw,
+      } = expandToWordBoundaries(currentP.text, sOffset, eOffset)
 
       setActiveParagraphUri(currentP.uri)
       setSelectedSnippet(finalRaw)
@@ -558,7 +554,9 @@ export const ExploreWork: React.FC = () => {
       setActiveParagraphUri(startP.uri)
       setSelectedSnippet(fullRaw.slice(0, 30))
       setModalTargetText(fullRaw)
-      setModalStartOffset(startP.text.indexOf(paraDetails[0].text) !== -1 ? startP.text.indexOf(paraDetails[0].text) : 0)
+      setModalStartOffset(
+        startP.text.indexOf(paraDetails[0].text) !== -1 ? startP.text.indexOf(paraDetails[0].text) : 0,
+      )
       setModalEndOffset(paraDetails[paraDetails.length - 1].text.length)
       setModalTargetParas(targeted.map((item) => item.uri))
       setModalTargetParaDetails(paraDetails)
@@ -569,28 +567,26 @@ export const ExploreWork: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col pt-2.5 pb-1.5 space-y-2.5 min-h-0 overflow-hidden">
-      
+    <div className="flex h-full min-h-0 flex-col space-y-2.5 overflow-hidden pt-2.5 pb-1.5">
       {/* Barre de Commande Éditoriale Supérieure */}
-      <header className="shrink-0 bg-white/95 backdrop-blur-xs px-4 py-2.5 sm:px-5 sm:py-3 rounded-none border border-[#e6dfd1] shadow-xs flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between">
-        
+      <header className="flex shrink-0 flex-col items-stretch justify-between gap-3 rounded-none border border-[#e6dfd1] bg-white/95 px-4 py-2.5 shadow-xs backdrop-blur-xs sm:px-5 sm:py-3 xl:flex-row xl:items-center">
         {/* Résumé de l'œuvre & Titre statutaire */}
-        <div className="flex items-center space-x-3.5 min-w-0">
-          <div className="w-11 h-11 rounded-none bg-[#9A6530]/10 border border-[#9A6530]/30 flex items-center justify-center shrink-0 text-[#9A6530]">
-            <BookOpen className="w-6 h-6" />
+        <div className="flex min-w-0 items-center space-x-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-none border border-[#9A6530]/30 bg-[#9A6530]/10 text-[#9A6530]">
+            <BookOpen className="h-6 w-6" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center space-x-2">
-              <span className="text-[11px] font-bold tracking-wider uppercase text-[#9A6530]">
+              <span className="text-[11px] font-bold tracking-wider text-[#9A6530] uppercase">
                 {currentWork?.author || selectedAuthor || t.work.corpusSelection}
               </span>
               {currentWork?.language && (
-                <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-none bg-amber-100/80 text-amber-900 border border-amber-300/60 uppercase">
+                <span className="rounded-none border border-amber-300/60 bg-amber-100/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-amber-900 uppercase">
                   {currentWork.language}
                 </span>
               )}
             </div>
-            <h1 className="font-serif text-lg sm:text-xl font-bold text-[#27221d] truncate">
+            <h1 className="truncate font-serif text-lg font-bold text-[#27221d] sm:text-xl">
               {currentWork?.title || t.work.selectPrompt}
             </h1>
           </div>
@@ -600,14 +596,14 @@ export const ExploreWork: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           {/* Menu déroulant Auteur */}
           <div className="relative w-48 sm:w-56">
-            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[#9A6530]">
-              <User className="w-3.5 h-3.5" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-[#9A6530]">
+              <User className="h-3.5 w-3.5" />
             </div>
             <select
               value={selectedAuthor}
               onChange={(e) => handleAuthorChange(e.target.value)}
               disabled={isAuthorsLoading}
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-[#cfc5b4] bg-[#faf8f5] text-xs font-medium text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none transition-shadow"
+              className="w-full rounded-lg border border-[#cfc5b4] bg-[#faf8f5] py-1.5 pr-3 pl-8 text-xs font-medium text-[#2c2724] transition-shadow focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
             >
               <option value="">{t.work.allAuthors}</option>
               {authors.map((a) => (
@@ -620,14 +616,14 @@ export const ExploreWork: React.FC = () => {
 
           {/* Menu déroulant Œuvre */}
           <div className="relative w-56 sm:w-72">
-            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[#9A6530]">
-              <BookOpen className="w-3.5 h-3.5" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-[#9A6530]">
+              <BookOpen className="h-3.5 w-3.5" />
             </div>
             <select
               value={selectedWorkUri}
               onChange={(e) => handleSelectWork(e.target.value)}
               disabled={isAllWorksLoading}
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-[#cfc5b4] bg-[#faf8f5] text-xs font-medium text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none transition-shadow disabled:opacity-50 truncate"
+              className="w-full truncate rounded-lg border border-[#cfc5b4] bg-[#faf8f5] py-1.5 pr-3 pl-8 text-xs font-medium text-[#2c2724] transition-shadow focus:ring-2 focus:ring-[#9A6530] focus:outline-none disabled:opacity-50"
             >
               <option value="">{t.work.selectWork}</option>
               {works.map((w) => (
@@ -639,15 +635,13 @@ export const ExploreWork: React.FC = () => {
           </div>
 
           {/* Sélecteur de taille de texte */}
-          <div className="flex items-center space-x-1 bg-[#f4ede2] p-1 rounded-none border border-[#ded5c6] text-xs shrink-0">
-            <span className="text-[11px] font-semibold text-[#736a5f] px-1">{t.work.textSize}</span>
+          <div className="flex shrink-0 items-center space-x-1 rounded-none border border-[#ded5c6] bg-[#f4ede2] p-1 text-xs">
+            <span className="px-1 text-[11px] font-semibold text-[#736a5f]">{t.work.textSize}</span>
             <button
               type="button"
               onClick={() => setTextSize('normal')}
-              className={`px-2 py-0.5 rounded-none text-xs font-semibold transition-colors ${
-                textSize === 'normal'
-                  ? 'bg-[#9A6530] text-white shadow-xs'
-                  : 'text-[#543b22] hover:bg-[#e8dfd3]'
+              className={`rounded-none px-2 py-0.5 text-xs font-semibold transition-colors ${
+                textSize === 'normal' ? 'bg-[#9A6530] text-white shadow-xs' : 'text-[#543b22] hover:bg-[#e8dfd3]'
               }`}
               title={t.work.sizeNormal}
             >
@@ -656,10 +650,8 @@ export const ExploreWork: React.FC = () => {
             <button
               type="button"
               onClick={() => setTextSize('large')}
-              className={`px-2 py-0.5 rounded-none text-xs font-semibold transition-colors ${
-                textSize === 'large'
-                  ? 'bg-[#9A6530] text-white shadow-xs'
-                  : 'text-[#543b22] hover:bg-[#e8dfd3]'
+              className={`rounded-none px-2 py-0.5 text-xs font-semibold transition-colors ${
+                textSize === 'large' ? 'bg-[#9A6530] text-white shadow-xs' : 'text-[#543b22] hover:bg-[#e8dfd3]'
               }`}
               title={t.work.sizeLarge}
             >
@@ -668,10 +660,8 @@ export const ExploreWork: React.FC = () => {
             <button
               type="button"
               onClick={() => setTextSize('xlarge')}
-              className={`px-2 py-0.5 rounded-none text-xs font-semibold transition-colors ${
-                textSize === 'xlarge'
-                  ? 'bg-[#9A6530] text-white shadow-xs'
-                  : 'text-[#543b22] hover:bg-[#e8dfd3]'
+              className={`rounded-none px-2 py-0.5 text-xs font-semibold transition-colors ${
+                textSize === 'xlarge' ? 'bg-[#9A6530] text-white shadow-xs' : 'text-[#543b22] hover:bg-[#e8dfd3]'
               }`}
               title={t.work.sizeXLarge}
             >
@@ -681,8 +671,8 @@ export const ExploreWork: React.FC = () => {
 
           {/* Bascule Traduction alignée */}
           {translationInfo && (
-            <label className="flex items-center space-x-2 bg-[#f4ede2] px-3 py-1.5 rounded-none border border-[#ded5c6] text-xs font-medium text-[#4a423b] cursor-pointer hover:bg-[#eee5d6] transition-colors shrink-0">
-              <Languages className="w-4 h-4 text-[#9A6530]" />
+            <label className="flex shrink-0 cursor-pointer items-center space-x-2 rounded-none border border-[#ded5c6] bg-[#f4ede2] px-3 py-1.5 text-xs font-medium text-[#4a423b] transition-colors hover:bg-[#eee5d6]">
+              <Languages className="h-4 w-4 text-[#9A6530]" />
               <span>{t.work.alignedTranslation}</span>
               <input
                 type="checkbox"
@@ -693,53 +683,50 @@ export const ExploreWork: React.FC = () => {
             </label>
           )}
         </div>
-
       </header>
 
       {/* Vue Principale : 3 Colonnes (Sommaire / Texte Bilingue / Annotations) */}
       {!selectedWorkUri ? (
         (isResolvingTarget || isAllWorksLoading) && initialUri ? (
-          <div className="flex-1 min-h-0 flex flex-col items-center justify-center bg-white rounded-none border border-[#e6dfd3] p-12 text-center shadow-xs space-y-4">
-            <Loader2 className="w-10 h-10 text-[#9A6530] animate-spin mx-auto" />
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center space-y-4 rounded-none border border-[#e6dfd3] bg-white p-12 text-center shadow-xs">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#9A6530]" />
             <div className="space-y-1">
               <h3 className="font-serif text-lg font-bold text-[#2c2724]">Chargement de l'œuvre et du passage...</h3>
-              <p className="text-xs text-[#736a5f] max-w-md mx-auto">Résolution sémantique de la référence textuelle dans le graphe</p>
+              <p className="mx-auto max-w-md text-xs text-[#736a5f]">
+                Résolution sémantique de la référence textuelle dans le graphe
+              </p>
             </div>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 flex flex-col items-center justify-center bg-white rounded-none border border-[#e6dfd3] p-12 text-center shadow-xs space-y-3">
-            <BookOpen className="w-12 h-12 text-[#9A6530] mx-auto opacity-70" />
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center space-y-3 rounded-none border border-[#e6dfd3] bg-white p-12 text-center shadow-xs">
+            <BookOpen className="mx-auto h-12 w-12 text-[#9A6530] opacity-70" />
             <h3 className="font-serif text-xl font-bold text-[#2c2724]">{t.work.noWorkSelected}</h3>
-            <p className="text-sm text-[#736a5f] max-w-md mx-auto">
-              {t.work.noWorkDesc}
-            </p>
+            <p className="mx-auto max-w-md text-sm text-[#736a5f]">{t.work.noWorkDesc}</p>
           </div>
         )
       ) : (
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-          
+        <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 lg:grid-cols-12">
           {/* Colonne 1 : Table des Matières & Arborescence (3 colonnes) */}
-          <aside className="lg:col-span-3 h-full bg-white/95 rounded-none border border-[#e6dfd1] shadow-xs flex flex-col overflow-hidden">
-            
-            <div className="p-3.5 border-b border-[#f0eae0] bg-[#faf8f4] flex items-center justify-between shrink-0">
-              <h3 className="font-serif font-bold text-sm sm:text-base text-[#2c2724] flex items-center space-x-2">
-                <BookOpen className="w-4 h-4 text-[#9A6530]" />
+          <aside className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd1] bg-white/95 shadow-xs lg:col-span-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#f0eae0] bg-[#faf8f4] p-3.5">
+              <h3 className="flex items-center space-x-2 font-serif text-sm font-bold text-[#2c2724] sm:text-base">
+                <BookOpen className="h-4 w-4 text-[#9A6530]" />
                 <span>{t.work.tableOfContents}</span>
               </h3>
-              <span className="text-[11px] font-semibold text-[#8c8275] bg-[#f0eae0] px-2 py-0.5 rounded-full inline-flex items-center justify-center text-center leading-none">
+              <span className="inline-flex items-center justify-center rounded-full bg-[#f0eae0] px-2 py-0.5 text-center text-[11px] leading-none font-semibold text-[#8c8275]">
                 {summary.length} {t.work.sectionsCount}
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
+            <div className="flex-1 scrollbar-thin space-y-1.5 overflow-y-auto p-3">
               {isSummaryLoading ? (
                 <div className="space-y-2 py-2">
                   {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <div key={n} className="h-7 bg-[#f4ede2] rounded-none animate-pulse" />
+                    <div key={n} className="h-7 animate-pulse rounded-none bg-[#f4ede2]" />
                   ))}
                 </div>
               ) : summary.length === 0 ? (
-                <p className="text-xs text-[#8c8275] italic p-3 text-center">{t.work.structureNotSegmented}</p>
+                <p className="p-3 text-center text-xs text-[#8c8275] italic">{t.work.structureNotSegmented}</p>
               ) : (
                 <nav className="space-y-1 text-xs">
                   {summary.map((book) => {
@@ -753,18 +740,18 @@ export const ExploreWork: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => toggleNodeCollapse(book.uri)}
-                            className="w-full text-left font-semibold text-[#3d362e] px-2.5 py-1.5 bg-[#fdfcf9] hover:bg-[#f4eee4] rounded-none flex items-center justify-between transition-colors cursor-pointer border border-[#f0eae0]"
+                            className="flex w-full cursor-pointer items-center justify-between rounded-none border border-[#f0eae0] bg-[#fdfcf9] px-2.5 py-1.5 text-left font-semibold text-[#3d362e] transition-colors hover:bg-[#f4eee4]"
                           >
                             <span className="truncate">{book.title || `Livre ${book.id}`}</span>
                             {isBookCollapsed ? (
-                              <ChevronRight className="w-3.5 h-3.5 text-[#8c8275] shrink-0" />
+                              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#8c8275]" />
                             ) : (
-                              <ChevronDown className="w-3.5 h-3.5 text-[#8c8275] shrink-0" />
+                              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#8c8275]" />
                             )}
                           </button>
 
                           {!isBookCollapsed && (
-                            <div className="pl-2 border-l-2 border-[#e6dfd3] space-y-0.5 ml-2.5 my-0.5">
+                            <div className="my-0.5 ml-2.5 space-y-0.5 border-l-2 border-[#e6dfd3] pl-2">
                               {book.children.map((chapter) => {
                                 const isChapterActive = targetSectionUri === chapter.uri
 
@@ -776,30 +763,32 @@ export const ExploreWork: React.FC = () => {
                                         setActiveSectionUri(chapter.uri)
                                         setActiveParagraphUri('')
                                       }}
-                                      className={`w-full text-left px-2.5 py-1.5 rounded-none transition-colors flex items-center justify-between cursor-pointer ${
+                                      className={`flex w-full cursor-pointer items-center justify-between rounded-none px-2.5 py-1.5 text-left transition-colors ${
                                         isChapterActive
-                                          ? 'bg-[#9A6530] text-white font-medium shadow-2xs'
+                                          ? 'bg-[#9A6530] font-medium text-white shadow-2xs'
                                           : 'text-[#544b41] hover:bg-[#f4eee4] hover:text-[#1c1815]'
                                       }`}
                                     >
                                       <span className="truncate">{chapter.title || `Chapitre ${chapter.id}`}</span>
                                       {isChapterActive ? (
-                                        <ChevronDown className="w-3 h-3 text-white shrink-0 ml-1" />
+                                        <ChevronDown className="ml-1 h-3 w-3 shrink-0 text-white" />
                                       ) : (
-                                        <ChevronRight className="w-3 h-3 text-[#8c8275] shrink-0 ml-1 opacity-60" />
+                                        <ChevronRight className="ml-1 h-3 w-3 shrink-0 text-[#8c8275] opacity-60" />
                                       )}
                                     </button>
 
                                     {/* Menu dépliant des paragraphes du chapitre actif */}
                                     {isChapterActive && (
-                                      <div className="pl-2 border-l-2 border-[#9A6530]/40 ml-2 my-1 space-y-1 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                                      <div className="my-1 ml-2 max-h-60 scrollbar-thin space-y-1 overflow-y-auto border-l-2 border-[#9A6530]/40 pr-1 pl-2">
                                         {isParagraphsLoading ? (
-                                          <div className="py-2 flex items-center space-x-1.5 text-[11px] text-[#736a5f]">
-                                            <Loader2 className="w-3 h-3 text-[#9A6530] animate-spin" />
+                                          <div className="flex items-center space-x-1.5 py-2 text-[11px] text-[#736a5f]">
+                                            <Loader2 className="h-3 w-3 animate-spin text-[#9A6530]" />
                                             <span>{t.work.loadingParagraphs}</span>
                                           </div>
                                         ) : paragraphs.length === 0 ? (
-                                          <p className="text-[11px] text-[#8c8275] italic py-1">{t.work.noParagraphs}</p>
+                                          <p className="py-1 text-[11px] text-[#8c8275] italic">
+                                            {t.work.noParagraphs}
+                                          </p>
                                         ) : (
                                           paragraphs.map((p) => {
                                             const isCurrentP = activeParagraphUri === p.uri
@@ -812,24 +801,24 @@ export const ExploreWork: React.FC = () => {
                                                   e.stopPropagation()
                                                   handleFocusParagraph(p.uri)
                                                 }}
-                                                className={`w-full text-left px-2 py-1.5 rounded-none text-xs transition-all flex items-center justify-between group cursor-pointer border ${
+                                                className={`group flex w-full cursor-pointer items-center justify-between rounded-none border px-2 py-1.5 text-left text-xs transition-all ${
                                                   isCurrentP
-                                                    ? 'bg-[#9A6530] text-white font-semibold shadow-xs border-[#855424]'
-                                                    : 'text-[#38322b] hover:bg-[#f4ede1] border-transparent hover:border-[#ded3c2]'
+                                                    ? 'border-[#855424] bg-[#9A6530] font-semibold text-white shadow-xs'
+                                                    : 'border-transparent text-[#38322b] hover:border-[#ded3c2] hover:bg-[#f4ede1]'
                                                 }`}
                                                 title={p.text}
                                               >
                                                 <span
-                                                  className={`font-mono text-[11px] shrink-0 font-bold px-1.5 py-0.5 rounded-none inline-flex items-center justify-center text-center leading-none ${
+                                                  className={`inline-flex shrink-0 items-center justify-center rounded-none px-1.5 py-0.5 text-center font-mono text-[11px] leading-none font-bold ${
                                                     isCurrentP
                                                       ? 'bg-amber-300 text-amber-950 shadow-2xs'
-                                                      : 'bg-[#ede5d8] text-[#6d4c24] border border-[#ded5c6]'
+                                                      : 'border border-[#ded5c6] bg-[#ede5d8] text-[#6d4c24]'
                                                   }`}
                                                 >
                                                   § {p.id}
                                                 </span>
                                                 <span
-                                                  className={`truncate ml-2 text-xs font-serif italic ${
+                                                  className={`ml-2 truncate font-serif text-xs italic ${
                                                     isCurrentP
                                                       ? 'text-white/95'
                                                       : 'text-[#4d443b] group-hover:text-[#1c1815]'
@@ -862,35 +851,35 @@ export const ExploreWork: React.FC = () => {
                             setActiveSectionUri(book.uri)
                             setActiveParagraphUri('')
                           }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-none transition-colors flex items-center justify-between cursor-pointer ${
+                          className={`flex w-full cursor-pointer items-center justify-between rounded-none px-2.5 py-1.5 text-left transition-colors ${
                             isLeafActive
-                              ? 'bg-[#9A6530] text-white font-medium shadow-2xs'
+                              ? 'bg-[#9A6530] font-medium text-white shadow-2xs'
                               : 'text-[#3d362e] hover:bg-[#f4eee4] hover:text-[#1c1815]'
                           }`}
                         >
                           <span className="truncate">{book.title || `Section ${book.id}`}</span>
                           {isLeafActive ? (
-                            <ChevronDown className="w-3 h-3 text-white shrink-0 ml-1" />
+                            <ChevronDown className="ml-1 h-3 w-3 shrink-0 text-white" />
                           ) : (
-                            <ChevronRight className="w-3 h-3 text-[#8c8275] shrink-0 ml-1 opacity-60" />
+                            <ChevronRight className="ml-1 h-3 w-3 shrink-0 text-[#8c8275] opacity-60" />
                           )}
                         </button>
 
                         {/* Menu dépliant des paragraphes si feuille active */}
                         {isLeafActive && (
-                          <div className="pl-2 border-l-2 border-[#9A6530]/40 ml-2 my-1 space-y-1 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                          <div className="my-1 ml-2 max-h-60 scrollbar-thin space-y-1 overflow-y-auto border-l-2 border-[#9A6530]/40 pr-1 pl-2">
                             {isParagraphsLoading ? (
-                              <div className="py-2 flex items-center space-x-1.5 text-[11px] text-[#736a5f]">
-                                <Loader2 className="w-3 h-3 text-[#9A6530] animate-spin" />
+                              <div className="flex items-center space-x-1.5 py-2 text-[11px] text-[#736a5f]">
+                                <Loader2 className="h-3 w-3 animate-spin text-[#9A6530]" />
                                 <span>{t.work.loadingParagraphs}</span>
                               </div>
                             ) : paragraphs.length === 0 ? (
-                              <p className="text-[11px] text-[#8c8275] italic py-1">{t.work.noParagraphs}</p>
+                              <p className="py-1 text-[11px] text-[#8c8275] italic">{t.work.noParagraphs}</p>
                             ) : (
                               paragraphs.map((p) => {
-                                  const isCurrentP = activeParagraphUri === p.uri
-                                  const isHoveredP = !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
-                                  const isPinnedP = !!pinnedConcept && (pinnedParagraphUris?.has(p.uri) ?? false)
+                                const isCurrentP = activeParagraphUri === p.uri
+                                const isHoveredP = !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
+                                const isPinnedP = !!pinnedConcept && (pinnedParagraphUris?.has(p.uri) ?? false)
 
                                 return (
                                   <button
@@ -900,35 +889,34 @@ export const ExploreWork: React.FC = () => {
                                       e.stopPropagation()
                                       handleFocusParagraph(p.uri)
                                     }}
-                                    className={`w-full text-left px-2 py-1.5 rounded-none text-xs transition-colors flex items-center justify-between group cursor-pointer border ${
+                                    className={`group flex w-full cursor-pointer items-center justify-between rounded-none border px-2 py-1.5 text-left text-xs transition-colors ${
                                       isCurrentP
-                                        ? 'bg-[#9A6530] text-white font-semibold shadow-xs border-[#855424]'
+                                        ? 'border-[#855424] bg-[#9A6530] font-semibold text-white shadow-xs'
                                         : isHoveredP
-                                          ? 'bg-amber-100/90 text-amber-950 border-amber-300'
+                                          ? 'border-amber-300 bg-amber-100/90 text-amber-950'
                                           : isPinnedP
-                                            ? 'bg-amber-100/70 text-amber-900 border-amber-200'
-                                            : 'text-[#38322b] hover:bg-[#f4ede1] border-transparent hover:border-[#ded3c2]'
+                                            ? 'border-amber-200 bg-amber-100/70 text-amber-900'
+                                            : 'border-transparent text-[#38322b] hover:border-[#ded3c2] hover:bg-[#f4ede1]'
                                     }`}
                                     title={p.text}
                                   >
                                     <span
-                                      className={`font-mono text-[11px] shrink-0 font-bold px-1.5 py-0.5 rounded-none border inline-flex items-center justify-center text-center leading-none ${
+                                      className={`inline-flex shrink-0 items-center justify-center rounded-none border px-1.5 py-0.5 text-center font-mono text-[11px] leading-none font-bold ${
                                         isCurrentP
-                                          ? 'bg-amber-300 text-amber-950 border-amber-400 shadow-2xs'
+                                          ? 'border-amber-400 bg-amber-300 text-amber-950 shadow-2xs'
                                           : isHoveredP
-                                            ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
+                                            ? CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general
                                             : isPinnedP
-                                              ? (CATEGORY_TOC_PINNED[pinnedConceptCategory] || CATEGORY_TOC_PINNED.general)
-                                              : 'bg-[#ede5d8] text-[#6d4c24] border-[#ded5c6]'
+                                              ? CATEGORY_TOC_PINNED[pinnedConceptCategory] ||
+                                                CATEGORY_TOC_PINNED.general
+                                              : 'border-[#ded5c6] bg-[#ede5d8] text-[#6d4c24]'
                                       }`}
                                     >
                                       § {p.id}
                                     </span>
                                     <span
-                                      className={`truncate ml-2 text-xs font-serif italic ${
-                                        isCurrentP
-                                          ? 'text-white/95'
-                                          : 'text-[#4d443b] group-hover:text-[#1c1815]'
+                                      className={`ml-2 truncate font-serif text-xs italic ${
+                                        isCurrentP ? 'text-white/95' : 'text-[#4d443b] group-hover:text-[#1c1815]'
                                       }`}
                                     >
                                       {p.text.slice(0, 26)}...
@@ -948,31 +936,28 @@ export const ExploreWork: React.FC = () => {
           </aside>
 
           {/* Colonne 2 : Lecture Synoptique du Texte (6 colonnes) */}
-          <main className="lg:col-span-6 h-full bg-white/95 rounded-none border border-[#e6dfd1] shadow-xs flex flex-col overflow-hidden">
-            
+          <main className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd1] bg-white/95 shadow-xs lg:col-span-6">
             {/* En-tête de lecture */}
-            <div className="p-3.5 border-b border-[#f0eae0] bg-[#faf8f4] flex items-center justify-between shrink-0">
-              <div className="flex items-center space-x-2 min-w-0">
-                <Feather className="w-4 h-4 text-[#9A6530] shrink-0" />
-                <span className="font-serif font-bold text-sm sm:text-base text-[#2c2724] truncate">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#f0eae0] bg-[#faf8f4] p-3.5">
+              <div className="flex min-w-0 items-center space-x-2">
+                <Feather className="h-4 w-4 shrink-0 text-[#9A6530]" />
+                <span className="truncate font-serif text-sm font-bold text-[#2c2724] sm:text-base">
                   {t.work.originalTextAndAnnots}
                 </span>
               </div>
-              <span className="text-[11px] font-semibold text-[#8c8275] bg-[#f0eae0] px-2 py-0.5 rounded-full shrink-0 inline-flex items-center justify-center text-center leading-none">
+              <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#f0eae0] px-2 py-0.5 text-center text-[11px] leading-none font-semibold text-[#8c8275]">
                 {paragraphs.length} {t.work.paragraphsCount}
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-thin">
+            <div className="flex-1 scrollbar-thin space-y-5 overflow-y-auto p-5">
               {isParagraphsLoading ? (
-                <div className="py-24 flex flex-col items-center justify-center space-y-3">
-                  <Loader2 className="w-8 h-8 text-[#9A6530] animate-spin" />
+                <div className="flex flex-col items-center justify-center space-y-3 py-24">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#9A6530]" />
                   <span className="text-sm font-medium text-[#736a5f]">{t.work.loadingText}</span>
                 </div>
               ) : paragraphs.length === 0 ? (
-                <p className="text-sm text-[#736a5f] text-center py-16">
-                  {t.work.noParagraphsSection}
-                </p>
+                <p className="py-16 text-center text-sm text-[#736a5f]">{t.work.noParagraphsSection}</p>
               ) : (
                 <div className="space-y-5">
                   <PinnedConceptBanner
@@ -1012,47 +997,45 @@ export const ExploreWork: React.FC = () => {
           </main>
 
           {/* Colonne 3 : Panneau d'Annotations Sémantiques (Corese + Staging) (3 colonnes) */}
-          <aside className="lg:col-span-3 h-full bg-white/95 rounded-none border border-[#e6dfd1] shadow-xs flex flex-col overflow-hidden">
-            
-            <div className="p-3.5 border-b border-[#f0eae0] bg-[#faf8f4] flex items-center justify-between shrink-0">
-              <h3 className="font-serif font-bold text-sm sm:text-base text-[#2c2724] flex items-center space-x-1.5">
-                <Sparkles className="w-4 h-4 text-[#9A6530]" />
+          <aside className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd1] bg-white/95 shadow-xs lg:col-span-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#f0eae0] bg-[#faf8f4] p-3.5">
+              <h3 className="flex items-center space-x-1.5 font-serif text-sm font-bold text-[#2c2724] sm:text-base">
+                <Sparkles className="h-4 w-4 text-[#9A6530]" />
                 <span>{t.work.annotationsTitle}</span>
               </h3>
-              <span className="text-[11px] font-bold text-[#9A6530] bg-amber-100/90 px-2.5 py-0.5 rounded-full border border-amber-300/60 inline-flex items-center justify-center text-center leading-none">
+              <span className="inline-flex items-center justify-center rounded-full border border-amber-300/60 bg-amber-100/90 px-2.5 py-0.5 text-center text-[11px] leading-none font-bold text-[#9A6530]">
                 {Object.keys(activeAnnotations).length + stagedAnnotations.length} {t.work.conceptsCount}
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3.5 space-y-4 scrollbar-thin">
+            <div className="flex-1 scrollbar-thin space-y-4 overflow-y-auto p-3.5">
               {/* Bouton d'export global des annotations de staging */}
               <div>
                 <a
                   href="/api/annotations/export-ttl"
                   download
-                  className="w-full inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-[#faf8f5] hover:bg-[#f4ede2] border border-[#ded5c6] text-[#784d1e] rounded-none text-xs font-medium transition-colors shadow-2xs"
+                  className="inline-flex w-full items-center justify-center space-x-1.5 rounded-none border border-[#ded5c6] bg-[#faf8f5] px-3 py-1.5 text-xs font-medium text-[#784d1e] shadow-2xs transition-colors hover:bg-[#f4ede2]"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="h-3.5 w-3.5" />
                   <span>{t.work.exportStagingTtl}</span>
                 </a>
               </div>
 
               {!activeParagraphUri ? (
-                <p className="text-xs text-[#8c8275] italic leading-relaxed p-3 text-center">
+                <p className="p-3 text-center text-xs leading-relaxed text-[#8c8275] italic">
                   {t.work.selectParaPrompt}
                 </p>
               ) : (
                 <div className="space-y-4">
-                  
                   {/* 1. Annotations en Staging (Locales / En révision) */}
                   {activeStagedAnnotations.length > 0 ? (
                     <div className="space-y-2">
-                      <h4 className="text-[11px] uppercase font-bold tracking-wider text-emerald-800 flex items-center justify-between">
+                      <h4 className="flex items-center justify-between text-[11px] font-bold tracking-wider text-emerald-800 uppercase">
                         <span className="flex items-center space-x-1.5">
-                          <Feather className="w-3.5 h-3.5" />
+                          <Feather className="h-3.5 w-3.5" />
                           <span>{t.work.stagingTitle}</span>
                         </span>
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold inline-flex items-center justify-center text-center leading-none">
+                        <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-center text-[10px] leading-none font-bold text-emerald-800">
                           {activeStagedAnnotations.length}
                         </span>
                       </h4>
@@ -1060,39 +1043,44 @@ export const ExploreWork: React.FC = () => {
                       {activeStagedAnnotations.map((item) => {
                         const isPinned = pinnedConcept === item.concept_uri
                         const isHovered = hoveredConcept === item.concept_uri
-                        const isMulti = item.scope_type === 'multi_paragraph' || (item.target_paragraphs && item.target_paragraphs.length > 1)
+                        const isMulti =
+                          item.scope_type === 'multi_paragraph' ||
+                          (item.target_paragraphs && item.target_paragraphs.length > 1)
 
                         return (
                           <div
                             key={item.id}
                             onMouseEnter={() => setHoveredConcept(item.concept_uri)}
                             onMouseLeave={() => setHoveredConcept(null)}
-                            onClick={() => setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))}
-                            className={`p-3 rounded-none border text-xs space-y-2 transition-colors cursor-pointer ${
+                            onClick={() =>
+                              setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))
+                            }
+                            className={`cursor-pointer space-y-2 rounded-none border p-3 text-xs transition-colors ${
                               isPinned
-                                ? 'border-emerald-600 bg-emerald-100/90 ring-2 ring-emerald-600 shadow-sm'
+                                ? 'border-emerald-600 bg-emerald-100/90 shadow-sm ring-2 ring-emerald-600'
                                 : isHovered
                                   ? 'border-emerald-500 bg-emerald-100/90 shadow-sm ring-1 ring-emerald-500'
                                   : 'border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/40'
                             }`}
                           >
                             <div className="space-y-1.5">
-                              <div className="flex items-start space-x-1.5 min-w-0">
+                              <div className="flex min-w-0 items-start space-x-1.5">
                                 <ConceptCategoryIcon
                                   label={item.concept_label}
                                   uri={item.concept_uri}
-                                  className="w-3.5 h-3.5 shrink-0"
+                                  className="h-3.5 w-3.5 shrink-0"
                                 />
-                                <strong className="text-emerald-950 font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug overflow-visible">
+                                <strong className="min-w-0 flex-1 overflow-visible text-sm leading-snug font-semibold break-words whitespace-normal text-emerald-950 capitalize">
                                   {item.concept_label}
                                 </strong>
-                                {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
+                                {isPinned && (
+                                  <span className="shrink-0 text-xs" title="Annotation épinglée">
+                                    📌
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center justify-end space-x-1.5">
-                                <ConceptCategoryBadge
-                                  label={item.concept_label}
-                                  uri={item.concept_uri}
-                                />
+                                <ConceptCategoryBadge label={item.concept_label} uri={item.concept_uri} />
                                 <button
                                   type="button"
                                   onClick={async (e) => {
@@ -1100,30 +1088,33 @@ export const ExploreWork: React.FC = () => {
                                     await deleteAnnotation(item.id)
                                     refetchStaged()
                                   }}
-                                  className="text-emerald-700 hover:text-red-600 p-1 rounded-none transition-colors"
+                                  className="rounded-none p-1 text-emerald-700 transition-colors hover:text-red-600"
                                   title={t.work.deleteStagingTooltip}
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </div>
                             </div>
 
                             {/* Badge Multi-paragraphes */}
                             {isMulti && (
-                              <div className="flex items-center space-x-1 text-[10px] text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded-full font-semibold w-fit">
-                                <Layers className="w-3 h-3 text-emerald-700 shrink-0" />
+                              <div className="flex w-fit items-center space-x-1 rounded-full border border-emerald-300 bg-emerald-100/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                                <Layers className="h-3 w-3 shrink-0 text-emerald-700" />
                                 <span>Multi-paragraphes ({item.target_paragraphs?.length || 'étendues'} §)</span>
                               </div>
                             )}
 
                             <div className="text-[11px] text-emerald-900 italic">
-                              {t.work.extract} « {item.target_text} » {isMulti ? `(${item.target_paragraphs?.length || 2} paragraphes)` : `(pos. ${item.start_offset}-${item.end_offset})`}
+                              {t.work.extract} « {item.target_text} »{' '}
+                              {isMulti
+                                ? `(${item.target_paragraphs?.length || 2} paragraphes)`
+                                : `(pos. ${item.start_offset}-${item.end_offset})`}
                             </div>
 
                             {/* Liens vers les paragraphes couverts */}
                             {item.target_paragraphs && item.target_paragraphs.length > 1 && (
-                              <div className="flex items-center flex-wrap gap-1 text-[10px] pt-1">
-                                <span className="text-emerald-800 font-medium">Paragraphes :</span>
+                              <div className="flex flex-wrap items-center gap-1 pt-1 text-[10px]">
+                                <span className="font-medium text-emerald-800">Paragraphes :</span>
                                 {item.target_paragraphs.map((pUri) => {
                                   const pIdx = paragraphs.findIndex((p) => p.uri === pUri)
                                   const pNum = pIdx !== -1 ? paragraphs[pIdx].id || pIdx + 1 : '§'
@@ -1136,10 +1127,10 @@ export const ExploreWork: React.FC = () => {
                                         e.stopPropagation()
                                         handleFocusParagraph(pUri)
                                       }}
-                                      className={`px-1.5 py-0.5 rounded-none text-[10px] font-mono border transition-colors ${
+                                      className={`rounded-none border px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
                                         isThisPara
-                                          ? 'bg-emerald-700 text-white border-emerald-800 font-bold'
-                                          : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                          ? 'border-emerald-800 bg-emerald-700 font-bold text-white'
+                                          : 'border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100'
                                       }`}
                                       title={`Aller au paragraphe § ${pNum}`}
                                     >
@@ -1150,17 +1141,19 @@ export const ExploreWork: React.FC = () => {
                               </div>
                             )}
 
-                            <div className="pt-1.5 border-t border-emerald-200/60 flex items-center justify-between text-[10px] text-emerald-700">
-                              <span>{t.work.annotator} {item.annotator_name}</span>
+                            <div className="flex items-center justify-between border-t border-emerald-200/60 pt-1.5 text-[10px] text-emerald-700">
+                              <span>
+                                {t.work.annotator} {item.annotator_name}
+                              </span>
                               <a
                                 href={item.concept_uri}
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="hover:underline inline-flex items-center space-x-0.5"
+                                className="inline-flex items-center space-x-0.5 hover:underline"
                               >
                                 <span>{t.work.viewOnTheZoo}</span>
-                                <ExternalLink className="w-2.5 h-2.5" />
+                                <ExternalLink className="h-2.5 w-2.5" />
                               </a>
                             </div>
                           </div>
@@ -1168,19 +1161,19 @@ export const ExploreWork: React.FC = () => {
                       })}
                     </div>
                   ) : stagedAnnotations.length > 0 ? (
-                    <div className="p-2.5 bg-emerald-50/60 rounded-none border border-dashed border-emerald-300 text-center text-xs text-emerald-800">
+                    <div className="rounded-none border border-dashed border-emerald-300 bg-emerald-50/60 p-2.5 text-center text-xs text-emerald-800">
                       <span>{stagedAnnotations.length} proposition(s) dans d'autres paragraphes de cette section.</span>
                     </div>
                   ) : null}
 
                   {/* 2. Annotations de référence Corese */}
                   <div className="space-y-2">
-                    <h4 className="text-[11px] uppercase font-bold tracking-wider text-[#736a5f]">
+                    <h4 className="text-[11px] font-bold tracking-wider text-[#736a5f] uppercase">
                       {t.work.referenceTitle}
                     </h4>
 
                     {Object.keys(activeAnnotations).length === 0 ? (
-                      <p className="text-xs text-[#8c8275] italic p-2 bg-[#fdfcf9] rounded-none border border-[#f0eae0] text-center">
+                      <p className="rounded-none border border-[#f0eae0] bg-[#fdfcf9] p-2 text-center text-xs text-[#8c8275] italic">
                         {t.work.noReferencePara}
                       </p>
                     ) : (
@@ -1194,27 +1187,31 @@ export const ExploreWork: React.FC = () => {
                             onMouseEnter={() => setHoveredConcept(item.concept)}
                             onMouseLeave={() => setHoveredConcept(null)}
                             onClick={() => setPinnedConcept((prev) => (prev === item.concept ? null : item.concept))}
-                            className={`p-3 rounded-none border text-xs transition-colors cursor-pointer ${
+                            className={`cursor-pointer rounded-none border p-3 text-xs transition-colors ${
                               isPinned
-                                ? 'border-[#9A6530] bg-[#fdf7ee] ring-2 ring-amber-500 shadow-sm'
+                                ? 'border-[#9A6530] bg-[#fdf7ee] shadow-sm ring-2 ring-amber-500'
                                 : isHovered
                                   ? 'border-[#9A6530] bg-[#fdfaf5] shadow-sm ring-1 ring-[#9A6530]'
                                   : 'border-[#ebe4d6] bg-[#faf9f6] hover:border-[#cfc5b4] hover:bg-white'
                             }`}
                           >
                             <div className="space-y-1.5">
-                              <div className="flex items-start space-x-1.5 min-w-0">
+                              <div className="flex min-w-0 items-start space-x-1.5">
                                 <ConceptCategoryIcon
                                   category={item.category}
                                   collection={item.collection}
                                   label={item.label}
                                   uri={item.concept}
-                                  className="w-3.5 h-3.5 shrink-0"
+                                  className="h-3.5 w-3.5 shrink-0"
                                 />
-                                <strong className="text-[#2c2724] font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug overflow-visible">
+                                <strong className="min-w-0 flex-1 overflow-visible text-sm leading-snug font-semibold break-words whitespace-normal text-[#2c2724] capitalize">
                                   {item.label.toLowerCase()}
                                 </strong>
-                                {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
+                                {isPinned && (
+                                  <span className="shrink-0 text-xs" title="Annotation épinglée">
+                                    📌
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center justify-end space-x-1.5">
                                 <ConceptCategoryBadge
@@ -1223,14 +1220,14 @@ export const ExploreWork: React.FC = () => {
                                   label={item.label}
                                   uri={item.concept}
                                 />
-                                <span className="text-[10px] text-[#8c8275] uppercase px-1.5 py-0.5 bg-white border border-[#ded5c6] rounded-none font-mono inline-flex items-center justify-center text-center leading-none">
+                                <span className="inline-flex items-center justify-center rounded-none border border-[#ded5c6] bg-white px-1.5 py-0.5 text-center font-mono text-[10px] leading-none text-[#8c8275] uppercase">
                                   {item.type.split('#').pop()}
                                 </span>
                               </div>
                             </div>
 
-                            <div className="mt-2 flex items-center justify-between text-[11px] pt-2 border-t border-[#f0eae0]">
-                              <span className="text-[#736a5f] font-medium bg-[#f0eae0]/80 px-2 py-0.5 rounded-full inline-flex items-center justify-center text-center leading-none">
+                            <div className="mt-2 flex items-center justify-between border-t border-[#f0eae0] pt-2 text-[11px]">
+                              <span className="inline-flex items-center justify-center rounded-full bg-[#f0eae0]/80 px-2 py-0.5 text-center leading-none font-medium text-[#736a5f]">
                                 {item.offset.length} {t.work.occurrencesCount}
                               </span>
                               <a
@@ -1238,10 +1235,10 @@ export const ExploreWork: React.FC = () => {
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-[#9A6530] hover:underline inline-flex items-center space-x-1 font-medium"
+                                className="inline-flex items-center space-x-1 font-medium text-[#9A6530] hover:underline"
                               >
                                 <span>{t.work.viewOnTheZoo}</span>
-                                <ExternalLink className="w-3 h-3" />
+                                <ExternalLink className="h-3 w-3" />
                               </a>
                             </div>
                           </div>
@@ -1249,12 +1246,10 @@ export const ExploreWork: React.FC = () => {
                       })
                     )}
                   </div>
-
                 </div>
               )}
             </div>
           </aside>
-
         </div>
       )}
 
@@ -1279,7 +1274,6 @@ export const ExploreWork: React.FC = () => {
         initialScopeType={modalScopeType}
         onSuccess={() => refetchStaged()}
       />
-
     </div>
   )
 }

@@ -10,7 +10,7 @@ export function resolveParagraphSpans(
   p: ReadingParagraph,
   referenceMap: Record<string, any> = {},
   stagedList: StagedAnnotation[] = [],
-  filterConceptUri?: string | string[] | null
+  filterConceptUri?: string | string[] | null,
 ): { specificSpans: ReadingSpan[]; globalThemes: ReadingSpan[] } {
   const specificSpans: ReadingSpan[] = []
   const globalThemes: ReadingSpan[] = []
@@ -27,7 +27,7 @@ export function resolveParagraphSpans(
 
     const offsets: Array<{ start: number; end: number }> = item.offset || []
     const validOffsets = offsets.filter(
-      (off) => Math.max(0, Math.min(off.start, p.text.length)) < Math.min(off.end, p.text.length)
+      (off) => Math.max(0, Math.min(off.start, p.text.length)) < Math.min(off.end, p.text.length),
     )
 
     if (validOffsets.length === 0) {
@@ -39,7 +39,7 @@ export function resolveParagraphSpans(
         concept: item.concept,
         category: item.category,
         collection: item.collection,
-        isStaged: false
+        isStaged: false,
       })
       continue
     }
@@ -55,7 +55,7 @@ export function resolveParagraphSpans(
           concept: item.concept,
           category: item.category,
           collection: item.collection,
-          isStaged: false
+          isStaged: false,
         })
       }
     }
@@ -121,7 +121,7 @@ export function resolveParagraphSpans(
           isStaged: true,
           status: s.status,
           id: s.id,
-          isMulti: true
+          isMulti: true,
         })
       }
     } else {
@@ -144,7 +144,7 @@ export function resolveParagraphSpans(
           isStaged: true,
           status: s.status,
           id: s.id,
-          isMulti: false
+          isMulti: false,
         })
       } else {
         globalThemes.push({
@@ -156,16 +156,14 @@ export function resolveParagraphSpans(
           collection: (s as any).collection,
           isStaged: true,
           status: s.status,
-          id: s.id
+          id: s.id,
         })
       }
     }
   }
 
   // Déduplication des thèmes globaux
-  const uniqueThemes = Array.from(
-    new Map(globalThemes.map((item) => [item.concept, item])).values()
-  )
+  const uniqueThemes = Array.from(new Map(globalThemes.map((item) => [item.concept, item])).values())
 
   return { specificSpans, globalThemes: uniqueThemes }
 }

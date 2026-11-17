@@ -1,3 +1,3 @@
 /// <reference types="vite/client" />
 
-declare module '@wimmics/venus';
+declare module '@wimmics/venus'

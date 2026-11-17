@@ -1,4 +1,4 @@
-import { TranslationDictionary } from './types';
+import { TranslationDictionary } from './types'
 
 export const en: TranslationDictionary = {
   common: {
@@ -50,37 +50,47 @@ export const en: TranslationDictionary = {
   home: {
     badge: 'ANR Interdisciplinary Research Project & Digital Humanities',
     heroTitle: 'Cultural transmission of ancient and medieval zoological knowledge',
-    heroDesc: 'A platform for semantic exploration, annotation, and analysis of ancient Greek and Latin zoological texts. Query the knowledge graph, align textual witnesses, and analyze human-animal relationships.',
+    heroDesc:
+      'A platform for semantic exploration, annotation, and analysis of ancient Greek and Latin zoological texts. Query the knowledge graph, align textual witnesses, and analyze human-animal relationships.',
     exploreWorkBtn: 'Explore a work',
     cqsBtn: 'Research questions',
     quickAccess: 'Quick access:',
     groupTextsDesc: 'Synoptic reading, cross-corpus search, and W3C annotation',
     groupDataDesc: 'Scientific questions, freeform SPARQL querying, and SKOS thesaurus',
     cardWorkTitle: 'Explore a work',
-    cardWorkDesc: 'Consult original texts (Aelian, Aristotle, Pliny, etc.) with hierarchical outline, synoptic bilingual alignment, and semantic annotation highlighting.',
+    cardWorkDesc:
+      'Consult original texts (Aelian, Aristotle, Pliny, etc.) with hierarchical outline, synoptic bilingual alignment, and semantic annotation highlighting.',
     cardWorkAction: 'Open reader',
     cardCorpusTitle: 'Explore the corpus',
-    cardCorpusDesc: 'Filter the corpus by author, work, and TheZoo thesaurus concepts. Generate and download targeted sub-corpora in JSON or CSV.',
+    cardCorpusDesc:
+      'Filter the corpus by author, work, and TheZoo thesaurus concepts. Generate and download targeted sub-corpora in JSON or CSV.',
     cardCorpusAction: 'Run search',
     cardAnnotateTitle: 'Annotate corpus',
-    cardAnnotateDesc: 'Annotate ancient texts (words, sentences, passages) with TheZoo concepts following the W3C Web Annotation standard and contribute to scientific validation.',
+    cardAnnotateDesc:
+      'Annotate ancient texts (words, sentences, passages) with TheZoo concepts following the W3C Web Annotation standard and contribute to scientific validation.',
     cardAnnotateAction: 'Open annotation studio',
     cardCqsTitle: 'Competency questions',
-    cardCqsDesc: 'Analyze zooarchaeological research questions through interactive visualizations developed by the Wimmics laboratory (VENUS / MGExplorer).',
+    cardCqsDesc:
+      'Analyze zooarchaeological research questions through interactive visualizations developed by the Wimmics laboratory (VENUS / MGExplorer).',
     cardCqsAction: 'Explore visualizations',
     cardSparqlTitle: 'SPARQL Playground',
-    cardSparqlDesc: 'Interactive console to directly query the Corese triplestore, explore the scientific query library, or compose your own custom queries.',
+    cardSparqlDesc:
+      'Interactive console to directly query the Corese triplestore, explore the scientific query library, or compose your own custom queries.',
     cardSparqlAction: 'Open SPARQL console',
     cardThesaurusTitle: 'TheZoo Thesaurus',
-    cardThesaurusDesc: 'Explore bioarchaeological terminology (SKOS), submit new concept proposals with synonyms and hierarchies, and track scientific peer review.',
+    cardThesaurusDesc:
+      'Explore bioarchaeological terminology (SKOS), submit new concept proposals with synonyms and hierarchies, and track scientific peer review.',
     cardThesaurusAction: 'Browse thesaurus',
     pillarsTitle: 'Pillars of the Zoomathia project',
     pillarRdfTitle: 'Semantic Web & RDF',
-    pillarRdfDesc: 'Knowledge representation in RDF graphs, domain ontologies, and SKOS thesaurus (TheZoo) for Open Science interoperability.',
+    pillarRdfDesc:
+      'Knowledge representation in RDF graphs, domain ontologies, and SKOS thesaurus (TheZoo) for Open Science interoperability.',
     pillarW3cTitle: 'W3C Open Annotation Standard',
-    pillarW3cDesc: 'Rigorous traceability of textual mentions (character offsets, targets, selectors, and standardized concept bodies).',
+    pillarW3cDesc:
+      'Rigorous traceability of textual mentions (character offsets, targets, selectors, and standardized concept bodies).',
     pillarNlpTitle: 'Natural Language Processing',
-    pillarNlpDesc: 'Ingestion of ancient texts structured in TEI-XML and preparation for semi-automatic alignment with AI models.',
+    pillarNlpDesc:
+      'Ingestion of ancient texts structured in TEI-XML and preparation for semi-automatic alignment with AI models.',
   },
   work: {
     corpusSelection: 'Corpus selection',
@@ -93,7 +103,8 @@ export const en: TranslationDictionary = {
     sizeXLarge: 'Extra Large (21px)',
     alignedTranslation: 'Aligned translation',
     noWorkSelected: 'No work selected',
-    noWorkDesc: 'Please select an author and a work in the selectors above to display the original text and its semantic annotations.',
+    noWorkDesc:
+      'Please select an author and a work in the selectors above to display the original text and its semantic annotations.',
     tableOfContents: 'Table of contents',
     sectionsCount: 'sections',
     structureNotSegmented: 'Structure not segmented.',
@@ -155,7 +166,8 @@ export const en: TranslationDictionary = {
     matchModeAnd: 'All criteria required (AND)',
     conceptCriteriaCount: 'concept(s)',
     collectionCriteriaCount: 'collection(s)',
-    warningOnlyExclusions: 'A search cannot consist solely of exclusions without positive criteria (author, work, or included concept).',
+    warningOnlyExclusions:
+      'A search cannot consist solely of exclusions without positive criteria (author, work, or included concept).',
     noConceptsSelected: 'No concept added to filters.',
     noCollectionsSelected: 'No collection selected.',
     addConceptPrompt: 'Search for species, organs or notions in the thesaurus above.',
@@ -296,11 +308,13 @@ export const en: TranslationDictionary = {
     queryNameLabel: 'Query Name *',
     queryNamePlaceholder: 'e.g., Birds of prey distribution in the Mediterranean...',
     queryIntentLabel: 'Research Intent & Scientific Hypothesis',
-    queryIntentPlaceholder: 'e.g., Identify and gather passages where an ancient author cites a raptor to study classification...',
+    queryIntentPlaceholder:
+      'e.g., Identify and gather passages where an ancient author cites a raptor to study classification...',
     untitledQuery: 'Untitled query',
     adhocQuery: 'Ad-hoc query',
     errorServiceBlocked: 'Federated queries (SERVICE clause) are strictly prohibited for security reasons.',
-    errorConstructDescribeBlocked: 'CONSTRUCT and DESCRIBE queries are not permitted in the Playground. Only tabular SELECT (or ASK) queries are supported.',
+    errorConstructDescribeBlocked:
+      'CONSTRUCT and DESCRIBE queries are not permitted in the Playground. Only tabular SELECT (or ASK) queries are supported.',
     errorSelectAskRequired: 'Query must contain a valid SELECT or ASK clause.',
     editorResetConfirm: 'Do you really want to reset the query code?',
     themeLightTooltip: 'Switch to light theme',
@@ -375,22 +389,27 @@ export const en: TranslationDictionary = {
   },
   about: {
     title: 'About the Zoomathia project',
-    projectPresentationP1: 'This application enables exploration of a knowledge graph annotating a corpus of ancient and medieval texts on animals (original texts in ancient Greek and Latin, as well as English translations). It aims to support the study of the cultural transmission of zoological knowledge from Antiquity to the Middle Ages.',
-    projectPresentationP2: 'It relies on the TheZoo thesaurus (OpenTheso / Huma-Num). The automatic annotation pipeline was developed within the AutomaZoo and HisINum projects, supported by IdEx UCA JEDI.',
+    projectPresentationP1:
+      'This application enables exploration of a knowledge graph annotating a corpus of ancient and medieval texts on animals (original texts in ancient Greek and Latin, as well as English translations). It aims to support the study of the cultural transmission of zoological knowledge from Antiquity to the Middle Ages.',
+    projectPresentationP2:
+      'It relies on the TheZoo thesaurus (OpenTheso / Huma-Num). The automatic annotation pipeline was developed within the AutomaZoo and HisINum projects, supported by IdEx UCA JEDI.',
     usefulLinksTitle: 'Useful Resources & Links',
     githubRepo: 'Project GitHub Repository',
     sparqlEndpoint: 'SPARQL API documentation',
     theZooThesaurus: 'TheZoo Thesaurus (Huma-Num)',
     supportPartnersTitle: 'Support & Partners',
-    supportP1: 'This application was developed within the I3S and CEPAM laboratories, with support from the "Human, Ideas and Environments" Academy of Excellence of IdEx UCA JEDI (Université Côte d\'Azur).',
-    supportP2: 'The textual corpus was established in collaboration with the international research network GDRI Zoomathia supported by the CNRS.',
+    supportP1:
+      'This application was developed within the I3S and CEPAM laboratories, with support from the "Human, Ideas and Environments" Academy of Excellence of IdEx UCA JEDI (Université Côte d\'Azur).',
+    supportP2:
+      'The textual corpus was established in collaboration with the international research network GDRI Zoomathia supported by the CNRS.',
     scientificLeadsTitle: 'Scientific Leaders',
-    catherineFaronRole: 'Professor, Université Côte d\'Azur / Inria / I3S (Wimmics)',
+    catherineFaronRole: "Professor, Université Côte d'Azur / Inria / I3S (Wimmics)",
     arnaudZuckerRole: 'Professor of Greek Language and Literature, UCA / CEPAM',
   },
   annotate: {
     title: 'Online Corpus Annotation',
-    subtitle: 'Annotate ancient texts (words, phrases, paragraphs, or multi-paragraph passages) with TheZoo concepts and participate in peer review validation.',
+    subtitle:
+      'Annotate ancient texts (words, phrases, paragraphs, or multi-paragraph passages) with TheZoo concepts and participate in peer review validation.',
     selectWorkFirst: 'Select a work and a chapter in the table of contents to begin annotation.',
     loadingSection: 'Loading text and annotations...',
     tocTitle: 'Table of Contents',
@@ -473,10 +492,12 @@ export const en: TranslationDictionary = {
   },
   apiErrors: {
     generic: 'Something went wrong. Please try again in a moment.',
-    tooManyHeavyQueries: 'Too many heavy queries are running, including earlier ones that the SPARQL server is still computing. Please try again in a moment.',
-    resultTooLarge: 'The result is too large to be returned. Narrow the search (fewer criteria, a specific work or author) and try again.',
+    tooManyHeavyQueries:
+      'Too many heavy queries are running, including earlier ones that the SPARQL server is still computing. Please try again in a moment.',
+    resultTooLarge:
+      'The result is too large to be returned. Narrow the search (fewer criteria, a specific work or author) and try again.',
     sparqlTimeout: 'The SPARQL server did not answer in time. Simplify the query or narrow the search, then try again.',
     sparqlUnavailable: 'The SPARQL server is unreachable or failed. Please try again later.',
     requestRejected: 'Request rejected by the server:',
   },
-};
+}

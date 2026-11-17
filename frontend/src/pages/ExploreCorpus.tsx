@@ -9,7 +9,7 @@ import {
   fetchSectionAnnotations,
   postCustomSearch,
   downloadCustomSearch,
-  CustomSearchExportFormat
+  CustomSearchExportFormat,
 } from '../api/client'
 import { getApiErrorMessage } from '../api/errors'
 import { saveBlob } from '../utils/saveBlob'
@@ -32,7 +32,7 @@ import {
   Tag,
   ListOrdered,
   User,
-  X
+  X,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { ConceptCriterion, CollectionCriterion, AnnotationMap, Paragraph, ConceptCategory } from '../types'
@@ -43,13 +43,9 @@ import {
   ConceptCategoryBadge,
   getConceptCategoryInfo,
   CATEGORY_TOC_HOVER,
-  CATEGORY_TOC_PINNED
+  CATEGORY_TOC_PINNED,
 } from '../components/ConceptCategoryBadge'
-import {
-  ReadingParagraphCard,
-  PinnedConceptBanner,
-  useConceptInspection
-} from '../components/reading'
+import { ReadingParagraphCard, PinnedConceptBanner, useConceptInspection } from '../components/reading'
 
 export const ExploreCorpus: React.FC = () => {
   const { t, language } = useI18n()
@@ -83,24 +79,24 @@ export const ExploreCorpus: React.FC = () => {
   // Requêtes API de base
   const { data: authors = [] } = useQuery({
     queryKey: ['authors'],
-    queryFn: fetchAuthors
+    queryFn: fetchAuthors,
   })
 
   const { data: works = [] } = useQuery({
     queryKey: ['works'],
-    queryFn: fetchWorks
+    queryFn: fetchWorks,
   })
 
   const { data: collections = [] } = useQuery({
     queryKey: ['collections', language],
-    queryFn: () => fetchCollections(language)
+    queryFn: () => fetchCollections(language),
   })
 
   // Recherche de concepts TheZoo en direct
   const { data: searchedConcepts = [], isFetching: isSearchingConcepts } = useQuery({
     queryKey: ['searchConcepts', conceptSearchInput, language],
     queryFn: () => searchConcepts(conceptSearchInput.trim(), language, 40),
-    enabled: conceptSearchInput.trim().length >= 2
+    enabled: conceptSearchInput.trim().length >= 2,
   })
 
   // Mutation de recherche personnalisée
@@ -121,7 +117,7 @@ export const ExploreCorpus: React.FC = () => {
           }
         }
       }
-    }
+    },
   })
 
   // Search export (RM-EXP-01): the server rebuilds the query from the criteria of the last
@@ -148,21 +144,20 @@ export const ExploreCorpus: React.FC = () => {
   const { data: activeAnnotations = {}, isLoading: isAnnotationsLoading } = useQuery({
     queryKey: ['concepts', activeParagraphUri, language],
     queryFn: () => fetchConcepts(activeParagraphUri, language),
-    enabled: !!activeParagraphUri
+    enabled: !!activeParagraphUri,
   })
-
 
   // Options pour combobox Auteurs & Œuvres
   const authorOptions: ComboboxOption[] = useMemo(
     () => authors.map((a) => ({ value: a.name, label: a.name })),
-    [authors]
+    [authors],
   )
 
   const workOptions: ComboboxOption[] = useMemo(() => {
     return works.map((w) => ({
       value: w.uri,
       label: w.title,
-      subtitle: w.author ? `${w.author}` : undefined
+      subtitle: w.author ? `${w.author}` : undefined,
     }))
   }, [works])
 
@@ -184,8 +179,8 @@ export const ExploreCorpus: React.FC = () => {
         category: c.category,
         collection: c.collection,
         include_subconcepts: false,
-        polarity: 'include'
-      }
+        polarity: 'include',
+      },
     ])
     setConceptSearchInput('')
   }
@@ -199,8 +194,8 @@ export const ExploreCorpus: React.FC = () => {
       {
         uri: collUri,
         label: collObj?.label || collUri,
-        polarity: 'include'
-      }
+        polarity: 'include',
+      },
     ])
   }
 
@@ -229,7 +224,7 @@ export const ExploreCorpus: React.FC = () => {
       excluded_works: excludedWorks,
       concept_criteria: conceptCriteria,
       collection_criteria: collectionCriteria,
-      match_mode: matchMode
+      match_mode: matchMode,
     })
   }
 
@@ -306,7 +301,7 @@ export const ExploreCorpus: React.FC = () => {
   const { data: sectionAnnotData } = useQuery({
     queryKey: ['sectionAnnotations', sectionForAnnotations, language],
     queryFn: () => fetchSectionAnnotations(sectionForAnnotations, language),
-    enabled: !!sectionForAnnotations
+    enabled: !!sectionForAnnotations,
   })
 
   // Fusion avec les annotations directes du paragraphe si nécessaire
@@ -315,7 +310,7 @@ export const ExploreCorpus: React.FC = () => {
     if (activeParagraphUri && activeAnnotations && Object.keys(activeAnnotations).length > 0) {
       refs[activeParagraphUri] = {
         ...(refs[activeParagraphUri] || {}),
-        ...activeAnnotations
+        ...activeAnnotations,
       }
     }
     return refs
@@ -328,7 +323,7 @@ export const ExploreCorpus: React.FC = () => {
     referenceAnnotations,
     stagedAnnotations,
     paragraphs: displayParagraphs,
-    setActiveParagraphUri
+    setActiveParagraphUri,
   })
 
   const {
@@ -344,7 +339,7 @@ export const ExploreCorpus: React.FC = () => {
     pinnedParagraphsList,
     pinnedParagraphUris,
     hoveredParagraphUris,
-    handleFocusParagraph
+    handleFocusParagraph,
   } = inspectionState
 
   // Comptages pour les onglets de filtres
@@ -353,18 +348,16 @@ export const ExploreCorpus: React.FC = () => {
   const collectionCount = collectionCriteria.length
 
   return (
-    <div className="py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-[1920px] w-full px-2 sm:px-4 lg:px-6 mx-auto">
+    <div className="mx-auto w-full max-w-[1920px] space-y-4 px-2 py-4 sm:space-y-6 sm:px-4 sm:py-6 lg:px-6">
       {/* En-tête de la Page */}
-      <div className="bg-white p-6 rounded-none border border-[#e6dfd3] shadow-xs flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 rounded-none border border-[#e6dfd3] bg-white p-6 shadow-xs">
         <div className="flex items-center space-x-3.5">
-          <div className="p-3 rounded-none bg-[#f4ede2] text-[#9A6530]">
-            <Library className="w-6 h-6" />
+          <div className="rounded-none bg-[#f4ede2] p-3 text-[#9A6530]">
+            <Library className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#2c2724]">
-              {t.corpus.title}
-            </h1>
-            <p className="text-sm sm:text-base text-[#696156]">{t.corpus.subtitle}</p>
+            <h1 className="font-serif text-2xl font-bold text-[#2c2724] md:text-3xl">{t.corpus.title}</h1>
+            <p className="text-sm text-[#696156] sm:text-base">{t.corpus.subtitle}</p>
           </div>
         </div>
 
@@ -373,9 +366,9 @@ export const ExploreCorpus: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
-            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-none border border-[#cfc5b4] bg-[#faf9f6] hover:bg-[#f4ede2] text-sm font-semibold text-[#543b22] transition-colors cursor-pointer shrink-0 shadow-2xs"
+            className="inline-flex shrink-0 cursor-pointer items-center space-x-2 rounded-none border border-[#cfc5b4] bg-[#faf9f6] px-4 py-2.5 text-sm font-semibold text-[#543b22] shadow-2xs transition-colors hover:bg-[#f4ede2]"
           >
-            <SlidersHorizontal className="w-4 h-4 text-[#9A6530]" />
+            <SlidersHorizontal className="h-4 w-4 text-[#9A6530]" />
             <span>{isFilterCollapsed ? t.corpus.showFilters : t.corpus.hideFilters}</span>
           </button>
         )}
@@ -383,22 +376,22 @@ export const ExploreCorpus: React.FC = () => {
 
       {/* Constructeur de Sous-Corpus (Filtres) */}
       {(!searchMutation.isSuccess || !isFilterCollapsed) && (
-        <div className="bg-white rounded-none border border-[#e6dfd3] shadow-xs">
+        <div className="rounded-none border border-[#e6dfd3] bg-white shadow-xs">
           {/* Navigation par Onglets des 3 Facettes */}
-          <div className="flex border-b border-[#f0eae0] bg-[#faf9f6] text-sm sm:text-base font-semibold rounded-none">
+          <div className="flex rounded-none border-b border-[#f0eae0] bg-[#faf9f6] text-sm font-semibold sm:text-base">
             <button
               type="button"
               onClick={() => setActiveTab('text')}
-              className={`flex-1 py-4 px-6 flex items-center justify-center space-x-2 border-b-2 transition-all cursor-pointer ${
+              className={`flex flex-1 cursor-pointer items-center justify-center space-x-2 border-b-2 px-6 py-4 transition-all ${
                 activeTab === 'text'
-                  ? 'border-[#9A6530] text-[#9A6530] bg-white font-bold shadow-xs'
+                  ? 'border-[#9A6530] bg-white font-bold text-[#9A6530] shadow-xs'
                   : 'border-transparent text-[#736a5f] hover:text-[#2c2724]'
               }`}
             >
-              <BookOpen className="w-4.5 h-4.5" />
+              <BookOpen className="h-4.5 w-4.5" />
               <span>{t.corpus.tabTextScope}</span>
               {textScopeCount > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center text-center min-w-[22px] h-5.5 px-2 rounded-full bg-[#9A6530] text-white text-xs font-bold leading-none">
+                <span className="ml-2 inline-flex h-5.5 min-w-[22px] items-center justify-center rounded-full bg-[#9A6530] px-2 text-center text-xs leading-none font-bold text-white">
                   {textScopeCount}
                 </span>
               )}
@@ -407,16 +400,16 @@ export const ExploreCorpus: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('concepts')}
-              className={`flex-1 py-4 px-6 flex items-center justify-center space-x-2 border-b-2 transition-all cursor-pointer ${
+              className={`flex flex-1 cursor-pointer items-center justify-center space-x-2 border-b-2 px-6 py-4 transition-all ${
                 activeTab === 'concepts'
-                  ? 'border-[#9A6530] text-[#9A6530] bg-white font-bold shadow-xs'
+                  ? 'border-[#9A6530] bg-white font-bold text-[#9A6530] shadow-xs'
                   : 'border-transparent text-[#736a5f] hover:text-[#2c2724]'
               }`}
             >
-              <Sparkles className="w-4.5 h-4.5" />
+              <Sparkles className="h-4.5 w-4.5" />
               <span>{t.corpus.tabTaxonomy}</span>
               {conceptCount > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center text-center min-w-[22px] h-5.5 px-2 rounded-full bg-[#9A6530] text-white text-xs font-bold leading-none">
+                <span className="ml-2 inline-flex h-5.5 min-w-[22px] items-center justify-center rounded-full bg-[#9A6530] px-2 text-center text-xs leading-none font-bold text-white">
                   {conceptCount}
                 </span>
               )}
@@ -425,16 +418,16 @@ export const ExploreCorpus: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('collections')}
-              className={`flex-1 py-4 px-6 flex items-center justify-center space-x-2 border-b-2 transition-all cursor-pointer ${
+              className={`flex flex-1 cursor-pointer items-center justify-center space-x-2 border-b-2 px-6 py-4 transition-all ${
                 activeTab === 'collections'
-                  ? 'border-[#9A6530] text-[#9A6530] bg-white font-bold shadow-xs'
+                  ? 'border-[#9A6530] bg-white font-bold text-[#9A6530] shadow-xs'
                   : 'border-transparent text-[#736a5f] hover:text-[#2c2724]'
               }`}
             >
-              <Layers className="w-4.5 h-4.5" />
+              <Layers className="h-4.5 w-4.5" />
               <span>{t.corpus.tabCollections}</span>
               {collectionCount > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center text-center min-w-[22px] h-5.5 px-2 rounded-full bg-[#9A6530] text-white text-xs font-bold leading-none">
+                <span className="ml-2 inline-flex h-5.5 min-w-[22px] items-center justify-center rounded-full bg-[#9A6530] px-2 text-center text-xs leading-none font-bold text-white">
                   {collectionCount}
                 </span>
               )}
@@ -442,13 +435,13 @@ export const ExploreCorpus: React.FC = () => {
           </div>
 
           {/* Corps des Facettes */}
-          <div className="p-6 min-h-[160px]">
+          <div className="min-h-[160px] p-6">
             {/* FACETTE 1 : Périmètre Textuel (Auteurs & Œuvres) */}
             {activeTab === 'text' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-150">
+              <div className="animate-in fade-in grid grid-cols-1 gap-6 duration-150 md:grid-cols-2">
                 <MultiSelectCombobox
                   label={t.corpus.authorFilter}
-                  icon={<User className="w-3.5 h-3.5 text-[#9A6530]" />}
+                  icon={<User className="h-3.5 w-3.5 text-[#9A6530]" />}
                   placeholder="Tous les auteurs (ou sélectionnez un ou plusieurs auteurs)"
                   options={authorOptions}
                   selectedValues={selectedAuthors}
@@ -457,7 +450,7 @@ export const ExploreCorpus: React.FC = () => {
 
                 <MultiSelectCombobox
                   label={t.corpus.workFilter}
-                  icon={<BookOpen className="w-3.5 h-3.5 text-[#9A6530]" />}
+                  icon={<BookOpen className="h-3.5 w-3.5 text-[#9A6530]" />}
                   placeholder="Toutes les œuvres (ou sélectionnez des œuvres précises)"
                   options={workOptions}
                   selectedValues={selectedWorks}
@@ -471,29 +464,29 @@ export const ExploreCorpus: React.FC = () => {
 
             {/* FACETTE 2 : Concepts TheZoo & Taxonomie */}
             {activeTab === 'concepts' && (
-              <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="animate-in fade-in space-y-4 duration-150">
                 <div>
-                  <label className="flex items-center space-x-2 text-sm font-semibold uppercase tracking-wider text-[#63503d] mb-2">
-                    <Sparkles className="w-4 h-4 text-[#9A6530]" />
+                  <label className="mb-2 flex items-center space-x-2 text-sm font-semibold tracking-wider text-[#63503d] uppercase">
+                    <Sparkles className="h-4 w-4 text-[#9A6530]" />
                     <span>Rechercher un concept dans le thésaurus TheZoo</span>
                   </label>
                   <div className="relative">
-                    <Search className="w-4.5 h-4.5 absolute left-3.5 top-3.5 text-[#8c8275]" />
+                    <Search className="absolute top-3.5 left-3.5 h-4.5 w-4.5 text-[#8c8275]" />
                     <input
                       type="text"
                       value={conceptSearchInput}
                       onChange={(e) => setConceptSearchInput(e.target.value)}
                       placeholder={t.corpus.searchConceptsPlaceholder}
-                      className="w-full pl-11 pr-11 py-3 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-sm text-[#2c2724] focus:outline-none focus:ring-2 focus:ring-[#9A6530] focus:bg-white transition-all shadow-2xs"
+                      className="w-full rounded-none border border-[#cfc5b4] bg-[#faf9f6] py-3 pr-11 pl-11 text-sm text-[#2c2724] shadow-2xs transition-all focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                     />
                     {isSearchingConcepts && (
-                      <Loader2 className="w-4 h-4 absolute right-3.5 top-3.5 animate-spin text-[#9A6530]" />
+                      <Loader2 className="absolute top-3.5 right-3.5 h-4 w-4 animate-spin text-[#9A6530]" />
                     )}
                   </div>
                 </div>
 
                 {conceptSearchInput.trim().length >= 2 && (
-                  <div className="p-2 bg-white rounded-none border border-[#cfc5b4] shadow-xl space-y-1 max-h-72 overflow-y-auto">
+                  <div className="max-h-72 space-y-1 overflow-y-auto rounded-none border border-[#cfc5b4] bg-white p-2 shadow-xl">
                     {searchedConcepts.length === 0 ? (
                       <div className="p-4 text-center text-sm text-[#8c8275]">
                         Aucun concept TheZoo trouvé pour « {conceptSearchInput} ».
@@ -505,23 +498,25 @@ export const ExploreCorpus: React.FC = () => {
                           <div
                             key={item.uri}
                             onClick={() => !isAlreadyAdded && handleAddConcept(item)}
-                            className={`flex items-center justify-between p-2.5 rounded-none text-sm cursor-pointer transition-colors ${
+                            className={`flex cursor-pointer items-center justify-between rounded-none p-2.5 text-sm transition-colors ${
                               isAlreadyAdded
-                                ? 'bg-[#f4ede2] text-[#8c8275] cursor-default'
-                                : 'hover:bg-[#faf9f6] text-[#2c2724]'
+                                ? 'cursor-default bg-[#f4ede2] text-[#8c8275]'
+                                : 'text-[#2c2724] hover:bg-[#faf9f6]'
                             }`}
                           >
-                            <div className="flex items-center space-x-3 min-w-0 pr-2">
+                            <div className="flex min-w-0 items-center space-x-3 pr-2">
                               <ConceptCategoryIcon
                                 category={item.category}
                                 collection={item.collection}
                                 label={item.label}
                                 uri={item.uri}
-                                className="w-4.5 h-4.5 shrink-0"
+                                className="h-4.5 w-4.5 shrink-0"
                               />
                               <div className="min-w-0">
-                                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                                  <span className="font-semibold text-sm block whitespace-normal break-words">{item.label}</span>
+                                <div className="flex flex-wrap items-center space-x-2 gap-y-1">
+                                  <span className="block text-sm font-semibold break-words whitespace-normal">
+                                    {item.label}
+                                  </span>
                                   <ConceptCategoryBadge
                                     category={item.category}
                                     collection={item.collection}
@@ -529,19 +524,19 @@ export const ExploreCorpus: React.FC = () => {
                                     uri={item.uri}
                                   />
                                 </div>
-                                <span className="text-xs text-[#736a5f] block truncate font-mono mt-0.5">
+                                <span className="mt-0.5 block truncate font-mono text-xs text-[#736a5f]">
                                   {item.uri}
                                 </span>
                               </div>
                             </div>
                             <span
-                              className={`px-2.5 py-1 rounded-none text-xs font-semibold flex items-center space-x-1 shrink-0 ${
+                              className={`flex shrink-0 items-center space-x-1 rounded-none px-2.5 py-1 text-xs font-semibold ${
                                 isAlreadyAdded
                                   ? 'bg-stone-200 text-stone-600'
                                   : 'bg-[#9A6530] text-white hover:bg-[#855424]'
                               }`}
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="h-3.5 w-3.5" />
                               <span>{isAlreadyAdded ? 'Déjà ajouté' : 'Ajouter'}</span>
                             </span>
                           </div>
@@ -553,10 +548,10 @@ export const ExploreCorpus: React.FC = () => {
 
                 <div className="space-y-2.5 pt-2">
                   <div className="flex items-center justify-between text-sm text-[#63503d]">
-                    <span className="flex items-center space-x-2 font-semibold uppercase tracking-wider">
-                      <Tag className="w-4 h-4 text-[#9A6530]" />
+                    <span className="flex items-center space-x-2 font-semibold tracking-wider uppercase">
+                      <Tag className="h-4 w-4 text-[#9A6530]" />
                       <span>Concepts sélectionnés</span>
-                      <span className="inline-flex items-center justify-center text-center leading-none min-w-[20px] h-5 px-1.5 rounded-full bg-[#eaddcb] text-[#543b22] text-xs font-bold">
+                      <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#eaddcb] px-1.5 text-center text-xs leading-none font-bold text-[#543b22]">
                         {conceptCriteria.length}
                       </span>
                     </span>
@@ -564,7 +559,7 @@ export const ExploreCorpus: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setConceptCriteria([])}
-                        className="text-[#9A6530] hover:underline text-xs sm:text-sm font-medium cursor-pointer"
+                        className="cursor-pointer text-xs font-medium text-[#9A6530] hover:underline sm:text-sm"
                       >
                         Supprimer tous les concepts
                       </button>
@@ -572,12 +567,12 @@ export const ExploreCorpus: React.FC = () => {
                   </div>
 
                   {conceptCriteria.length === 0 ? (
-                    <div className="p-6 rounded-none border border-dashed border-[#cfc5b4] bg-[#faf9f6] text-center text-sm text-[#8c8275] space-y-1">
+                    <div className="space-y-1 rounded-none border border-dashed border-[#cfc5b4] bg-[#faf9f6] p-6 text-center text-sm text-[#8c8275]">
                       <p className="font-medium">{t.corpus.noConceptsSelected}</p>
                       <p className="text-xs text-[#a19688]">{t.corpus.addConceptPrompt}</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
                       {conceptCriteria.map((crit, idx) => (
                         <ConceptCriteriaCard
                           key={crit.uri}
@@ -600,10 +595,10 @@ export const ExploreCorpus: React.FC = () => {
 
             {/* FACETTE 3 : Collections Thématiques */}
             {activeTab === 'collections' && (
-              <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="animate-in fade-in space-y-4 duration-150">
                 <div>
-                  <label className="flex items-center space-x-2 text-sm font-semibold uppercase tracking-wider text-[#63503d] mb-2">
-                    <Layers className="w-4 h-4 text-[#3b6ea5]" />
+                  <label className="mb-2 flex items-center space-x-2 text-sm font-semibold tracking-wider text-[#63503d] uppercase">
+                    <Layers className="h-4 w-4 text-[#3b6ea5]" />
                     <span>{t.corpus.selectCollectionPrompt}</span>
                   </label>
                   <select
@@ -612,7 +607,7 @@ export const ExploreCorpus: React.FC = () => {
                       handleAddCollection(e.target.value)
                       e.target.value = ''
                     }}
-                    className="w-full p-3 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-sm text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:bg-white focus:outline-none cursor-pointer shadow-2xs"
+                    className="w-full cursor-pointer rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-3 text-sm text-[#2c2724] shadow-2xs focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                   >
                     <option value="" disabled>
                       -- Choisir une collection thématique parmi les 14 inventaires TheZoo --
@@ -627,10 +622,10 @@ export const ExploreCorpus: React.FC = () => {
 
                 <div className="space-y-2.5 pt-2">
                   <div className="flex items-center justify-between text-sm text-[#63503d]">
-                    <span className="flex items-center space-x-2 font-semibold uppercase tracking-wider">
-                      <Layers className="w-4 h-4 text-[#3b6ea5]" />
+                    <span className="flex items-center space-x-2 font-semibold tracking-wider uppercase">
+                      <Layers className="h-4 w-4 text-[#3b6ea5]" />
                       <span>Collections actives</span>
-                      <span className="inline-flex items-center justify-center text-center leading-none min-w-[20px] h-5 px-1.5 rounded-full bg-sky-100 text-[#245580] text-xs font-bold border border-sky-200">
+                      <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-sky-200 bg-sky-100 px-1.5 text-center text-xs leading-none font-bold text-[#245580]">
                         {collectionCriteria.length}
                       </span>
                     </span>
@@ -638,7 +633,7 @@ export const ExploreCorpus: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setCollectionCriteria([])}
-                        className="text-[#9A6530] hover:underline text-xs sm:text-sm font-medium cursor-pointer"
+                        className="cursor-pointer text-xs font-medium text-[#9A6530] hover:underline sm:text-sm"
                       >
                         Supprimer toutes les collections
                       </button>
@@ -646,11 +641,11 @@ export const ExploreCorpus: React.FC = () => {
                   </div>
 
                   {collectionCriteria.length === 0 ? (
-                    <div className="p-6 rounded-none border border-dashed border-[#cfc5b4] bg-[#faf9f6] text-center text-sm text-[#8c8275]">
+                    <div className="rounded-none border border-dashed border-[#cfc5b4] bg-[#faf9f6] p-6 text-center text-sm text-[#8c8275]">
                       {t.corpus.noCollectionsSelected}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
                       {collectionCriteria.map((colCrit, idx) => {
                         const collMeta = collections.find((c) => c.uri === colCrit.uri)
                         return (
@@ -664,9 +659,7 @@ export const ExploreCorpus: React.FC = () => {
                               setCollectionCriteria(newColls)
                             }}
                             onRemove={() => {
-                              setCollectionCriteria(
-                                collectionCriteria.filter((c) => c.uri !== colCrit.uri)
-                              )
+                              setCollectionCriteria(collectionCriteria.filter((c) => c.uri !== colCrit.uri))
                             }}
                           />
                         )
@@ -680,8 +673,8 @@ export const ExploreCorpus: React.FC = () => {
 
           {/* Alerte si recherche uniquement négative */}
           {isInvalidPureNegative && (
-            <div className="mx-6 mb-4 p-4 rounded-none bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-center space-x-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div className="mx-6 mb-4 flex items-center space-x-3 rounded-none border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
               <span>{t.corpus.warningOnlyExclusions}</span>
             </div>
           )}
@@ -690,9 +683,9 @@ export const ExploreCorpus: React.FC = () => {
           {searchMutation.isError && (
             <div
               role="alert"
-              className="mx-6 mb-4 p-4 rounded-none bg-red-50 border border-red-200 text-red-700 text-sm flex items-start space-x-3"
+              className="mx-6 mb-4 flex items-start space-x-3 rounded-none border border-red-200 bg-red-50 p-4 text-sm text-red-700"
             >
-              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+              <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" />
               <span>
                 <span className="font-semibold">{t.corpus.searchFailed}</span>{' '}
                 {getApiErrorMessage(searchMutation.error, t)}
@@ -701,16 +694,16 @@ export const ExploreCorpus: React.FC = () => {
           )}
 
           {/* Barre de Synthèse & Déclenchement de la Recherche */}
-          <div className="p-5 sm:p-6 bg-[#faf9f6] border-t border-[#f0eae0] rounded-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="flex flex-col items-stretch justify-between gap-4 rounded-none border-t border-[#f0eae0] bg-[#faf9f6] p-5 sm:p-6 md:flex-row md:items-center">
             <div className="flex items-center space-x-4 text-sm text-[#595248]">
               <span className="font-semibold text-[#63503d]">Logique d'inclusion :</span>
               <div className="inline-flex rounded-none border border-[#cfc5b4] bg-white p-0.5">
                 <button
                   type="button"
                   onClick={() => setMatchMode('OR')}
-                  className={`px-4 py-1.5 rounded-none text-sm font-medium transition-colors cursor-pointer ${
+                  className={`cursor-pointer rounded-none px-4 py-1.5 text-sm font-medium transition-colors ${
                     matchMode === 'OR'
-                      ? 'bg-[#9A6530] text-white shadow-xs font-semibold'
+                      ? 'bg-[#9A6530] font-semibold text-white shadow-xs'
                       : 'text-[#736a5f] hover:text-[#2c2724]'
                   }`}
                 >
@@ -719,9 +712,9 @@ export const ExploreCorpus: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMatchMode('AND')}
-                  className={`px-4 py-1.5 rounded-none text-sm font-medium transition-colors cursor-pointer ${
+                  className={`cursor-pointer rounded-none px-4 py-1.5 text-sm font-medium transition-colors ${
                     matchMode === 'AND'
-                      ? 'bg-[#9A6530] text-white shadow-xs font-semibold'
+                      ? 'bg-[#9A6530] font-semibold text-white shadow-xs'
                       : 'text-[#736a5f] hover:text-[#2c2724]'
                   }`}
                 >
@@ -734,9 +727,9 @@ export const ExploreCorpus: React.FC = () => {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-none border border-[#cfc5b4] text-sm font-medium text-[#736a5f] hover:bg-white hover:text-[#2c2724] transition-colors cursor-pointer shadow-2xs"
+                className="inline-flex cursor-pointer items-center space-x-1.5 rounded-none border border-[#cfc5b4] px-4 py-2.5 text-sm font-medium text-[#736a5f] shadow-2xs transition-colors hover:bg-white hover:text-[#2c2724]"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="h-4 w-4" />
                 <span>{t.corpus.clearAllFilters}</span>
               </button>
 
@@ -744,16 +737,16 @@ export const ExploreCorpus: React.FC = () => {
                 type="button"
                 onClick={handleSearch}
                 disabled={searchMutation.isPending || isInvalidPureNegative}
-                className="inline-flex items-center space-x-2 px-7 py-2.5 bg-[#9A6530] hover:bg-[#855424] text-white rounded-none font-bold text-sm shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="inline-flex cursor-pointer items-center space-x-2 rounded-none bg-[#9A6530] px-7 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#855424] disabled:opacity-50"
               >
                 {searchMutation.isPending ? (
                   <>
-                    <Loader2 className="w-4.5 h-4.5 animate-spin" />
+                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
                     <span>{t.corpus.searching}</span>
                   </>
                 ) : (
                   <>
-                    <Search className="w-4.5 h-4.5" />
+                    <Search className="h-4.5 w-4.5" />
                     <span>{t.corpus.searchButton}</span>
                   </>
                 )}
@@ -769,30 +762,30 @@ export const ExploreCorpus: React.FC = () => {
           {/* Barre d'en-tête du sous-corpus : Compteurs et Exports */}
           <div className="flex flex-wrap items-center justify-between gap-3 px-1">
             <div className="flex flex-wrap items-center gap-2.5 text-sm">
-              <span className="font-serif font-bold text-lg text-[#2c2724] whitespace-nowrap">
+              <span className="font-serif text-lg font-bold whitespace-nowrap text-[#2c2724]">
                 Sous-Corpus extrait :
               </span>
-              <span className="px-3 py-1 rounded-full bg-[#f4ede2] text-[#543b22] font-semibold text-xs sm:text-sm whitespace-nowrap">
+              <span className="rounded-full bg-[#f4ede2] px-3 py-1 text-xs font-semibold whitespace-nowrap text-[#543b22] sm:text-sm">
                 {resultTree.length} {resultTree.length > 1 ? 'œuvres' : 'œuvre'}
               </span>
-              <span className="px-3 py-1 rounded-full bg-amber-100 text-[#7a4c1a] font-semibold text-xs sm:text-sm whitespace-nowrap">
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold whitespace-nowrap text-[#7a4c1a] sm:text-sm">
                 {totalParagraphsExtracted.toLocaleString()} {totalParagraphsExtracted > 1 ? 'passages' : 'passage'}
               </span>
             </div>
 
             {searchMutation.variables && (
-              <div className="flex items-center space-x-2 shrink-0">
+              <div className="flex shrink-0 items-center space-x-2">
                 <button
                   type="button"
                   onClick={() => handleExport('json')}
                   disabled={exportingFormat !== null}
                   aria-busy={exportingFormat === 'json'}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs sm:text-sm font-medium text-[#3b6ea5] hover:bg-[#f4ede2] transition-colors shadow-2xs whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                  className="inline-flex cursor-pointer items-center space-x-1.5 rounded-none border border-[#ded5c6] bg-white px-3 py-1.5 text-xs font-medium whitespace-nowrap text-[#3b6ea5] shadow-2xs transition-colors hover:bg-[#f4ede2] disabled:cursor-default disabled:opacity-50 sm:text-sm"
                 >
                   {exportingFormat === 'json' ? (
-                    <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
                   ) : (
-                    <FileCode className="w-4 h-4 shrink-0" />
+                    <FileCode className="h-4 w-4 shrink-0" />
                   )}
                   <span>{t.common.exportJson}</span>
                 </button>
@@ -801,12 +794,12 @@ export const ExploreCorpus: React.FC = () => {
                   onClick={() => handleExport('csv')}
                   disabled={exportingFormat !== null}
                   aria-busy={exportingFormat === 'csv'}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-[#ded5c6] rounded-none text-xs sm:text-sm font-medium text-emerald-700 hover:bg-[#f4ede2] transition-colors shadow-2xs whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                  className="inline-flex cursor-pointer items-center space-x-1.5 rounded-none border border-[#ded5c6] bg-white px-3 py-1.5 text-xs font-medium whitespace-nowrap text-emerald-700 shadow-2xs transition-colors hover:bg-[#f4ede2] disabled:cursor-default disabled:opacity-50 sm:text-sm"
                 >
                   {exportingFormat === 'csv' ? (
-                    <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
                   ) : (
-                    <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                    <FileSpreadsheet className="h-4 w-4 shrink-0" />
                   )}
                   <span>{t.common.exportCsv}</span>
                 </button>
@@ -817,9 +810,9 @@ export const ExploreCorpus: React.FC = () => {
           {exportError && (
             <div
               role="alert"
-              className="p-3.5 rounded-none bg-red-50 border border-red-200 text-red-700 text-sm flex items-start space-x-3"
+              className="flex items-start space-x-3 rounded-none border border-red-200 bg-red-50 p-3.5 text-sm text-red-700"
             >
-              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+              <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" />
               <span>
                 <span className="font-semibold">{t.corpus.exportFailed}</span> {exportError}
               </span>
@@ -827,55 +820,52 @@ export const ExploreCorpus: React.FC = () => {
           )}
 
           {resultTree.length === 0 ? (
-            <div className="bg-white rounded-none border border-[#e6dfd3] p-12 text-center text-sm text-[#736a5f]">
+            <div className="rounded-none border border-[#e6dfd3] bg-white p-12 text-center text-sm text-[#736a5f]">
               {t.corpus.noResults}
             </div>
           ) : (
             /* Disposition en 3 colonnes équilibrées : Sommaire (3) / Lecture (6) / Annotations (3) */
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:items-stretch lg:h-[calc(100vh-220px)] lg:min-h-[580px] lg:max-h-[850px]">
+            <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-220px)] lg:max-h-[850px] lg:min-h-[580px] lg:grid-cols-12 lg:items-stretch">
               {/* COLONNE 1 : Table des Matières du Sous-Corpus (3 cols = 25%) */}
-              <aside className="lg:col-span-3 xl:col-span-3 h-full bg-white rounded-none border border-[#e6dfd3] shadow-xs flex flex-col overflow-hidden">
-                <div className="p-3.5 sm:p-4 border-b border-[#f0eae0] bg-[#faf8f4] flex items-center justify-between gap-2 shrink-0">
-                  <h3 className="font-serif font-bold text-sm sm:text-base text-[#2c2724] flex items-center space-x-2 min-w-0">
-                    <ListOrdered className="w-4 h-4 text-[#9A6530] shrink-0" />
+              <aside className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd3] bg-white shadow-xs lg:col-span-3 xl:col-span-3">
+                <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#f0eae0] bg-[#faf8f4] p-3.5 sm:p-4">
+                  <h3 className="flex min-w-0 items-center space-x-2 font-serif text-sm font-bold text-[#2c2724] sm:text-base">
+                    <ListOrdered className="h-4 w-4 shrink-0 text-[#9A6530]" />
                     <span className="whitespace-nowrap">{t.corpus.subcorpusToc}</span>
                   </h3>
-                  <span className="text-xs font-bold text-[#8c8275] bg-[#f0eae0] px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+                  <span className="shrink-0 rounded-full bg-[#f0eae0] px-2.5 py-0.5 text-xs font-bold whitespace-nowrap text-[#8c8275]">
                     {resultTree.length} {resultTree.length > 1 ? 'œuvres' : 'œuvre'}
                   </span>
                 </div>
 
                 {/* Recherche rapide dans la TOC */}
-                <div className="p-2.5 border-b border-[#f0eae0] shrink-0">
+                <div className="shrink-0 border-b border-[#f0eae0] p-2.5">
                   <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#8c8275]" />
+                    <Search className="absolute top-2.5 left-3 h-4 w-4 text-[#8c8275]" />
                     <input
                       type="text"
                       value={tocFilter}
                       onChange={(e) => setTocFilter(e.target.value)}
                       placeholder={t.corpus.filterTocPlaceholder}
-                      className="w-full pl-9 pr-3 py-1.5 rounded-none border border-[#e6dfd3] bg-[#fcfbf9] text-xs sm:text-sm text-[#2c2724] focus:outline-none focus:ring-2 focus:ring-[#9A6530]"
+                      className="w-full rounded-none border border-[#e6dfd3] bg-[#fcfbf9] py-1.5 pr-3 pl-9 text-xs text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none sm:text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Liste hiérarchique des œuvres et sections */}
-                <div className="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2 pb-12 scrollbar-thin">
+                <div className="min-h-0 flex-1 scrollbar-thin space-y-2 overflow-y-auto p-2.5 pb-12">
                   {resultTree
                     .filter(
                       (w) =>
                         !tocFilter ||
                         w.title?.toLowerCase().includes(tocFilter.toLowerCase()) ||
-                        w.author?.toLowerCase().includes(tocFilter.toLowerCase())
+                        w.author?.toLowerCase().includes(tocFilter.toLowerCase()),
                     )
                     .map((workNode) => {
                       const isWorkActive = currentActiveWork?.uri === workNode.uri
                       const isWorkCollapsed = !!collapsedWorks[workNode.uri]
                       const totalWorkParas =
-                        workNode.children?.reduce(
-                          (acc: number, sec: any) => acc + (sec.children?.length || 0),
-                          0
-                        ) || 0
+                        workNode.children?.reduce((acc: number, sec: any) => acc + (sec.children?.length || 0), 0) || 0
 
                       return (
                         <div key={workNode.uri} className="space-y-1">
@@ -896,26 +886,26 @@ export const ExploreCorpus: React.FC = () => {
                                 }
                               }
                             }}
-                            className={`w-full text-left p-2.5 rounded-none flex items-center justify-between transition-colors cursor-pointer border ${
+                            className={`flex w-full cursor-pointer items-center justify-between rounded-none border p-2.5 text-left transition-colors ${
                               isWorkActive
-                                ? 'bg-[#f4ede2] border-[#ded5c6] font-semibold text-[#543b22] shadow-xs'
-                                : 'bg-[#faf9f6] border-[#f0eae0] hover:bg-[#f4eee4] text-[#2c2724]'
+                                ? 'border-[#ded5c6] bg-[#f4ede2] font-semibold text-[#543b22] shadow-xs'
+                                : 'border-[#f0eae0] bg-[#faf9f6] text-[#2c2724] hover:bg-[#f4eee4]'
                             }`}
                           >
-                            <div className="flex items-start space-x-2 min-w-0 pr-1 flex-1">
-                              <BookOpen className="w-4 h-4 text-[#9A6530] shrink-0 mt-0.5" />
+                            <div className="flex min-w-0 flex-1 items-start space-x-2 pr-1">
+                              <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-[#9A6530]" />
                               <div className="min-w-0 flex-1">
-                                <span className="block truncate font-serif text-sm font-bold text-[#2c2724] leading-snug">
+                                <span className="block truncate font-serif text-sm leading-snug font-bold text-[#2c2724]">
                                   {workNode.title}
                                 </span>
-                                <span className="flex items-center space-x-1 text-xs text-[#736a5f] mt-0.5 truncate">
-                                  <User className="w-3 h-3 shrink-0 text-[#9A6530]" />
+                                <span className="mt-0.5 flex items-center space-x-1 truncate text-xs text-[#736a5f]">
+                                  <User className="h-3 w-3 shrink-0 text-[#9A6530]" />
                                   <span className="truncate">{workNode.author}</span>
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-1.5 shrink-0 ml-1">
-                              <span className="inline-flex items-center justify-center text-center leading-none text-xs px-2 py-0.5 rounded-full bg-[#eaddcb] text-[#543b22] font-bold whitespace-nowrap">
+                            <div className="ml-1 flex shrink-0 items-center space-x-1.5">
+                              <span className="inline-flex items-center justify-center rounded-full bg-[#eaddcb] px-2 py-0.5 text-center text-xs leading-none font-bold whitespace-nowrap text-[#543b22]">
                                 {totalWorkParas}
                               </span>
                               <span
@@ -923,15 +913,15 @@ export const ExploreCorpus: React.FC = () => {
                                   e.stopPropagation()
                                   setCollapsedWorks({
                                     ...collapsedWorks,
-                                    [workNode.uri]: !isWorkCollapsed
+                                    [workNode.uri]: !isWorkCollapsed,
                                   })
                                 }}
-                                className="p-1 hover:bg-black/5 rounded-none cursor-pointer"
+                                className="cursor-pointer rounded-none p-1 hover:bg-black/5"
                               >
                                 {isWorkCollapsed ? (
-                                  <ChevronRight className="w-4 h-4 text-[#8c8275]" />
+                                  <ChevronRight className="h-4 w-4 text-[#8c8275]" />
                                 ) : (
-                                  <ChevronDown className="w-4 h-4 text-[#8c8275]" />
+                                  <ChevronDown className="h-4 w-4 text-[#8c8275]" />
                                 )}
                               </span>
                             </div>
@@ -939,10 +929,9 @@ export const ExploreCorpus: React.FC = () => {
 
                           {/* Sections sous l'œuvre */}
                           {!isWorkCollapsed && (
-                            <div className="pl-2 border-l-2 border-[#e6dfd3] space-y-1 ml-2 my-1">
+                            <div className="my-1 ml-2 space-y-1 border-l-2 border-[#e6dfd3] pl-2">
                               {workNode.children?.map((sec: any) => {
-                                const isSecActive =
-                                  currentActiveSection?.uri === sec.uri && isWorkActive
+                                const isSecActive = currentActiveSection?.uri === sec.uri && isWorkActive
                                 const isSecCollapsed = !!collapsedSections[sec.uri]
 
                                 return (
@@ -961,21 +950,19 @@ export const ExploreCorpus: React.FC = () => {
                                           }, 50)
                                         }
                                       }}
-                                      className={`w-full text-left px-2.5 py-1.5 rounded-none flex items-center justify-between text-xs sm:text-sm transition-colors cursor-pointer ${
+                                      className={`flex w-full cursor-pointer items-center justify-between rounded-none px-2.5 py-1.5 text-left text-xs transition-colors sm:text-sm ${
                                         isSecActive
-                                          ? 'bg-[#9A6530] text-white font-semibold shadow-xs'
+                                          ? 'bg-[#9A6530] font-semibold text-white shadow-xs'
                                           : 'text-[#544b41] hover:bg-[#f4eee4]'
                                       }`}
                                     >
-                                      <span className="truncate font-medium flex-1 mr-1">
+                                      <span className="mr-1 flex-1 truncate font-medium">
                                         {sec.title || `Section ${sec.id}`}
                                       </span>
-                                      <div className="flex items-center space-x-1.5 shrink-0">
+                                      <div className="flex shrink-0 items-center space-x-1.5">
                                         <span
-                                          className={`text-[11px] px-1.5 py-0.5 rounded-none font-bold whitespace-nowrap ${
-                                            isSecActive
-                                              ? 'bg-white/20 text-white'
-                                              : 'bg-[#f0eae0] text-[#736a5f]'
+                                          className={`rounded-none px-1.5 py-0.5 text-[11px] font-bold whitespace-nowrap ${
+                                            isSecActive ? 'bg-white/20 text-white' : 'bg-[#f0eae0] text-[#736a5f]'
                                           }`}
                                         >
                                           {sec.children?.length || 0}
@@ -985,15 +972,15 @@ export const ExploreCorpus: React.FC = () => {
                                             e.stopPropagation()
                                             setCollapsedSections({
                                               ...collapsedSections,
-                                              [sec.uri]: !isSecCollapsed
+                                              [sec.uri]: !isSecCollapsed,
                                             })
                                           }}
-                                          className="p-0.5 rounded-none hover:bg-black/10 cursor-pointer"
+                                          className="cursor-pointer rounded-none p-0.5 hover:bg-black/10"
                                         >
                                           {isSecCollapsed ? (
-                                            <ChevronRight className="w-3.5 h-3.5" />
+                                            <ChevronRight className="h-3.5 w-3.5" />
                                           ) : (
-                                            <ChevronDown className="w-3.5 h-3.5" />
+                                            <ChevronDown className="h-3.5 w-3.5" />
                                           )}
                                         </span>
                                       </div>
@@ -1001,16 +988,22 @@ export const ExploreCorpus: React.FC = () => {
 
                                     {/* Palette de puces/chips pour les paragraphes (§) */}
                                     {!isSecCollapsed && (
-                                      <div className="p-2 bg-[#fdfcf9] rounded-none border border-[#ede5d8] my-1 ml-1.5">
-                                        <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#f0eae0] text-xs text-[#8c8275]">
-                                          <span className="font-semibold uppercase tracking-wider text-[10px] text-[#63503d]">Passages (§)</span>
-                                          <span className="text-[10px] font-medium">{sec.children?.length || 0} extraits</span>
+                                      <div className="my-1 ml-1.5 rounded-none border border-[#ede5d8] bg-[#fdfcf9] p-2">
+                                        <div className="mb-1.5 flex items-center justify-between border-b border-[#f0eae0] pb-1 text-xs text-[#8c8275]">
+                                          <span className="text-[10px] font-semibold tracking-wider text-[#63503d] uppercase">
+                                            Passages (§)
+                                          </span>
+                                          <span className="text-[10px] font-medium">
+                                            {sec.children?.length || 0} extraits
+                                          </span>
                                         </div>
-                                        <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto scrollbar-thin pr-0.5">
+                                        <div className="flex max-h-48 scrollbar-thin flex-wrap gap-1 overflow-y-auto pr-0.5">
                                           {sec.children?.map((p: any) => {
                                             const isParaActive = activeParagraphUri === p.uri
-                                            const isHoveredP = !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
-                                            const isPinnedP = !!pinnedConcept && (pinnedParagraphUris?.has(p.uri) ?? false)
+                                            const isHoveredP =
+                                              !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
+                                            const isPinnedP =
+                                              !!pinnedConcept && (pinnedParagraphUris?.has(p.uri) ?? false)
 
                                             return (
                                               <button
@@ -1021,14 +1014,16 @@ export const ExploreCorpus: React.FC = () => {
                                                   setActiveSectionUri(sec.uri)
                                                   handleFocusParagraph(p.uri)
                                                 }}
-                                                className={`px-2 py-1 rounded-none text-xs font-mono font-bold transition-colors cursor-pointer border ${
+                                                className={`cursor-pointer rounded-none border px-2 py-1 font-mono text-xs font-bold transition-colors ${
                                                   isParaActive
-                                                    ? 'bg-[#9A6530] text-white border-[#855424] shadow-xs ring-1 ring-[#9A6530]/40'
+                                                    ? 'border-[#855424] bg-[#9A6530] text-white shadow-xs ring-1 ring-[#9A6530]/40'
                                                     : isHoveredP
-                                                      ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
+                                                      ? CATEGORY_TOC_HOVER[activeInspectionCategory] ||
+                                                        CATEGORY_TOC_HOVER.general
                                                       : isPinnedP
-                                                        ? (CATEGORY_TOC_PINNED[pinnedConceptCategory] || CATEGORY_TOC_PINNED.general)
-                                                        : 'bg-white text-[#543b22] border-[#ded5c6] hover:bg-[#f4ede2] hover:border-[#9A6530]/50'
+                                                        ? CATEGORY_TOC_PINNED[pinnedConceptCategory] ||
+                                                          CATEGORY_TOC_PINNED.general
+                                                        : 'border-[#ded5c6] bg-white text-[#543b22] hover:border-[#9A6530]/50 hover:bg-[#f4ede2]'
                                                 }`}
                                                 title={`Passage § ${p.id}`}
                                               >
@@ -1051,27 +1046,27 @@ export const ExploreCorpus: React.FC = () => {
               </aside>
 
               {/* COLONNE 2 : Zone de Lecture du Sous-Corpus (6 cols = 50%) */}
-              <main className="lg:col-span-6 xl:col-span-6 h-full bg-white rounded-none border border-[#e6dfd3] shadow-xs flex flex-col overflow-hidden">
+              <main className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd3] bg-white shadow-xs lg:col-span-6 xl:col-span-6">
                 {/* En-tête de lecture */}
-                <div className="p-3.5 sm:p-4 border-b border-[#f0eae0] bg-[#faf8f4] flex items-center justify-between gap-3 shrink-0">
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#f0eae0] bg-[#faf8f4] p-3.5 sm:p-4">
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-serif font-bold text-base sm:text-lg md:text-xl text-[#2c2724] truncate">
+                    <h2 className="truncate font-serif text-base font-bold text-[#2c2724] sm:text-lg md:text-xl">
                       {currentActiveWork?.title || 'Lecture du sous-corpus'}
                     </h2>
-                    <span className="text-xs sm:text-sm text-[#736a5f] truncate block">
+                    <span className="block truncate text-xs text-[#736a5f] sm:text-sm">
                       {currentActiveWork?.author} •{' '}
                       {currentActiveSection?.title || `Section ${currentActiveSection?.id || 1}`}
                     </span>
                   </div>
 
                   {/* Contrôleur de taille du texte */}
-                  <div className="flex items-center space-x-1 bg-[#faf9f6] p-1 rounded-none border border-[#e6dfd3] shrink-0">
+                  <div className="flex shrink-0 items-center space-x-1 rounded-none border border-[#e6dfd3] bg-[#faf9f6] p-1">
                     <button
                       type="button"
                       onClick={() => setTextSize('normal')}
-                      className={`px-2.5 py-1 text-xs sm:text-sm font-serif rounded-none transition-colors cursor-pointer ${
+                      className={`cursor-pointer rounded-none px-2.5 py-1 font-serif text-xs transition-colors sm:text-sm ${
                         textSize === 'normal'
-                          ? 'bg-[#9A6530] text-white font-bold shadow-xs'
+                          ? 'bg-[#9A6530] font-bold text-white shadow-xs'
                           : 'text-[#543b22] hover:bg-[#eaddcb]'
                       }`}
                       title="Texte normal"
@@ -1081,9 +1076,9 @@ export const ExploreCorpus: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setTextSize('large')}
-                      className={`px-2.5 py-1 text-xs sm:text-sm font-serif rounded-none transition-colors cursor-pointer ${
+                      className={`cursor-pointer rounded-none px-2.5 py-1 font-serif text-xs transition-colors sm:text-sm ${
                         textSize === 'large'
-                          ? 'bg-[#9A6530] text-white font-bold shadow-xs'
+                          ? 'bg-[#9A6530] font-bold text-white shadow-xs'
                           : 'text-[#543b22] hover:bg-[#eaddcb]'
                       }`}
                       title="Texte grand"
@@ -1093,9 +1088,9 @@ export const ExploreCorpus: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setTextSize('xlarge')}
-                      className={`px-2.5 py-1 text-xs sm:text-sm font-serif rounded-none transition-colors cursor-pointer ${
+                      className={`cursor-pointer rounded-none px-2.5 py-1 font-serif text-xs transition-colors sm:text-sm ${
                         textSize === 'xlarge'
-                          ? 'bg-[#9A6530] text-white font-bold shadow-xs'
+                          ? 'bg-[#9A6530] font-bold text-white shadow-xs'
                           : 'text-[#543b22] hover:bg-[#eaddcb]'
                       }`}
                       title="Texte très grand"
@@ -1106,7 +1101,10 @@ export const ExploreCorpus: React.FC = () => {
                 </div>
 
                 {/* Paragraphes de la section active */}
-                <div id="subcorpus-reading-pane" className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-5 pb-24 scrollbar-thin">
+                <div
+                  id="subcorpus-reading-pane"
+                  className="min-h-0 flex-1 scrollbar-thin space-y-5 overflow-y-auto p-4 pb-24 sm:p-6"
+                >
                   {/* Bannière d'annotation épinglée */}
                   <PinnedConceptBanner
                     pinnedConcept={pinnedConcept}
@@ -1142,29 +1140,28 @@ export const ExploreCorpus: React.FC = () => {
               </main>
 
               {/* COLONNE 3 : Panneau des Concepts & Annotations (3 cols = 25%) */}
-              <aside className="lg:col-span-3 xl:col-span-3 h-full bg-white rounded-none border border-[#e6dfd3] shadow-xs flex flex-col overflow-hidden">
-                <div className="p-3.5 sm:p-4 border-b border-[#f0eae0] bg-[#faf8f4] flex items-center justify-between gap-2 shrink-0">
-                  <h3 className="font-serif font-bold text-sm sm:text-base text-[#2c2724] flex items-center space-x-2 min-w-0">
-                    <Sparkles className="w-4 h-4 text-[#9A6530] shrink-0" />
+              <aside className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd3] bg-white shadow-xs lg:col-span-3 xl:col-span-3">
+                <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#f0eae0] bg-[#faf8f4] p-3.5 sm:p-4">
+                  <h3 className="flex min-w-0 items-center space-x-2 font-serif text-sm font-bold text-[#2c2724] sm:text-base">
+                    <Sparkles className="h-4 w-4 shrink-0 text-[#9A6530]" />
                     <span className="whitespace-nowrap">{t.corpus.subcorpusAnnotations}</span>
                   </h3>
-                  <span className="inline-flex items-center justify-center text-center leading-none text-xs font-bold text-[#9A6530] bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300 shrink-0 whitespace-nowrap">
-                    {Object.keys(activeAnnotations).length} {Object.keys(activeAnnotations).length > 1 ? 'concepts' : 'concept'}
+                  <span className="inline-flex shrink-0 items-center justify-center rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-center text-xs leading-none font-bold whitespace-nowrap text-[#9A6530]">
+                    {Object.keys(activeAnnotations).length}{' '}
+                    {Object.keys(activeAnnotations).length > 1 ? 'concepts' : 'concept'}
                   </span>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-3 pb-24 scrollbar-thin text-sm">
+                <div className="min-h-0 flex-1 scrollbar-thin space-y-3 overflow-y-auto p-3.5 pb-24 text-sm">
                   {!activeParagraphUri ? (
-                    <div className="p-6 text-center text-sm text-[#8c8275] italic">
-                      {t.corpus.selectParagraphHint}
-                    </div>
+                    <div className="p-6 text-center text-sm text-[#8c8275] italic">{t.corpus.selectParagraphHint}</div>
                   ) : isAnnotationsLoading ? (
-                    <div className="p-8 text-center space-y-2">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#9A6530]" />
+                    <div className="space-y-2 p-8 text-center">
+                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#9A6530]" />
                       <p className="text-sm text-[#8c8275]">Chargement des concepts annotés...</p>
                     </div>
                   ) : Object.keys(activeAnnotations).length === 0 ? (
-                    <div className="p-6 text-center text-sm text-[#8c8275] bg-[#faf9f6] rounded-none border border-dashed border-[#e6dfd3]">
+                    <div className="rounded-none border border-dashed border-[#e6dfd3] bg-[#faf9f6] p-6 text-center text-sm text-[#8c8275]">
                       Aucun concept répertorié sur ce passage particulier.
                     </div>
                   ) : (
@@ -1192,57 +1189,61 @@ export const ExploreCorpus: React.FC = () => {
                           onMouseEnter={() => setHoveredConcept(item.concept)}
                           onMouseLeave={() => setHoveredConcept(null)}
                           onClick={() => setPinnedConcept((prev) => (prev === item.concept ? null : item.concept))}
-                          className={`p-3 sm:p-3.5 rounded-none border transition-colors text-sm space-y-2 cursor-pointer ${
+                          className={`cursor-pointer space-y-2 rounded-none border p-3 text-sm transition-colors sm:p-3.5 ${
                             isPinned
-                              ? 'border-[#9A6530] bg-[#fdf7ee] ring-2 ring-amber-500 shadow-sm'
+                              ? 'border-[#9A6530] bg-[#fdf7ee] shadow-sm ring-2 ring-amber-500'
                               : isHovered
                                 ? 'border-[#9A6530] bg-[#f4ede2] shadow-xs ring-1 ring-[#9A6530]'
                                 : 'border-[#f0eae0] bg-[#fcfbf9] hover:bg-[#faf9f6]'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-1.5">
-                            <div className="flex items-start space-x-2.5 min-w-0 flex-1">
+                            <div className="flex min-w-0 flex-1 items-start space-x-2.5">
                               <div className="mt-0.5 shrink-0">
                                 <ConceptCategoryIcon
                                   category={item.category}
                                   collection={item.collection}
                                   label={item.label}
                                   uri={item.concept}
-                                  className="w-4.5 h-4.5"
+                                  className="h-4.5 w-4.5"
                                 />
                               </div>
-                              <div className="relative group/label min-w-0 flex-1">
+                              <div className="group/label relative min-w-0 flex-1">
                                 <span
-                                  className="font-semibold text-sm sm:text-base text-[#2c2724] leading-snug whitespace-normal break-words overflow-visible block group-hover/label:text-[#9A6530] transition-colors"
+                                  className="block overflow-visible text-sm leading-snug font-semibold break-words whitespace-normal text-[#2c2724] transition-colors group-hover/label:text-[#9A6530] sm:text-base"
                                   title={item.label}
                                 >
                                   {displayLabel}
-                                  {isPinned && <span className="ml-1.5 text-xs inline-block" title="Annotation épinglée">📌</span>}
+                                  {isPinned && (
+                                    <span className="ml-1.5 inline-block text-xs" title="Annotation épinglée">
+                                      📌
+                                    </span>
+                                  )}
                                 </span>
 
                                 {/* Popup flottant automatique au survol si label long (>22 caractères) */}
                                 {item.label && item.label.length > 22 && (
-                                  <div className="hidden group-hover/label:flex flex-col absolute left-0 bottom-full mb-2 z-50 w-72 sm:w-88 p-3 bg-[#241f1c] text-[#fbf9f5] rounded-none shadow-2xl border border-[#4a4038] text-xs space-y-1.5 pointer-events-none">
-                                    <div className="flex items-center space-x-1.5 text-amber-400 font-semibold text-[11px]">
-                                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                                  <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 hidden w-72 flex-col space-y-1.5 rounded-none border border-[#4a4038] bg-[#241f1c] p-3 text-xs text-[#fbf9f5] shadow-2xl group-hover/label:flex sm:w-88">
+                                    <div className="flex items-center space-x-1.5 text-[11px] font-semibold text-amber-400">
+                                      <Sparkles className="h-3.5 w-3.5 shrink-0" />
                                       <span>Libellé complet TheZoo</span>
                                     </div>
-                                    <p className="font-bold text-sm text-white leading-snug break-words">
+                                    <p className="text-sm leading-snug font-bold break-words text-white">
                                       {item.label}
                                     </p>
                                     {item.collection && (
                                       <p className="text-[11px] text-[#cfc5b4]">
-                                        Collection : <span className="text-white font-medium">{item.collection}</span>
+                                        Collection : <span className="font-medium text-white">{item.collection}</span>
                                       </p>
                                     )}
-                                    <div className="pt-1 border-t border-white/10 flex items-center justify-between text-[10px] text-[#9c9183]">
+                                    <div className="flex items-center justify-between border-t border-white/10 pt-1 text-[10px] text-[#9c9183]">
                                       <span className="font-mono">{formatConceptId(item.concept)}</span>
                                       {item.offset && item.offset.length > 0 && (
                                         <span>{item.offset.length} occurrence(s)</span>
                                       )}
                                     </div>
                                     {/* Flèche du tooltip vers le bas */}
-                                    <div className="absolute left-6 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-[#241f1c]" />
+                                    <div className="absolute top-full left-6 h-0 w-0 border-x-4 border-t-4 border-x-transparent border-t-[#241f1c]" />
                                   </div>
                                 )}
 
@@ -1263,18 +1264,21 @@ export const ExploreCorpus: React.FC = () => {
                               rel="noopener noreferrer"
                               title={t.work.viewOnTheZoo}
                               onClick={(e) => e.stopPropagation()}
-                              className="text-[#8c8275] hover:text-[#9A6530] p-1 shrink-0 transition-colors"
+                              className="shrink-0 p-1 text-[#8c8275] transition-colors hover:text-[#9A6530]"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
+                              <ExternalLink className="h-3.5 w-3.5" />
                             </a>
                           </div>
 
-                          <div className="flex items-center justify-between text-xs text-[#8c8275] pt-1.5 border-t border-[#f0eae0]/60 gap-2">
-                            <span className="font-mono text-[11px] truncate min-w-0 flex-1 text-[#8c8275]" title={item.concept}>
+                          <div className="flex items-center justify-between gap-2 border-t border-[#f0eae0]/60 pt-1.5 text-xs text-[#8c8275]">
+                            <span
+                              className="min-w-0 flex-1 truncate font-mono text-[11px] text-[#8c8275]"
+                              title={item.concept}
+                            >
                               {formatConceptId(item.concept)}
                             </span>
                             {item.offset && item.offset.length > 0 && (
-                              <span className="inline-flex items-center justify-center text-center leading-none px-2 py-0.5 rounded-full bg-[#f0eae0] font-semibold text-[#543b22] text-[11px] shrink-0 whitespace-nowrap">
+                              <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#f0eae0] px-2 py-0.5 text-center text-[11px] leading-none font-semibold whitespace-nowrap text-[#543b22]">
                                 {item.offset.length} occ.
                               </span>
                             )}

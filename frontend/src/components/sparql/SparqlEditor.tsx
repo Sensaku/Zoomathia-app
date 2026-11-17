@@ -4,12 +4,12 @@ import { tokenizeSparql, SparqlToken } from '../../utils/sparqlTokenizer'
 import { useI18n } from '../../i18n'
 
 interface SparqlEditorProps {
-  value: string;
-  onChange: (val: string) => void;
-  onRun: () => void;
-  isPending?: boolean;
-  placeholder?: string;
-  className?: string;
+  value: string
+  onChange: (val: string) => void
+  onRun: () => void
+  isPending?: boolean
+  placeholder?: string
+  className?: string
 }
 
 const COMMON_PREFIXES = [
@@ -26,7 +26,7 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
   onRun,
   isPending = false,
   placeholder,
-  className = ''
+  className = '',
 }) => {
   const { t } = useI18n()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -68,44 +68,116 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
     if (isDarkTheme) {
       switch (token.type) {
         case 'keyword':
-          return <span key={index} className="text-[#fbbf24] font-bold">{token.value}</span>
+          return (
+            <span key={index} className="font-bold text-[#fbbf24]">
+              {token.value}
+            </span>
+          )
         case 'variable':
-          return <span key={index} className="text-[#60a5fa] font-semibold">{token.value}</span>
+          return (
+            <span key={index} className="font-semibold text-[#60a5fa]">
+              {token.value}
+            </span>
+          )
         case 'prefixed':
-          return <span key={index} className="text-[#34d399] font-medium">{token.value}</span>
+          return (
+            <span key={index} className="font-medium text-[#34d399]">
+              {token.value}
+            </span>
+          )
         case 'iri':
-          return <span key={index} className="text-[#c084fc] underline underline-offset-2 decoration-[#c084fc]/40">{token.value}</span>
+          return (
+            <span key={index} className="text-[#c084fc] underline decoration-[#c084fc]/40 underline-offset-2">
+              {token.value}
+            </span>
+          )
         case 'string':
-          return <span key={index} className="text-[#fde047]">{token.value}</span>
+          return (
+            <span key={index} className="text-[#fde047]">
+              {token.value}
+            </span>
+          )
         case 'comment':
-          return <span key={index} className="text-[#8e8579] italic">{token.value}</span>
+          return (
+            <span key={index} className="text-[#8e8579] italic">
+              {token.value}
+            </span>
+          )
         case 'number':
-          return <span key={index} className="text-[#fb923c]">{token.value}</span>
+          return (
+            <span key={index} className="text-[#fb923c]">
+              {token.value}
+            </span>
+          )
         case 'operator':
-          return <span key={index} className="text-[#cbd5e1]">{token.value}</span>
+          return (
+            <span key={index} className="text-[#cbd5e1]">
+              {token.value}
+            </span>
+          )
         default:
-          return <span key={index} className="text-[#f1ede8]">{token.value}</span>
+          return (
+            <span key={index} className="text-[#f1ede8]">
+              {token.value}
+            </span>
+          )
       }
     } else {
       switch (token.type) {
         case 'keyword':
-          return <span key={index} className="text-[#9A6530] font-bold">{token.value}</span>
+          return (
+            <span key={index} className="font-bold text-[#9A6530]">
+              {token.value}
+            </span>
+          )
         case 'variable':
-          return <span key={index} className="text-[#1d4ed8] font-semibold">{token.value}</span>
+          return (
+            <span key={index} className="font-semibold text-[#1d4ed8]">
+              {token.value}
+            </span>
+          )
         case 'prefixed':
-          return <span key={index} className="text-[#047857] font-medium">{token.value}</span>
+          return (
+            <span key={index} className="font-medium text-[#047857]">
+              {token.value}
+            </span>
+          )
         case 'iri':
-          return <span key={index} className="text-[#7c3aed] underline underline-offset-2 decoration-[#7c3aed]/40">{token.value}</span>
+          return (
+            <span key={index} className="text-[#7c3aed] underline decoration-[#7c3aed]/40 underline-offset-2">
+              {token.value}
+            </span>
+          )
         case 'string':
-          return <span key={index} className="text-[#b45309]">{token.value}</span>
+          return (
+            <span key={index} className="text-[#b45309]">
+              {token.value}
+            </span>
+          )
         case 'comment':
-          return <span key={index} className="text-[#8c8275] italic">{token.value}</span>
+          return (
+            <span key={index} className="text-[#8c8275] italic">
+              {token.value}
+            </span>
+          )
         case 'number':
-          return <span key={index} className="text-[#c026d3]">{token.value}</span>
+          return (
+            <span key={index} className="text-[#c026d3]">
+              {token.value}
+            </span>
+          )
         case 'operator':
-          return <span key={index} className="text-[#4b5563]">{token.value}</span>
+          return (
+            <span key={index} className="text-[#4b5563]">
+              {token.value}
+            </span>
+          )
         default:
-          return <span key={index} className="text-[#2c2724]">{token.value}</span>
+          return (
+            <span key={index} className="text-[#2c2724]">
+              {token.value}
+            </span>
+          )
       }
     }
   }
@@ -177,28 +249,24 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
 
   return (
     <div
-      className={`flex flex-col rounded-none border transition-colors shadow-inner overflow-hidden ${
-        isDarkTheme
-          ? 'bg-[#181614] border-[#3b3631]'
-          : 'bg-[#faf9f6] border-[#ded5c6]'
+      className={`flex flex-col overflow-hidden rounded-none border shadow-inner transition-colors ${
+        isDarkTheme ? 'border-[#3b3631] bg-[#181614]' : 'border-[#ded5c6] bg-[#faf9f6]'
       } ${className}`}
     >
       {/* Barre d'outils supérieure */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b text-xs transition-colors ${
-          isDarkTheme
-            ? 'bg-[#221f1c] border-[#3b3631] text-[#ded5c6]'
-            : 'bg-[#f4ede2] border-[#e6dfd3] text-[#736a5f]'
+        className={`flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2 text-xs transition-colors ${
+          isDarkTheme ? 'border-[#3b3631] bg-[#221f1c] text-[#ded5c6]' : 'border-[#e6dfd3] bg-[#f4ede2] text-[#736a5f]'
         }`}
       >
         {/* Préfixes RDF rapides */}
-        <div className="flex items-center space-x-1.5 flex-wrap">
+        <div className="flex flex-wrap items-center space-x-1.5">
           <span
-            className={`font-semibold flex items-center gap-1 text-[11px] uppercase tracking-wider mr-1 ${
+            className={`mr-1 flex items-center gap-1 text-[11px] font-semibold tracking-wider uppercase ${
               isDarkTheme ? 'text-[#a89d90]' : 'text-[#8c8275]'
             }`}
           >
-            <Sparkles className="w-3 h-3 text-[#9A6530]" />
+            <Sparkles className="h-3 w-3 text-[#9A6530]" />
             {t.sparql.prefixesTitle}:
           </span>
           {COMMON_PREFIXES.map(({ prefix, uri }) => {
@@ -210,14 +278,14 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
                 onClick={() => insertPrefix(prefix, uri)}
                 disabled={isAlreadyAdded}
                 title={`PREFIX ${prefix}: <${uri}>`}
-                className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-none text-[11px] font-mono transition-colors ${
+                className={`inline-flex items-center space-x-1 rounded-none px-2 py-0.5 font-mono text-[11px] transition-colors ${
                   isAlreadyAdded
                     ? isDarkTheme
-                      ? 'bg-[#2c2724] text-[#6b6257] cursor-default'
-                      : 'bg-[#e9e2d6] text-[#a19688] cursor-default'
+                      ? 'cursor-default bg-[#2c2724] text-[#6b6257]'
+                      : 'cursor-default bg-[#e9e2d6] text-[#a19688]'
                     : isDarkTheme
-                    ? 'bg-[#2d2824] text-[#ded5c6] hover:bg-[#9A6530] hover:text-white border border-[#4a423b] cursor-pointer'
-                    : 'bg-white text-[#736a5f] hover:bg-[#9A6530] hover:text-white border border-[#ded5c6] shadow-xs cursor-pointer'
+                      ? 'cursor-pointer border border-[#4a423b] bg-[#2d2824] text-[#ded5c6] hover:bg-[#9A6530] hover:text-white'
+                      : 'cursor-pointer border border-[#ded5c6] bg-white text-[#736a5f] shadow-xs hover:bg-[#9A6530] hover:text-white'
                 }`}
               >
                 <span>+{prefix}:</span>
@@ -232,15 +300,15 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
           <button
             type="button"
             onClick={() => setIsDarkTheme((prev) => !prev)}
-            className={`inline-flex items-center space-x-1 px-2 py-1 rounded-none border text-xs transition-colors cursor-pointer ${
+            className={`inline-flex cursor-pointer items-center space-x-1 rounded-none border px-2 py-1 text-xs transition-colors ${
               isDarkTheme
-                ? 'bg-[#2d2824] border-[#4a423b] text-[#fbbf24] hover:bg-[#3d3631]'
-                : 'bg-white border-[#ded5c6] text-[#736a5f] hover:text-[#9A6530]'
+                ? 'border-[#4a423b] bg-[#2d2824] text-[#fbbf24] hover:bg-[#3d3631]'
+                : 'border-[#ded5c6] bg-white text-[#736a5f] hover:text-[#9A6530]'
             }`}
             title={isDarkTheme ? t.sparql.themeLightTooltip : t.sparql.themeDarkTooltip}
           >
-            {isDarkTheme ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
-            <span className="text-[10px] hidden sm:inline">
+            {isDarkTheme ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+            <span className="hidden text-[10px] sm:inline">
               {isDarkTheme ? t.sparql.themeLightLabel : t.sparql.themeDarkLabel}
             </span>
           </button>
@@ -249,21 +317,21 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
             type="button"
             onClick={handleCopy}
             disabled={!value.trim()}
-            className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-none border text-xs transition-colors disabled:opacity-40 cursor-pointer ${
+            className={`inline-flex cursor-pointer items-center space-x-1 rounded-none border px-2.5 py-1 text-xs transition-colors disabled:opacity-40 ${
               isDarkTheme
-                ? 'bg-[#2d2824] border-[#4a423b] text-[#ded5c6] hover:text-white hover:border-[#9A6530]'
-                : 'bg-white border-[#ded5c6] text-[#736a5f] hover:text-[#9A6530] hover:border-[#9A6530]'
+                ? 'border-[#4a423b] bg-[#2d2824] text-[#ded5c6] hover:border-[#9A6530] hover:text-white'
+                : 'border-[#ded5c6] bg-white text-[#736a5f] hover:border-[#9A6530] hover:text-[#9A6530]'
             }`}
             title={t.sparql.editorCopy}
           >
             {copied ? (
               <>
-                <Check className="w-3 h-3 text-emerald-500" />
-                <span className="text-emerald-500 font-medium">{t.sparql.editorCopied}</span>
+                <Check className="h-3 w-3 text-emerald-500" />
+                <span className="font-medium text-emerald-500">{t.sparql.editorCopied}</span>
               </>
             ) : (
               <>
-                <Copy className="w-3 h-3" />
+                <Copy className="h-3 w-3" />
                 <span>{t.sparql.editorCopy}</span>
               </>
             )}
@@ -273,30 +341,29 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
             type="button"
             onClick={handleClear}
             disabled={!value.trim()}
-            className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-none border text-xs transition-colors disabled:opacity-40 cursor-pointer ${
+            className={`inline-flex cursor-pointer items-center space-x-1 rounded-none border px-2.5 py-1 text-xs transition-colors disabled:opacity-40 ${
               isDarkTheme
-                ? 'bg-[#2d2824] border-[#4a423b] text-[#ded5c6] hover:text-red-400 hover:border-red-500/50'
-                : 'bg-white border-[#ded5c6] text-[#736a5f] hover:text-red-700 hover:border-red-300'
+                ? 'border-[#4a423b] bg-[#2d2824] text-[#ded5c6] hover:border-red-500/50 hover:text-red-400'
+                : 'border-[#ded5c6] bg-white text-[#736a5f] hover:border-red-300 hover:text-red-700'
             }`}
             title={t.sparql.editorClear}
           >
-            <Trash2 className="w-3 h-3" />
+            <Trash2 className="h-3 w-3" />
             <span>{t.sparql.editorClear}</span>
           </button>
         </div>
       </div>
 
       {/* Zone d'édition avec coloration syntaxique par superposition */}
-      <div className="relative flex flex-1 min-h-[300px] max-h-[520px]">
-        
+      <div className="relative flex max-h-[520px] min-h-[300px] flex-1">
         {/* Gouttière des numéros de ligne */}
         <div
           ref={gutterRef}
           aria-hidden="true"
-          className={`w-11 py-3.5 text-right pr-2.5 select-none font-mono text-xs overflow-hidden leading-6 shrink-0 transition-colors border-r ${
+          className={`w-11 shrink-0 overflow-hidden border-r py-3.5 pr-2.5 text-right font-mono text-xs leading-6 transition-colors select-none ${
             isDarkTheme
-              ? 'bg-[#201d1a] border-[#3b3631] text-[#6b6257]'
-              : 'bg-[#f0eae0] border-[#ded5c6] text-[#a69d90]'
+              ? 'border-[#3b3631] bg-[#201d1a] text-[#6b6257]'
+              : 'border-[#ded5c6] bg-[#f0eae0] text-[#a69d90]'
           }`}
         >
           {lineNumbers.map((num) => (
@@ -307,13 +374,12 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
         </div>
 
         {/* Conteneur superposé (Pre en arrière-plan + Textarea transparent au premier plan) */}
-        <div className="relative flex-1 min-w-0 overflow-hidden">
-          
+        <div className="relative min-w-0 flex-1 overflow-hidden">
           {/* Couche d'affichage colorée en arrière-plan */}
           <pre
             ref={preRef}
             aria-hidden="true"
-            className="absolute inset-0 p-3.5 m-0 font-mono text-xs md:text-sm leading-6 whitespace-pre overflow-hidden pointer-events-none select-none"
+            className="pointer-events-none absolute inset-0 m-0 overflow-hidden p-3.5 font-mono text-xs leading-6 whitespace-pre select-none md:text-sm"
           >
             {tokens.length === 0 ? (
               <span className="text-[#9e9486] italic">{placeholder || t.sparql.queryPlaceholder}</span>
@@ -336,23 +402,20 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
             autoCapitalize="none"
             autoComplete="off"
             autoCorrect="off"
-            placeholder={tokens.length === 0 ? (placeholder || t.sparql.queryPlaceholder) : ''}
-            className={`absolute inset-0 w-full h-full p-3.5 m-0 font-mono text-xs md:text-sm leading-6 whitespace-pre bg-transparent text-transparent resize-none outline-none focus:outline-none overflow-auto scrollbar-thin ${
+            placeholder={tokens.length === 0 ? placeholder || t.sparql.queryPlaceholder : ''}
+            className={`absolute inset-0 m-0 h-full w-full resize-none scrollbar-thin overflow-auto bg-transparent p-3.5 font-mono text-xs leading-6 whitespace-pre text-transparent outline-none focus:outline-none md:text-sm ${
               isDarkTheme
-                ? 'caret-amber-400 selection:bg-amber-400/25 selection:text-transparent placeholder-[#6b6257]'
-                : 'caret-[#9A6530] selection:bg-[#9A6530]/25 selection:text-transparent placeholder-[#9e9486]'
+                ? 'placeholder-[#6b6257] caret-amber-400 selection:bg-amber-400/25 selection:text-transparent'
+                : 'placeholder-[#9e9486] caret-[#9A6530] selection:bg-[#9A6530]/25 selection:text-transparent'
             }`}
           />
         </div>
-
       </div>
 
       {/* Barre d'état inférieure */}
       <div
-        className={`flex items-center justify-between px-3 py-1.5 border-t text-[11px] transition-colors ${
-          isDarkTheme
-            ? 'bg-[#221f1c] border-[#3b3631] text-[#a89d90]'
-            : 'bg-[#f4ede2] border-[#e6dfd3] text-[#736a5f]'
+        className={`flex items-center justify-between border-t px-3 py-1.5 text-[11px] transition-colors ${
+          isDarkTheme ? 'border-[#3b3631] bg-[#221f1c] text-[#a89d90]' : 'border-[#e6dfd3] bg-[#f4ede2] text-[#736a5f]'
         }`}
       >
         <div className="flex items-center space-x-3">
@@ -365,12 +428,8 @@ export const SparqlEditor: React.FC<SparqlEditorProps> = ({
           </span>
         </div>
 
-        <div
-          className={`flex items-center space-x-1 ${
-            isDarkTheme ? 'text-[#8e8579]' : 'text-[#8c8275]'
-          }`}
-        >
-          <Command className="w-3 h-3" />
+        <div className={`flex items-center space-x-1 ${isDarkTheme ? 'text-[#8e8579]' : 'text-[#8c8275]'}`}>
+          <Command className="h-3 w-3" />
           <span>{t.sparql.shortcutHint}</span>
         </div>
       </div>

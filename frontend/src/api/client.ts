@@ -26,7 +26,7 @@ import {
   UpdateSavedQueryInput,
   ThesaurusCollection,
   ConceptCategory,
-  SectionAnnotationsResponse
+  SectionAnnotationsResponse,
 } from '../types'
 import { ApiError } from './errors'
 
@@ -119,10 +119,14 @@ export async function fetchThesaurus(lang = 'en'): Promise<Concept[]> {
 export async function searchConcepts(
   input: string,
   lang = 'en',
-  limit = 60
-): Promise<Array<{ uri: string; label: string; type?: string; category?: ConceptCategory; collection?: string | null }>> {
+  limit = 60,
+): Promise<
+  Array<{ uri: string; label: string; type?: string; category?: ConceptCategory; collection?: string | null }>
+> {
   const params = new URLSearchParams({ input, lang, limit: limit.toString() })
-  return fetchJson<Array<{ uri: string; label: string; type?: string; category?: ConceptCategory; collection?: string | null }>>(`${BASE_URL}/searchConcepts?${params.toString()}`)
+  return fetchJson<
+    Array<{ uri: string; label: string; type?: string; category?: ConceptCategory; collection?: string | null }>
+  >(`${BASE_URL}/searchConcepts?${params.toString()}`)
 }
 
 export async function fetchCollections(lang = 'fr'): Promise<ThesaurusCollection[]> {
@@ -161,7 +165,7 @@ export async function postCustomSearch(payload: CustomSearchParams): Promise<{ s
   return fetchJson<{ sparql: string; tree: SummaryNode[] }>(`${BASE_URL}/customSearch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   })
 }
 
@@ -173,12 +177,12 @@ export type CustomSearchExportFormat = 'json' | 'csv'
  */
 export async function downloadCustomSearch(
   payload: CustomSearchParams,
-  format: CustomSearchExportFormat
+  format: CustomSearchExportFormat,
 ): Promise<Blob> {
   const res = await fetch(`${BASE_URL}/download-custom-search-${format}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   })
   if (!res.ok) {
     await throwApiError(res)
@@ -197,7 +201,7 @@ export async function createAnnotation(payload: CreateAnnotationInput): Promise<
   return fetchJson<StagedAnnotation>(`${BASE_URL}/annotations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   })
 }
 
@@ -212,7 +216,7 @@ export async function updateAnnotationStatus(id: number, status: string): Promis
   return fetchJson<StagedAnnotation>(`${BASE_URL}/annotations/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status }),
   })
 }
 
@@ -223,7 +227,7 @@ export async function fetchSectionAnnotations(sectionUri: string, lang = 'en'): 
 
 export async function deleteAnnotation(id: number): Promise<{ message: string; id: number }> {
   return fetchJson<{ message: string; id: number }>(`${BASE_URL}/annotations/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
@@ -231,7 +235,7 @@ export async function createThesaurusProposal(payload: CreateThesaurusProposalIn
   return fetchJson<ThesaurusProposal>(`${BASE_URL}/thesaurus/proposals`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   })
 }
 
@@ -247,13 +251,13 @@ export async function updateThesaurusProposalStatus(id: number, status: string):
   return fetchJson<ThesaurusProposal>(`${BASE_URL}/thesaurus/proposals/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status }),
   })
 }
 
 export async function deleteThesaurusProposal(id: number): Promise<{ success: boolean; deleted_id: number }> {
   return fetchJson<{ success: boolean; deleted_id: number }>(`${BASE_URL}/thesaurus/proposals/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
@@ -261,7 +265,7 @@ export async function executeSparqlQuery(query: string): Promise<SparqlQueryResu
   return fetchJson<SparqlQueryResult>(`${BASE_URL}/sparql/execute`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query })
+    body: JSON.stringify({ query }),
   })
 }
 
@@ -283,7 +287,7 @@ export async function createSavedQuery(payload: CreateSavedQueryInput): Promise<
   return fetchJson<SavedSparqlQuery>(`${BASE_URL}/queries`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   })
 }
 
@@ -291,19 +295,18 @@ export async function updateSavedQuery(id: number, payload: UpdateSavedQueryInpu
   return fetchJson<SavedSparqlQuery>(`${BASE_URL}/queries/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   })
 }
 
 export async function deleteSavedQuery(id: number): Promise<{ message: string; id: number }> {
   return fetchJson<{ message: string; id: number }>(`${BASE_URL}/queries/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
 export async function executeSavedQueryById(id: number, useSpo = false): Promise<any> {
   return fetchJson<any>(`${BASE_URL}/queries/${id}/execute?use_spo=${useSpo}`, {
-    method: 'POST'
+    method: 'POST',
   })
 }
-

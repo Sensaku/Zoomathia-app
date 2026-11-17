@@ -6,13 +6,9 @@ import {
   updateThesaurusProposalStatus,
   deleteThesaurusProposal,
   fetchThesaurusAutocomplete,
-  BASE_URL
+  BASE_URL,
 } from '../api/client'
-import {
-  ThesaurusProposal,
-  CreateThesaurusProposalInput,
-  OpenThesoAutocompleteItem
-} from '../types'
+import { ThesaurusProposal, CreateThesaurusProposalInput, OpenThesoAutocompleteItem } from '../types'
 import {
   PlusCircle,
   Download,
@@ -30,7 +26,7 @@ import {
   User,
   X,
   BookOpen,
-  Sparkles
+  Sparkles,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
 
@@ -105,15 +101,14 @@ export const ThesaurusProposals: React.FC = () => {
     },
     onError: (err: any) => {
       setFormError(err?.message || "Erreur lors de l'enregistrement de la proposition.")
-    }
+    },
   })
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      updateThesaurusProposalStatus(id, status),
+    mutationFn: ({ id, status }: { id: number; status: string }) => updateThesaurusProposalStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['thesaurusProposals'] })
-    }
+    },
   })
 
   const deleteMutation = useMutation({
@@ -121,12 +116,15 @@ export const ThesaurusProposals: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['thesaurusProposals'] })
       setDeleteConfirmId(null)
-    }
+    },
   })
 
   // Gestion des tags de synonymes
   const handleAddAltLabel = (value: string) => {
-    const parts = value.split(',').map((p) => p.trim()).filter(Boolean)
+    const parts = value
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
     if (parts.length === 0) return
     setAltLabels((prev) => {
       const next = [...prev]
@@ -162,7 +160,10 @@ export const ThesaurusProposals: React.FC = () => {
 
     const finalAltLabels = [...altLabels]
     if (altLabelInput.trim()) {
-      const parts = altLabelInput.split(',').map((p) => p.trim()).filter(Boolean)
+      const parts = altLabelInput
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean)
       for (const p of parts) {
         if (!finalAltLabels.some((item) => item.toLowerCase() === p.toLowerCase())) {
           finalAltLabels.push(p)
@@ -177,7 +178,7 @@ export const ThesaurusProposals: React.FC = () => {
       broader_concept_uri: selectedBroader?.uri,
       broader_concept_label: selectedBroader?.label,
       definition: definition.trim() || undefined,
-      contributor_name: contributorName.trim() || 'Chercheur anonyme'
+      contributor_name: contributorName.trim() || 'Chercheur anonyme',
     })
   }
 
@@ -223,168 +224,173 @@ export const ThesaurusProposals: React.FC = () => {
   const getLanguageBadge = (lang: string) => {
     switch (lang.toLowerCase()) {
       case 'fr':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">FR</span>
+        return (
+          <span className="rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+            FR
+          </span>
+        )
       case 'en':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">EN</span>
+        return (
+          <span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+            EN
+          </span>
+        )
       case 'grc':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">GRC (Grec)</span>
+        return (
+          <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+            GRC (Grec)
+          </span>
+        )
       case 'la':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">LA (Latin)</span>
+        return (
+          <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+            LA (Latin)
+          </span>
+        )
       default:
-        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#f4ede2] text-[#736a5f] border border-[#e6dfd3] uppercase">{lang}</span>
+        return (
+          <span className="rounded border border-[#e6dfd3] bg-[#f4ede2] px-2 py-0.5 text-[11px] font-semibold text-[#736a5f] uppercase">
+            {lang}
+          </span>
+        )
     }
   }
 
   const getStatusBadge = (status: string) => {
     if (status === 'Validé') {
       return (
-        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium">
-          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+        <span className="inline-flex items-center space-x-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+          <CheckCircle2 className="h-3 w-3 text-emerald-600" />
           <span>{t.thesaurus.statusValidated}</span>
         </span>
       )
     }
     if (status === 'Rejeté') {
       return (
-        <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-xs font-medium">
-          <XCircle className="w-3 h-3 text-rose-600" />
+        <span className="inline-flex items-center space-x-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700">
+          <XCircle className="h-3 w-3 text-rose-600" />
           <span>{t.thesaurus.statusRejected}</span>
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-medium">
-        <Clock className="w-3 h-3 text-amber-600" />
+      <span className="inline-flex items-center space-x-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+        <Clock className="h-3 w-3 text-amber-600" />
         <span>{t.thesaurus.statusPending}</span>
       </span>
     )
   }
 
   return (
-    <div className="py-6 space-y-6 max-w-7xl mx-auto">
-      
+    <div className="mx-auto max-w-7xl space-y-6 py-6">
       {/* 1. Hero Banner avec métriques et accès thésaurus */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#2c2724] via-[#3a322c] to-[#473a30] text-white rounded-none p-6 md:p-8 shadow-md border border-[#524438]">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#9A6530]/30 border border-[#c49257]/40 text-[#f3d9b8] text-xs font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-[#e5aa66]" />
+      <div className="relative overflow-hidden rounded-none border border-[#524438] bg-gradient-to-r from-[#2c2724] via-[#3a322c] to-[#473a30] p-6 text-white shadow-md md:p-8">
+        <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
+          <div className="max-w-2xl space-y-2">
+            <div className="inline-flex items-center space-x-2 rounded-full border border-[#c49257]/40 bg-[#9A6530]/30 px-3 py-1 text-xs font-medium text-[#f3d9b8]">
+              <Sparkles className="h-3.5 w-3.5 text-[#e5aa66]" />
               <span>Enrichissement Sémantique SKOS</span>
             </div>
-            <h1 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-[#fdfcf9]">
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-[#fdfcf9] md:text-3xl lg:text-4xl">
               {t.thesaurus.title}
             </h1>
-            <p className="text-sm md:text-base text-[#d8cfc4] leading-relaxed">
-              {t.thesaurus.subtitle}
-            </p>
+            <p className="text-sm leading-relaxed text-[#d8cfc4] md:text-base">{t.thesaurus.subtitle}</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          <div className="flex shrink-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             {/* Lien officiel OpenTheso */}
             <a
               href="https://opentheso.huma-num.fr/opentheso/?idt=th310"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-none bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium backdrop-blur-sm transition-all shadow-sm"
+              className="inline-flex items-center justify-center space-x-2 rounded-none border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-medium text-white shadow-sm backdrop-blur-sm transition-all hover:bg-white/20"
             >
-              <BookOpen className="w-4 h-4 text-[#e5aa66]" />
+              <BookOpen className="h-4 w-4 text-[#e5aa66]" />
               <span>{t.thesaurus.openInTheZoo}</span>
-              <ExternalLink className="w-3 h-3 opacity-70" />
+              <ExternalLink className="h-3 w-3 opacity-70" />
             </a>
 
             {/* Export SKOS Turtle */}
             <a
               href={`${BASE_URL}/thesaurus/proposals/export-ttl`}
               download
-              className="inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-none bg-[#9A6530] hover:bg-[#835222] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+              className="inline-flex cursor-pointer items-center justify-center space-x-2 rounded-none bg-[#9A6530] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#835222]"
             >
-              <Download className="w-4 h-4" />
+              <Download className="h-4 w-4" />
               <span>{t.thesaurus.exportTtlBtn}</span>
             </a>
           </div>
-
         </div>
 
         {/* Métriques globales */}
-        <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-          <div className="bg-white/5 backdrop-blur-xs rounded-none p-3 border border-white/10">
+        <div className="relative z-10 mt-6 grid grid-cols-2 gap-3 border-t border-white/10 pt-6 sm:grid-cols-4">
+          <div className="rounded-none border border-white/10 bg-white/5 p-3 backdrop-blur-xs">
             <span className="block text-[11px] text-[#beb4a8]">{t.thesaurus.statTotal}</span>
-            <span className="text-xl font-bold font-serif text-white">{stats.total}</span>
+            <span className="font-serif text-xl font-bold text-white">{stats.total}</span>
           </div>
-          <div className="bg-amber-500/10 backdrop-blur-xs rounded-none p-3 border border-amber-500/20">
+          <div className="rounded-none border border-amber-500/20 bg-amber-500/10 p-3 backdrop-blur-xs">
             <span className="block text-[11px] text-amber-200">{t.thesaurus.statPending}</span>
-            <span className="text-xl font-bold font-serif text-amber-300">{stats.pending}</span>
+            <span className="font-serif text-xl font-bold text-amber-300">{stats.pending}</span>
           </div>
-          <div className="bg-emerald-500/10 backdrop-blur-xs rounded-none p-3 border border-emerald-500/20">
+          <div className="rounded-none border border-emerald-500/20 bg-emerald-500/10 p-3 backdrop-blur-xs">
             <span className="block text-[11px] text-emerald-200">{t.thesaurus.statValidated}</span>
-            <span className="text-xl font-bold font-serif text-emerald-300">{stats.validated}</span>
+            <span className="font-serif text-xl font-bold text-emerald-300">{stats.validated}</span>
           </div>
-          <div className="bg-rose-500/10 backdrop-blur-xs rounded-none p-3 border border-rose-500/20">
+          <div className="rounded-none border border-rose-500/20 bg-rose-500/10 p-3 backdrop-blur-xs">
             <span className="block text-[11px] text-rose-200">{t.thesaurus.filterRejected}</span>
-            <span className="text-xl font-bold font-serif text-rose-300">{stats.rejected}</span>
+            <span className="font-serif text-xl font-bold text-rose-300">{stats.rejected}</span>
           </div>
         </div>
-
       </div>
 
       {/* 2. Colonnes principales : Formulaire (5 cols) & Registre (7 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         {/* Colonne 1 : Formulaire de proposition de concept */}
-        <div className="lg:col-span-5 bg-white p-6 rounded-none border border-[#e6dfd3] shadow-xs space-y-6">
-          
+        <div className="space-y-6 rounded-none border border-[#e6dfd3] bg-white p-6 shadow-xs lg:col-span-5">
           <div className="border-b border-[#f0eae0] pb-4">
-            <h2 className="font-serif font-bold text-lg text-[#2c2724] flex items-center space-x-2">
-              <PlusCircle className="w-5 h-5 text-[#9A6530]" />
+            <h2 className="flex items-center space-x-2 font-serif text-lg font-bold text-[#2c2724]">
+              <PlusCircle className="h-5 w-5 text-[#9A6530]" />
               <span>{t.thesaurus.formTitle}</span>
             </h2>
-            <p className="text-xs text-[#736a5f] mt-1">
-              {t.thesaurus.formSubtitle}
-            </p>
+            <p className="mt-1 text-xs text-[#736a5f]">{t.thesaurus.formSubtitle}</p>
           </div>
 
           {formError && (
-            <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-none text-xs flex items-start space-x-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="flex items-start space-x-2.5 rounded-none border border-red-200 bg-red-50 p-3.5 text-xs text-red-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span className="leading-relaxed">{formError}</span>
             </div>
           )}
 
           {successNotice && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-none text-xs flex items-start space-x-2.5">
-              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="flex items-start space-x-2.5 rounded-none border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
               <span className="leading-relaxed">{successNotice}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-            
             {/* Section 1 : Terme préférentiel & Langue */}
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-1.5">
-                  <label className="block font-semibold text-[#4a4238]">
-                    {t.thesaurus.prefLabel}
-                  </label>
+                  <label className="block font-semibold text-[#4a4238]">{t.thesaurus.prefLabel}</label>
                   <input
                     type="text"
                     required
                     placeholder={t.thesaurus.prefLabelPlaceholder}
                     value={prefLabel}
                     onChange={(e) => setPrefLabel(e.target.value)}
-                    className="w-full p-2.5 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-sm text-[#2c2724] placeholder:text-[#9e9486] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:border-[#9A6530] focus:outline-none transition-all"
+                    className="w-full rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-2.5 text-sm text-[#2c2724] transition-all placeholder:text-[#9e9486] focus:border-[#9A6530] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-[#4a4238]">
-                    {t.thesaurus.languageLabel}
-                  </label>
+                  <label className="block font-semibold text-[#4a4238]">{t.thesaurus.languageLabel}</label>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#cfc5b4] bg-[#faf9f6] text-sm text-[#2c2724] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:border-[#9A6530] focus:outline-none font-medium transition-all"
+                    className="w-full rounded-xl border border-[#cfc5b4] bg-[#faf9f6] p-2.5 text-sm font-medium text-[#2c2724] transition-all focus:border-[#9A6530] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                   >
                     <option value="fr">Français (fr)</option>
                     <option value="en">English (en)</option>
@@ -398,30 +404,28 @@ export const ThesaurusProposals: React.FC = () => {
             {/* Section 2 : Variantes / Synonymes (Gestion par tags interactifs) */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="font-semibold text-[#4a4238]">
-                  {t.thesaurus.altLabels}
-                </label>
+                <label className="font-semibold text-[#4a4238]">{t.thesaurus.altLabels}</label>
                 <span className="text-[10px] text-[#8c8275]">
                   {altLabels.length} {altLabels.length > 1 ? 'synonymes' : 'synonyme'}
                 </span>
               </div>
 
-              <div className="p-2 border border-[#cfc5b4] bg-[#faf9f6] rounded-none focus-within:bg-white focus-within:ring-2 focus-within:ring-[#9A6530] focus-within:border-[#9A6530] transition-all">
-                <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+              <div className="rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-2 transition-all focus-within:border-[#9A6530] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#9A6530]">
+                <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                   {altLabels.map((tag, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-none text-xs bg-[#f2ecdf] text-[#5c4a38] border border-[#e0d3be] font-medium"
+                      className="inline-flex items-center space-x-1 rounded-none border border-[#e0d3be] bg-[#f2ecdf] px-2.5 py-1 text-xs font-medium text-[#5c4a38]"
                     >
-                      <Tag className="w-2.5 h-2.5 text-[#9A6530]" />
+                      <Tag className="h-2.5 w-2.5 text-[#9A6530]" />
                       <span>{tag}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveAltLabel(idx)}
-                        className="p-0.5 hover:bg-[#dfd4c3] rounded-none text-[#8c7b6c] hover:text-[#423326] transition-colors cursor-pointer"
+                        className="cursor-pointer rounded-none p-0.5 text-[#8c7b6c] transition-colors hover:bg-[#dfd4c3] hover:text-[#423326]"
                         title={t.thesaurus.removeBroader}
                       >
-                        <X className="w-3 h-3" />
+                        <X className="h-3 w-3" />
                       </button>
                     </span>
                   ))}
@@ -434,41 +438,37 @@ export const ThesaurusProposals: React.FC = () => {
                     value={altLabelInput}
                     onChange={(e) => setAltLabelInput(e.target.value)}
                     onKeyDown={handleAltKeyDown}
-                    className="w-full p-1 bg-transparent text-xs text-[#2c2724] placeholder:text-[#9e9486] focus:outline-none"
+                    className="w-full bg-transparent p-1 text-xs text-[#2c2724] placeholder:text-[#9e9486] focus:outline-none"
                   />
                   {altLabelInput.trim() && (
                     <button
                       type="button"
                       onClick={() => handleAddAltLabel(altLabelInput)}
-                      className="px-2 py-1 bg-[#9A6530] text-white rounded-none text-[11px] font-medium hover:bg-[#825424] cursor-pointer"
+                      className="cursor-pointer rounded-none bg-[#9A6530] px-2 py-1 text-[11px] font-medium text-white hover:bg-[#825424]"
                     >
                       Ajouter
                     </button>
                   )}
                 </div>
               </div>
-              <p className="text-[10px] text-[#8c8275]">
-                {t.thesaurus.tagAddHelp}
-              </p>
+              <p className="text-[10px] text-[#8c8275]">{t.thesaurus.tagAddHelp}</p>
             </div>
 
             {/* Section 3 : Concept parent (skos:broader) OpenTheso */}
             <div className="space-y-1.5">
-              <label className="block font-semibold text-[#4a4238]">
-                {t.thesaurus.broaderLabel}
-              </label>
+              <label className="block font-semibold text-[#4a4238]">{t.thesaurus.broaderLabel}</label>
 
               {selectedBroader ? (
-                <div className="p-3 bg-[#fbf8f2] border border-[#dfd3be] rounded-none flex items-center justify-between">
-                  <div className="flex items-center space-x-2.5 min-w-0">
-                    <div className="p-1.5 rounded-none bg-[#9A6530]/10 text-[#9A6530]">
-                      <Layers className="w-4 h-4" />
+                <div className="flex items-center justify-between rounded-none border border-[#dfd3be] bg-[#fbf8f2] p-3">
+                  <div className="flex min-w-0 items-center space-x-2.5">
+                    <div className="rounded-none bg-[#9A6530]/10 p-1.5 text-[#9A6530]">
+                      <Layers className="h-4 w-4" />
                     </div>
                     <div className="truncate">
-                      <strong className="block text-xs text-[#2c2724] font-medium truncate">
+                      <strong className="block truncate text-xs font-medium text-[#2c2724]">
                         {selectedBroader.label}
                       </strong>
-                      <span className="text-[10px] text-[#8c8275] font-mono">
+                      <span className="font-mono text-[10px] text-[#8c8275]">
                         TheZoo · {selectedBroader.identifier}
                       </span>
                     </div>
@@ -480,7 +480,7 @@ export const ThesaurusProposals: React.FC = () => {
                       setSelectedBroader(null)
                       setBroaderSearch('')
                     }}
-                    className="px-2 py-1 rounded-none text-[11px] text-red-600 hover:bg-red-50 font-medium transition-colors cursor-pointer"
+                    className="cursor-pointer rounded-none px-2 py-1 text-[11px] font-medium text-red-600 transition-colors hover:bg-red-50"
                   >
                     {t.thesaurus.removeBroader}
                   </button>
@@ -492,15 +492,15 @@ export const ThesaurusProposals: React.FC = () => {
                     placeholder={t.thesaurus.broaderPlaceholder}
                     value={broaderSearch}
                     onChange={(e) => setBroaderSearch(e.target.value)}
-                    className="w-full p-2.5 pl-8 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-sm text-[#2c2724] placeholder:text-[#9e9486] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:border-[#9A6530] focus:outline-none transition-all"
+                    className="w-full rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-2.5 pl-8 text-sm text-[#2c2724] transition-all placeholder:text-[#9e9486] focus:border-[#9A6530] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                   />
-                  <Search className="w-4 h-4 text-[#8c8275] absolute left-2.5 top-3" />
+                  <Search className="absolute top-3 left-2.5 h-4 w-4 text-[#8c8275]" />
                   {isSearchingBroader && (
-                    <Loader2 className="w-4 h-4 text-[#9A6530] absolute right-3 top-3 animate-spin" />
+                    <Loader2 className="absolute top-3 right-3 h-4 w-4 animate-spin text-[#9A6530]" />
                   )}
 
                   {broaderSuggestions.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 max-h-48 overflow-y-auto border border-[#ded5c6] rounded-none bg-white shadow-lg divide-y divide-[#f4ede2]">
+                    <div className="absolute z-20 mt-1 max-h-48 w-full divide-y divide-[#f4ede2] overflow-y-auto rounded-none border border-[#ded5c6] bg-white shadow-lg">
                       {broaderSuggestions.map((item) => (
                         <button
                           key={item.uri}
@@ -510,10 +510,10 @@ export const ThesaurusProposals: React.FC = () => {
                             setBroaderSearch('')
                             setBroaderSuggestions([])
                           }}
-                          className="w-full text-left p-2.5 hover:bg-[#faf7f2] flex items-center justify-between text-xs transition-colors cursor-pointer"
+                          className="flex w-full cursor-pointer items-center justify-between p-2.5 text-left text-xs transition-colors hover:bg-[#faf7f2]"
                         >
                           <span className="font-semibold text-[#2c2724]">{item.label}</span>
-                          <span className="text-[10px] text-[#8c8275] font-mono truncate max-w-[140px] ml-2">
+                          <span className="ml-2 max-w-[140px] truncate font-mono text-[10px] text-[#8c8275]">
                             {item.identifier}
                           </span>
                         </button>
@@ -526,31 +526,27 @@ export const ThesaurusProposals: React.FC = () => {
 
             {/* Section 4 : Définition ou contexte zoologique */}
             <div className="space-y-1.5">
-              <label className="block font-semibold text-[#4a4238]">
-                {t.thesaurus.definition}
-              </label>
+              <label className="block font-semibold text-[#4a4238]">{t.thesaurus.definition}</label>
               <textarea
                 rows={3}
                 placeholder={t.thesaurus.definitionPlaceholder}
                 value={definition}
                 onChange={(e) => setDefinition(e.target.value)}
-                className="w-full p-2.5 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-sm text-[#2c2724] placeholder:text-[#9e9486] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:border-[#9A6530] focus:outline-none transition-all"
+                className="w-full rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-2.5 text-sm text-[#2c2724] transition-all placeholder:text-[#9e9486] focus:border-[#9A6530] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
               />
             </div>
 
             {/* Section 5 : Nom du chercheur */}
             <div className="space-y-1.5">
-              <label className="block font-semibold text-[#4a4238]">
-                {t.thesaurus.contributorName}
-              </label>
+              <label className="block font-semibold text-[#4a4238]">{t.thesaurus.contributorName}</label>
               <div className="relative">
                 <input
                   type="text"
                   value={contributorName}
                   onChange={(e) => setContributorName(e.target.value)}
-                  className="w-full p-2.5 pl-8 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-sm text-[#2c2724] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:border-[#9A6530] focus:outline-none transition-all"
+                  className="w-full rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-2.5 pl-8 text-sm text-[#2c2724] transition-all focus:border-[#9A6530] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                 />
-                <User className="w-4 h-4 text-[#8c8275] absolute left-2.5 top-3" />
+                <User className="absolute top-3 left-2.5 h-4 w-4 text-[#8c8275]" />
               </div>
             </div>
 
@@ -559,36 +555,33 @@ export const ThesaurusProposals: React.FC = () => {
               <button
                 type="submit"
                 disabled={proposalMutation.isPending || !prefLabel.trim()}
-                className="w-full py-3 bg-[#9A6530] hover:bg-[#835222] text-white rounded-none font-semibold text-sm shadow-sm transition-all disabled:opacity-50 inline-flex items-center justify-center space-x-2 cursor-pointer"
+                className="inline-flex w-full cursor-pointer items-center justify-center space-x-2 rounded-none bg-[#9A6530] py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#835222] disabled:opacity-50"
               >
                 {proposalMutation.isPending ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     <span>{t.thesaurus.submitting}</span>
                   </>
                 ) : (
                   <>
-                    <PlusCircle className="w-4 h-4" />
+                    <PlusCircle className="h-4 w-4" />
                     <span>{t.thesaurus.submitBtn}</span>
                   </>
                 )}
               </button>
             </div>
-
           </form>
-
         </div>
 
         {/* Colonne 2 : Registre de révision scientifique & Modération */}
-        <div className="lg:col-span-7 bg-white p-6 rounded-none border border-[#e6dfd3] shadow-xs space-y-5">
-          
+        <div className="space-y-5 rounded-none border border-[#e6dfd3] bg-white p-6 shadow-xs lg:col-span-7">
           {/* En-tête de registre & filtres */}
-          <div className="space-y-3 pb-3 border-b border-[#f0eae0]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-3 border-b border-[#f0eae0] pb-3">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
-                <h2 className="font-serif font-bold text-lg text-[#2c2724] flex items-center space-x-2">
+                <h2 className="flex items-center space-x-2 font-serif text-lg font-bold text-[#2c2724]">
                   <span>{t.thesaurus.proposalsTitle}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-[#f4ede2] text-[#6e6356] font-mono font-bold">
+                  <span className="rounded-full bg-[#f4ede2] px-2 py-0.5 font-mono text-xs font-bold text-[#6e6356]">
                     {filteredProposals.length}
                   </span>
                 </h2>
@@ -604,16 +597,16 @@ export const ThesaurusProposals: React.FC = () => {
                   placeholder={t.thesaurus.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-xs text-[#2c2724] placeholder:text-[#9e9486] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none transition-all"
+                  className="w-full rounded-none border border-[#cfc5b4] bg-[#faf9f6] py-1.5 pr-3 pl-8 text-xs text-[#2c2724] transition-all placeholder:text-[#9e9486] focus:bg-white focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                 />
-                <Search className="w-3.5 h-3.5 text-[#8c8275] absolute left-2.5 top-2.5" />
+                <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-[#8c8275]" />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="p-1 text-[#8c8275] hover:text-[#2c2724] absolute right-1.5 top-1.5 cursor-pointer"
+                    className="absolute top-1.5 right-1.5 cursor-pointer p-1 text-[#8c8275] hover:text-[#2c2724]"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="h-3 w-3" />
                   </button>
                 )}
               </div>
@@ -624,10 +617,10 @@ export const ThesaurusProposals: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('ALL')}
-                className={`px-3 py-1 rounded-none text-xs font-medium transition-all cursor-pointer ${
+                className={`cursor-pointer rounded-none px-3 py-1 text-xs font-medium transition-all ${
                   statusFilter === 'ALL'
                     ? 'bg-[#2c2724] text-white shadow-2xs'
-                    : 'bg-[#faf8f5] text-[#696156] hover:bg-[#f2ece1] border border-[#e6dfd3]'
+                    : 'border border-[#e6dfd3] bg-[#faf8f5] text-[#696156] hover:bg-[#f2ece1]'
                 }`}
               >
                 {t.thesaurus.filterAll} ({stats.total})
@@ -636,10 +629,10 @@ export const ThesaurusProposals: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('En attente de révision')}
-                className={`px-3 py-1 rounded-none text-xs font-medium transition-all cursor-pointer ${
+                className={`cursor-pointer rounded-none px-3 py-1 text-xs font-medium transition-all ${
                   statusFilter === 'En attente de révision'
                     ? 'bg-amber-700 text-white shadow-2xs'
-                    : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                    : 'border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
                 }`}
               >
                 {t.thesaurus.filterPending} ({stats.pending})
@@ -648,10 +641,10 @@ export const ThesaurusProposals: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('Validé')}
-                className={`px-3 py-1 rounded-none text-xs font-medium transition-all cursor-pointer ${
+                className={`cursor-pointer rounded-none px-3 py-1 text-xs font-medium transition-all ${
                   statusFilter === 'Validé'
                     ? 'bg-emerald-700 text-white shadow-2xs'
-                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                    : 'border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
                 }`}
               >
                 {t.thesaurus.filterValidated} ({stats.validated})
@@ -660,30 +653,27 @@ export const ThesaurusProposals: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('Rejeté')}
-                className={`px-3 py-1 rounded-none text-xs font-medium transition-all cursor-pointer ${
+                className={`cursor-pointer rounded-none px-3 py-1 text-xs font-medium transition-all ${
                   statusFilter === 'Rejeté'
                     ? 'bg-rose-700 text-white shadow-2xs'
-                    : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
+                    : 'border border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100'
                 }`}
               >
                 {t.thesaurus.filterRejected} ({stats.rejected})
               </button>
             </div>
-
           </div>
 
           {/* Corps de la liste */}
           {isProposalsLoading ? (
-            <div className="py-16 flex flex-col items-center justify-center space-y-3">
-              <Loader2 className="w-7 h-7 text-[#9A6530] animate-spin" />
+            <div className="flex flex-col items-center justify-center space-y-3 py-16">
+              <Loader2 className="h-7 w-7 animate-spin text-[#9A6530]" />
               <span className="text-xs text-[#736a5f]">{t.common.loading}</span>
             </div>
           ) : filteredProposals.length === 0 ? (
-            <div className="py-16 px-6 text-center space-y-3 bg-[#faf9f6] rounded-none border border-dashed border-[#dfd6c6]">
-              <Layers className="w-8 h-8 text-[#b8ad9e] mx-auto" />
-              <p className="text-xs text-[#7d7366] max-w-sm mx-auto leading-relaxed">
-                {t.thesaurus.noProposals}
-              </p>
+            <div className="space-y-3 rounded-none border border-dashed border-[#dfd6c6] bg-[#faf9f6] px-6 py-16 text-center">
+              <Layers className="mx-auto h-8 w-8 text-[#b8ad9e]" />
+              <p className="mx-auto max-w-sm text-xs leading-relaxed text-[#7d7366]">{t.thesaurus.noProposals}</p>
             </div>
           ) : (
             <div className="space-y-3.5">
@@ -693,15 +683,13 @@ export const ThesaurusProposals: React.FC = () => {
                 return (
                   <div
                     key={prop.id}
-                    className="p-4 rounded-none border border-[#e8dfd3] bg-[#fffefe] hover:border-[#cfbeaa] transition-all shadow-2xs space-y-3"
+                    className="space-y-3 rounded-none border border-[#e8dfd3] bg-[#fffefe] p-4 shadow-2xs transition-all hover:border-[#cfbeaa]"
                   >
                     {/* Entête fiche concept */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
-                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                          <strong className="text-base font-serif font-bold text-[#2c2724]">
-                            {prop.pref_label}
-                          </strong>
+                        <div className="flex flex-wrap items-center space-x-2 gap-y-1">
+                          <strong className="font-serif text-base font-bold text-[#2c2724]">{prop.pref_label}</strong>
                           {getLanguageBadge(prop.language)}
                         </div>
                         <div className="flex items-center space-x-2 text-[11px] text-[#8c8275]">
@@ -711,21 +699,17 @@ export const ThesaurusProposals: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="shrink-0">
-                        {getStatusBadge(prop.status)}
-                      </div>
+                      <div className="shrink-0">{getStatusBadge(prop.status)}</div>
                     </div>
 
                     {/* Synonymes / altLabel */}
                     {prop.alt_labels && prop.alt_labels.length > 0 && (
-                      <div className="flex items-center flex-wrap gap-1.5 text-xs pt-0.5">
-                        <span className="text-[#8c8275] text-[11px] font-medium mr-1">
-                          Synonymes :
-                        </span>
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs">
+                        <span className="mr-1 text-[11px] font-medium text-[#8c8275]">Synonymes :</span>
                         {prop.alt_labels.map((alt, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-0.5 rounded-none bg-[#faf7f2] border border-[#e6decf] text-[#594c3e] text-[11px]"
+                            className="rounded-none border border-[#e6decf] bg-[#faf7f2] px-2 py-0.5 text-[11px] text-[#594c3e]"
                           >
                             {alt}
                           </span>
@@ -735,22 +719,25 @@ export const ThesaurusProposals: React.FC = () => {
 
                     {/* Rattachement hiérarchique (skos:broader) */}
                     {(prop.broader_concept_label || prop.broader_concept_uri) && (
-                      <div className="flex items-center space-x-2 text-xs bg-[#fbf9f5] px-3 py-1.5 rounded-none border border-[#eee6da]">
-                        <Layers className="w-3.5 h-3.5 text-[#9A6530] shrink-0" />
+                      <div className="flex items-center space-x-2 rounded-none border border-[#eee6da] bg-[#fbf9f5] px-3 py-1.5 text-xs">
+                        <Layers className="h-3.5 w-3.5 shrink-0 text-[#9A6530]" />
                         <span className="font-semibold text-[#8c8275]">{t.thesaurus.hierarchy} :</span>
                         <strong className="font-serif font-bold text-[#2c2724]">
-                          {prop.broader_concept_label || (prop.broader_concept_uri?.includes('107399') ? 'Canis (Chien)' : 'Concept TheZoo')}
+                          {prop.broader_concept_label ||
+                            (prop.broader_concept_uri?.includes('107399') ? 'Canis (Chien)' : 'Concept TheZoo')}
                         </strong>
                         {prop.broader_concept_uri && (
                           <a
                             href={prop.broader_concept_uri}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-[#9A6530] hover:underline inline-flex items-center space-x-1 font-medium ml-1.5"
+                            className="ml-1.5 inline-flex items-center space-x-1 font-medium text-[#9A6530] hover:underline"
                             title={t.thesaurus.openInTheZoo}
                           >
-                            <span className="text-[10px] font-mono uppercase bg-[#f0eae0] px-1.5 py-0.5 rounded-none text-[#784d1e]">Notice</span>
-                            <ExternalLink className="w-3 h-3 shrink-0" />
+                            <span className="rounded-none bg-[#f0eae0] px-1.5 py-0.5 font-mono text-[10px] text-[#784d1e] uppercase">
+                              Notice
+                            </span>
+                            <ExternalLink className="h-3 w-3 shrink-0" />
                           </a>
                         )}
                       </div>
@@ -758,31 +745,31 @@ export const ThesaurusProposals: React.FC = () => {
 
                     {/* Définition scientifique / Justification */}
                     {prop.definition && (
-                      <div className="p-3 bg-[#faf9f6] rounded-none border-l-3 border-[#9A6530] border border-[#f0eae0] text-xs text-[#52493f] italic leading-relaxed">
+                      <div className="rounded-none border border-l-3 border-[#9A6530] border-[#f0eae0] bg-[#faf9f6] p-3 text-xs leading-relaxed text-[#52493f] italic">
                         « {prop.definition} »
                       </div>
                     )}
 
                     {/* Pied de carte : Auteur et Actions d'arbitrage */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-[#f4ede2] text-xs">
-                      
+                    <div className="flex flex-col justify-between gap-2.5 border-t border-[#f4ede2] pt-2 text-xs sm:flex-row sm:items-center">
                       <div className="flex items-center space-x-1.5 text-[#736a5f]">
-                        <User className="w-3.5 h-3.5 text-[#9A6530]" />
-                        <span>Par : <strong className="text-[#3c342c]">{prop.contributor_name}</strong></span>
+                        <User className="h-3.5 w-3.5 text-[#9A6530]" />
+                        <span>
+                          Par : <strong className="text-[#3c342c]">{prop.contributor_name}</strong>
+                        </span>
                       </div>
 
                       {/* Barre d'action / Arbitrage */}
-                      <div className="flex items-center space-x-2 shrink-0 self-end sm:self-auto">
-                        
+                      <div className="flex shrink-0 items-center space-x-2 self-end sm:self-auto">
                         {/* Valider la proposition */}
                         {prop.status !== 'Validé' && (
                           <button
                             type="button"
                             disabled={statusMutation.isPending}
                             onClick={() => statusMutation.mutate({ id: prop.id, status: 'Validé' })}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-none text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+                            className="inline-flex cursor-pointer items-center space-x-1 rounded-none border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
                           >
-                            <Check className="w-3 h-3 text-emerald-600" />
+                            <Check className="h-3 w-3 text-emerald-600" />
                             <span>{t.thesaurus.actionValidate}</span>
                           </button>
                         )}
@@ -793,9 +780,9 @@ export const ThesaurusProposals: React.FC = () => {
                             type="button"
                             disabled={statusMutation.isPending}
                             onClick={() => statusMutation.mutate({ id: prop.id, status: 'Rejeté' })}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-none text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                            className="inline-flex cursor-pointer items-center space-x-1 rounded-none border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-100"
                           >
-                            <X className="w-3 h-3 text-rose-600" />
+                            <X className="h-3 w-3 text-rose-600" />
                             <span>{t.thesaurus.actionReject}</span>
                           </button>
                         )}
@@ -806,27 +793,27 @@ export const ThesaurusProposals: React.FC = () => {
                             type="button"
                             disabled={statusMutation.isPending}
                             onClick={() => statusMutation.mutate({ id: prop.id, status: 'En attente de révision' })}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-none text-xs font-medium text-[#736a5f] bg-[#f7f3eb] hover:bg-[#eee7dc] border border-[#ded5c6] transition-colors cursor-pointer"
+                            className="inline-flex cursor-pointer items-center space-x-1 rounded-none border border-[#ded5c6] bg-[#f7f3eb] px-2.5 py-1 text-xs font-medium text-[#736a5f] transition-colors hover:bg-[#eee7dc]"
                           >
-                            <Clock className="w-3 h-3 text-[#9A6530]" />
+                            <Clock className="h-3 w-3 text-[#9A6530]" />
                             <span>Remettre en attente</span>
                           </button>
                         )}
 
                         {/* Suppression avec confirmation */}
                         {isConfirmingDelete ? (
-                          <div className="inline-flex items-center space-x-1 p-1 bg-red-50 border border-red-200 rounded-none">
+                          <div className="inline-flex items-center space-x-1 rounded-none border border-red-200 bg-red-50 p-1">
                             <button
                               type="button"
                               onClick={() => deleteMutation.mutate(prop.id)}
-                              className="px-2 py-0.5 bg-red-600 text-white rounded-none text-[11px] font-semibold hover:bg-red-700 cursor-pointer"
+                              className="cursor-pointer rounded-none bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-red-700"
                             >
                               Confirmer
                             </button>
                             <button
                               type="button"
                               onClick={() => setDeleteConfirmId(null)}
-                              className="px-1.5 py-0.5 text-gray-600 hover:text-gray-900 text-[11px] cursor-pointer"
+                              className="cursor-pointer px-1.5 py-0.5 text-[11px] text-gray-600 hover:text-gray-900"
                             >
                               Annuler
                             </button>
@@ -835,27 +822,21 @@ export const ThesaurusProposals: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setDeleteConfirmId(prop.id)}
-                            className="p-1.5 text-[#9e9486] hover:text-red-600 hover:bg-red-50 rounded-none transition-colors cursor-pointer"
+                            className="cursor-pointer rounded-none p-1.5 text-[#9e9486] transition-colors hover:bg-red-50 hover:text-red-600"
                             title={t.thesaurus.actionDelete}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         )}
-
                       </div>
-
                     </div>
-
                   </div>
                 )
               })}
             </div>
           )}
-
         </div>
-
       </div>
-
     </div>
   )
 }

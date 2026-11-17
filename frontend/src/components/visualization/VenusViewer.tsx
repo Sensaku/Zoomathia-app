@@ -1,24 +1,15 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react'
 import '@wimmics/venus'
-import {
-  Maximize2,
-  Minimize2,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Search,
-  Info,
-  SlidersHorizontal
-} from 'lucide-react'
+import { Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, Search, Info, SlidersHorizontal } from 'lucide-react'
 import { useI18n } from '../../i18n'
 
 interface VenusViewerProps {
-  spoData: any;
-  title?: string;
-  nodeLimit?: number;
-  onNodeLimitChange?: (limit: number) => void;
-  onSelectEntity?: (entityName: string) => void;
-  selectedEntityName?: string | null;
+  spoData: any
+  title?: string
+  nodeLimit?: number
+  onNodeLimitChange?: (limit: number) => void
+  onSelectEntity?: (entityName: string) => void
+  selectedEntityName?: string | null
 }
 
 /**
@@ -66,7 +57,7 @@ const VenusViewerComponent: React.FC<VenusViewerProps> = ({
     return {
       totalSources: Object.keys(sourceCounts).length,
       field: sourceField,
-      sourceCounts
+      sourceCounts,
     }
   }, [spoData])
 
@@ -114,18 +105,18 @@ const VenusViewerComponent: React.FC<VenusViewerProps> = ({
         const filteredResult = {
           head: spoData.head,
           results: {
-            bindings: filteredBindings
-          }
+            bindings: filteredBindings,
+          },
         }
 
         element.sparqlResult = filteredResult
         element.encoding = {
           nodes: {
             source: { field: sourceField, color: { value: '#2563eb' } },
-            target: { field: targetField, color: { value: '#9A6530' } }
+            target: { field: targetField, color: { value: '#9A6530' } },
           },
           links: { color: { value: '#cbd5e1' } },
-          interactions: { drag: true, zoom: true, tooltip: true }
+          interactions: { drag: true, zoom: true, tooltip: true },
         }
 
         // Interception du callback natif du renderer VENUS sans re-déclencher le cycle
@@ -214,7 +205,6 @@ const VenusViewerComponent: React.FC<VenusViewerProps> = ({
             }
           }
         }, 200)
-
       } catch (err: any) {
         console.error('Erreur de rendu VENUS:', err)
         setError('Impossible de générer le graphe visuel pour cette requête.')
@@ -353,36 +343,34 @@ const VenusViewerComponent: React.FC<VenusViewerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`bg-white rounded-none border border-[#ded5c6] shadow-xs transition-all ${
-        isFullscreen
-          ? 'fixed inset-0 z-[9999] p-6 flex flex-col bg-[#faf9f6] rounded-none border-0'
-          : 'p-4'
+      className={`rounded-none border border-[#ded5c6] bg-white shadow-xs transition-all ${
+        isFullscreen ? 'fixed inset-0 z-[9999] flex flex-col rounded-none border-0 bg-[#faf9f6] p-6' : 'p-4'
       }`}
     >
       {/* En-tête de visualisation & barre d'outils */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 mb-3 border-b border-[#f0eae0]">
+      <div className="mb-3 flex flex-col justify-between gap-3 border-b border-[#f0eae0] pb-3 md:flex-row md:items-center">
         <div>
           {title && (
-            <h3 className="font-serif font-semibold text-lg text-[#332e28] flex items-center gap-2">
+            <h3 className="flex items-center gap-2 font-serif text-lg font-semibold text-[#332e28]">
               <span>{title}</span>
               {selectedEntityName && (
-                <span className="text-xs font-sans font-normal px-2.5 py-0.5 rounded-none bg-[#9A6530]/10 text-[#9A6530] border border-[#9A6530]/30 font-medium">
+                <span className="rounded-none border border-[#9A6530]/30 bg-[#9A6530]/10 px-2.5 py-0.5 font-sans text-xs font-medium font-normal text-[#9A6530]">
                   Focus : <strong>{selectedEntityName}</strong>
                 </span>
               )}
             </h3>
           )}
-          <div className="flex items-center gap-3 mt-1 text-xs text-[#8c8275]">
+          <div className="mt-1 flex items-center gap-3 text-xs text-[#8c8275]">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-none bg-[#2563eb] inline-block shadow-xs"></span>
+              <span className="inline-block h-2.5 w-2.5 rounded-none bg-[#2563eb] shadow-xs"></span>
               <span className="font-medium">Entités sources</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-none bg-[#9A6530] inline-block shadow-xs"></span>
+              <span className="inline-block h-2.5 w-2.5 rounded-none bg-[#9A6530] shadow-xs"></span>
               <span className="font-medium">Cibles / Propriétés</span>
             </span>
-            <span className="hidden sm:inline text-[#b8ad9e]">|</span>
-            <span className="hidden sm:inline bg-[#f8f5f0] px-2 py-0.5 rounded-none border border-[#ebe4d6] text-[11px]">
+            <span className="hidden text-[#b8ad9e] sm:inline">|</span>
+            <span className="hidden rounded-none border border-[#ebe4d6] bg-[#f8f5f0] px-2 py-0.5 text-[11px] sm:inline">
               Moteur Wimmics VENUS
             </span>
           </div>
@@ -392,25 +380,25 @@ const VenusViewerComponent: React.FC<VenusViewerProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           {/* Recherche d'entité */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8c8275]" />
+            <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-[#8c8275]" />
             <input
               type="text"
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
               placeholder="Filtrer entité..."
-              className="pl-8 pr-2.5 py-1.5 text-xs rounded-none border border-[#ded5c6] bg-[#faf9f6] focus:outline-none focus:ring-2 focus:ring-[#9A6530] w-32 md:w-40 transition-all shadow-2xs"
+              className="w-32 rounded-none border border-[#ded5c6] bg-[#faf9f6] py-1.5 pr-2.5 pl-8 text-xs shadow-2xs transition-all focus:ring-2 focus:ring-[#9A6530] focus:outline-none md:w-40"
             />
           </div>
 
           {/* Curseur / Sélecteur de densité */}
           {onNodeLimitChange && (
-            <div className="flex items-center gap-1.5 bg-[#f8f5f0] px-2.5 py-1 rounded-none border border-[#ded5c6] text-xs text-[#595248]">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#9A6530]" />
-              <span className="hidden sm:inline font-medium">Densité :</span>
+            <div className="flex items-center gap-1.5 rounded-none border border-[#ded5c6] bg-[#f8f5f0] px-2.5 py-1 text-xs text-[#595248]">
+              <SlidersHorizontal className="h-3.5 w-3.5 text-[#9A6530]" />
+              <span className="hidden font-medium sm:inline">Densité :</span>
               <select
                 value={nodeLimit}
                 onChange={(e) => onNodeLimitChange(Number(e.target.value))}
-                className="bg-transparent border-none text-xs font-semibold text-[#9A6530] focus:outline-none cursor-pointer"
+                className="cursor-pointer border-none bg-transparent text-xs font-semibold text-[#9A6530] focus:outline-none"
                 title="Nombre d'entités les plus fréquentes affichées"
               >
                 <option value={15}>Top 15</option>
@@ -423,62 +411,59 @@ const VenusViewerComponent: React.FC<VenusViewerProps> = ({
           )}
 
           {/* Boutons Zoom */}
-          <div className="flex items-center bg-[#f8f5f0] p-0.5 rounded-none border border-[#ded5c6] shadow-2xs">
+          <div className="flex items-center rounded-none border border-[#ded5c6] bg-[#f8f5f0] p-0.5 shadow-2xs">
             <button
               onClick={() => handleZoom('in')}
-              className="p-1.5 text-[#696156] hover:text-[#2c2724] hover:bg-white rounded-none transition-colors active:scale-95 cursor-pointer"
+              className="cursor-pointer rounded-none p-1.5 text-[#696156] transition-colors hover:bg-white hover:text-[#2c2724] active:scale-95"
               title="Zoom avant (+)"
               type="button"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleZoom('out')}
-              className="p-1.5 text-[#696156] hover:text-[#2c2724] hover:bg-white rounded-none transition-colors active:scale-95 cursor-pointer"
+              className="cursor-pointer rounded-none p-1.5 text-[#696156] transition-colors hover:bg-white hover:text-[#2c2724] active:scale-95"
               title="Zoom arrière (-)"
               type="button"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleZoom('reset')}
-              className="p-1.5 text-[#696156] hover:text-[#2c2724] hover:bg-white rounded-none transition-colors active:scale-95 cursor-pointer"
+              className="cursor-pointer rounded-none p-1.5 text-[#696156] transition-colors hover:bg-white hover:text-[#2c2724] active:scale-95"
               title="Recentrer la vue"
               type="button"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="h-4 w-4" />
             </button>
           </div>
 
           {/* Plein écran */}
           <button
             onClick={toggleFullscreen}
-            className="p-1.5 bg-[#f8f5f0] hover:bg-white border border-[#ded5c6] rounded-none text-[#696156] hover:text-[#2c2724] transition-colors shadow-2xs active:scale-95 cursor-pointer"
+            className="cursor-pointer rounded-none border border-[#ded5c6] bg-[#f8f5f0] p-1.5 text-[#696156] shadow-2xs transition-colors hover:bg-white hover:text-[#2c2724] active:scale-95"
             title={isFullscreen ? t.cqs.exitFullscreen : t.cqs.fullscreen}
             type="button"
           >
-            {isFullscreen ? (
-              <Minimize2 className="w-4 h-4 text-[#9A6530]" />
-            ) : (
-              <Maximize2 className="w-4 h-4" />
-            )}
+            {isFullscreen ? <Minimize2 className="h-4 w-4 text-[#9A6530]" /> : <Maximize2 className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
       {/* Avertissement méthodologique sur l'échantillonnage */}
       {nodeLimit > 0 && sourceStats.totalSources > nodeLimit && (
-        <div className="mb-2.5 flex items-center justify-between px-3 py-1.5 bg-[#fdfbf7] border border-[#f0eae0] rounded-none text-[11px] text-[#786e61]">
+        <div className="mb-2.5 flex items-center justify-between rounded-none border border-[#f0eae0] bg-[#fdfbf7] px-3 py-1.5 text-[11px] text-[#786e61]">
           <div className="flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 text-[#9A6530] shrink-0" />
+            <Info className="h-3.5 w-3.5 shrink-0 text-[#9A6530]" />
             <span>
-              Affichage des <strong>{nodeLimit}</strong> entités les plus fréquentes sur <strong>{sourceStats.totalSources}</strong>.
+              Affichage des <strong>{nodeLimit}</strong> entités les plus fréquentes sur{' '}
+              <strong>{sourceStats.totalSources}</strong>.
             </span>
           </div>
           {onNodeLimitChange && (
             <button
               onClick={() => onNodeLimitChange(0)}
-              className="text-[#9A6530] underline hover:text-[#855424] font-medium ml-2 cursor-pointer"
+              className="ml-2 cursor-pointer font-medium text-[#9A6530] underline hover:text-[#855424]"
             >
               Afficher toutes les entités
             </button>
@@ -488,24 +473,22 @@ const VenusViewerComponent: React.FC<VenusViewerProps> = ({
 
       {/* Zone de rendu graphique */}
       {error ? (
-        <div className="p-4 bg-red-50 text-red-700 rounded-none text-sm">{error}</div>
+        <div className="rounded-none bg-red-50 p-4 text-sm text-red-700">{error}</div>
       ) : (
         <div
-          className={`relative w-full rounded-none overflow-hidden bg-[#faf9f6] border border-[#ded5c6] ${
-            isFullscreen ? 'flex-1 min-h-[500px]' : 'h-[600px]'
+          className={`relative w-full overflow-hidden rounded-none border border-[#ded5c6] bg-[#faf9f6] ${
+            isFullscreen ? 'min-h-[500px] flex-1' : 'h-[600px]'
           }`}
         >
           {isRendering && (
-            <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
-              <span className="text-sm font-medium text-[#736a5f]">
-                Calcul du graphe VENUS...
-              </span>
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
+              <span className="text-sm font-medium text-[#736a5f]">Calcul du graphe VENUS...</span>
             </div>
           )}
           <venus-graph
             ref={graphRef}
             id="venus-graph-instance"
-            className="w-full h-full block"
+            className="block h-full w-full"
             width="100%"
             height={isFullscreen ? '100%' : '600'}
           />

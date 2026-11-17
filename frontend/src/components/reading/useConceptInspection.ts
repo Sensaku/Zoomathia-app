@@ -16,7 +16,7 @@ export function useConceptInspection({
   referenceAnnotations = {},
   stagedAnnotations = [],
   paragraphs = [],
-  setActiveParagraphUri
+  setActiveParagraphUri,
 }: UseConceptInspectionOptions): ConceptInspectionState {
   const [hoveredConcept, setHoveredConcept] = useState<string | null>(null)
   const [pinnedConcept, setPinnedConcept] = useState<string | null>(null)
@@ -62,7 +62,12 @@ export function useConceptInspection({
       for (const tUri of touchesParas) set.add(tUri)
 
       if (!metaMap.has(s.concept_uri)) {
-        const catInfo = getConceptCategoryInfo((s as any).category, (s as any).collection, s.concept_label, s.concept_uri)
+        const catInfo = getConceptCategoryInfo(
+          (s as any).category,
+          (s as any).collection,
+          s.concept_label,
+          s.concept_uri,
+        )
         metaMap.set(s.concept_uri, { label: s.concept_label, category: catInfo.category })
       }
     }
@@ -81,7 +86,7 @@ export function useConceptInspection({
     pinnedConceptCategory,
     pinnedParagraphsList,
     pinnedParagraphUris,
-    hoveredParagraphUris
+    hoveredParagraphUris,
   } = useMemo(() => {
     const pinnedSet = (pinnedConcept && conceptToParas.get(pinnedConcept)) || EMPTY_SET
     const hoveredSet = (hoveredConcept && conceptToParas.get(hoveredConcept)) || EMPTY_SET
@@ -90,9 +95,7 @@ export function useConceptInspection({
     const activeMeta = activeConcept ? conceptToMeta.get(activeConcept) : null
     const pinnedMeta = pinnedConcept ? conceptToMeta.get(pinnedConcept) : null
 
-    const pList = pinnedConcept
-      ? paragraphs.filter((p) => pinnedSet.has(p.uri))
-      : []
+    const pList = pinnedConcept ? paragraphs.filter((p) => pinnedSet.has(p.uri)) : []
 
     return {
       activeInspectionParagraphUris: hoveredConcept ? hoveredSet : pinnedSet,
@@ -102,7 +105,7 @@ export function useConceptInspection({
       pinnedConceptCategory: pinnedMeta?.category || 'general',
       pinnedParagraphsList: pList,
       pinnedParagraphUris: pinnedSet,
-      hoveredParagraphUris: hoveredSet
+      hoveredParagraphUris: hoveredSet,
     }
   }, [conceptToParas, conceptToMeta, hoveredConcept, pinnedConcept, paragraphs])
 
@@ -114,8 +117,7 @@ export function useConceptInspection({
       }
       setTimeout(() => {
         const el =
-          document.getElementById(paraUri) ||
-          document.querySelector(`[data-para-uri="${CSS.escape(paraUri)}"]`)
+          document.getElementById(paraUri) || document.querySelector(`[data-para-uri="${CSS.escape(paraUri)}"]`)
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' })
           if (el instanceof HTMLElement) {
@@ -124,7 +126,7 @@ export function useConceptInspection({
         }
       }, 40)
     },
-    [setActiveParagraphUri]
+    [setActiveParagraphUri],
   )
 
   return useMemo(
@@ -142,7 +144,7 @@ export function useConceptInspection({
       pinnedParagraphsList,
       pinnedParagraphUris,
       hoveredParagraphUris,
-      handleFocusParagraph
+      handleFocusParagraph,
     }),
     [
       hoveredConcept,
@@ -158,7 +160,7 @@ export function useConceptInspection({
       pinnedParagraphsList,
       pinnedParagraphUris,
       hoveredParagraphUris,
-      handleFocusParagraph
-    ]
+      handleFocusParagraph,
+    ],
   )
 }

@@ -14,30 +14,109 @@ export interface ConceptCategoryInfo {
 
 // Identifiants des concepts racines et taxons clés TheZoo (Domestique, Sauvage, Ni domestique ni sauvage...)
 const ROOT_ANIMAL_IDS = new Set([
-  '4988', '106004', '107676', '105539', '105555', '105540', '105541',
-  '107008', '106789', '107912', '105781', '105782', '106935', '106749',
-  '106753', '108745', '106933', '107467', '107292', '107286', '108048',
-  '108187', '108313', '108179', '108175', '108177', '107264', '107948',
-  '107515', '107743', '107284', '108169', '108303', '108221', '108223',
-  '107473', '5037', '105780', '4996', '15094',
-  'pcrt3jcrAaRENB', 'pcrt4v7jKE3TVw', 'pcrt0wSiSXpLTf', 'pcrth4ik1YqDS1',
-  '106951', '105804', '106949', '106492', '106516', '106512', '5071',
-  '105993', '105994', '105996', 'pcrtDtJwUVaZ0I', 'pcrtLywf8Y5k0n',
-  '106552', '106554', 'pcrtamWjqMqPWT', 'pcrtOl4a3UUtiu', 'pcrtDoQWOTMlW7',
-  'pcrt6i8AcPBoY2', '106482', '106484', 'pcrtnpPag9iONJ', '107580',
-  '107578', '107582', '107914', 'pcrtEOlJwpiHmn', 'pcrt1eSDN7pc4r',
-  'pcrtoWmR7YcVct', '105904', 'pcrtRpEmyMyoAU', '106536', 'pcrtVibtZJlA99',
-  '105918', '106647', 'pcrtva7NUywIgB', '105879', 'pcrt8q2AHnsLUr',
-  'pcrt5TAeZsO7W4', '106524', 'pcrtlYnu8y5j62', '106620', 'pcrtRmvjGjzyOO',
-  '106269', '105880', '106622', '106626', '105898', 'pcrtZtKktLIqkU',
-  '107709', '105867', '105882', '106624'
+  '4988',
+  '106004',
+  '107676',
+  '105539',
+  '105555',
+  '105540',
+  '105541',
+  '107008',
+  '106789',
+  '107912',
+  '105781',
+  '105782',
+  '106935',
+  '106749',
+  '106753',
+  '108745',
+  '106933',
+  '107467',
+  '107292',
+  '107286',
+  '108048',
+  '108187',
+  '108313',
+  '108179',
+  '108175',
+  '108177',
+  '107264',
+  '107948',
+  '107515',
+  '107743',
+  '107284',
+  '108169',
+  '108303',
+  '108221',
+  '108223',
+  '107473',
+  '5037',
+  '105780',
+  '4996',
+  '15094',
+  'pcrt3jcrAaRENB',
+  'pcrt4v7jKE3TVw',
+  'pcrt0wSiSXpLTf',
+  'pcrth4ik1YqDS1',
+  '106951',
+  '105804',
+  '106949',
+  '106492',
+  '106516',
+  '106512',
+  '5071',
+  '105993',
+  '105994',
+  '105996',
+  'pcrtDtJwUVaZ0I',
+  'pcrtLywf8Y5k0n',
+  '106552',
+  '106554',
+  'pcrtamWjqMqPWT',
+  'pcrtOl4a3UUtiu',
+  'pcrtDoQWOTMlW7',
+  'pcrt6i8AcPBoY2',
+  '106482',
+  '106484',
+  'pcrtnpPag9iONJ',
+  '107580',
+  '107578',
+  '107582',
+  '107914',
+  'pcrtEOlJwpiHmn',
+  'pcrt1eSDN7pc4r',
+  'pcrtoWmR7YcVct',
+  '105904',
+  'pcrtRpEmyMyoAU',
+  '106536',
+  'pcrtVibtZJlA99',
+  '105918',
+  '106647',
+  'pcrtva7NUywIgB',
+  '105879',
+  'pcrt8q2AHnsLUr',
+  'pcrt5TAeZsO7W4',
+  '106524',
+  'pcrtlYnu8y5j62',
+  '106620',
+  'pcrtRmvjGjzyOO',
+  '106269',
+  '105880',
+  '106622',
+  '106626',
+  '105898',
+  'pcrtZtKktLIqkU',
+  '107709',
+  '105867',
+  '105882',
+  '106624',
 ])
 
 export function getConceptCategoryInfo(
   category?: ConceptCategory,
   collection?: string | null,
   fallbackLabel?: string,
-  conceptUri?: string
+  conceptUri?: string,
 ): ConceptCategoryInfo {
   let cat: ConceptCategory = category || 'general'
 
@@ -56,12 +135,26 @@ export function getConceptCategoryInfo(
   if (cat === 'general' && fallbackLabel) {
     const lbl = fallbackLabel.trim().toLowerCase()
     const exactRootAnimals = [
-      'domestique', 'domestic', 'domesticus', 'domestico',
-      'sauvage', 'wild', 'ferus', 'salvaje', 'selvatico',
+      'domestique',
+      'domestic',
+      'domesticus',
+      'domestico',
+      'sauvage',
+      'wild',
+      'ferus',
+      'salvaje',
+      'selvatico',
       'ni domestique ni sauvage',
-      'animal domestique', 'animal sauvage',
-      'animal', 'animaux', 'faune', 'bête', 'bestiole', 'fauve',
-      'eumetazoa', 'parazoa'
+      'animal domestique',
+      'animal sauvage',
+      'animal',
+      'animaux',
+      'faune',
+      'bête',
+      'bestiole',
+      'fauve',
+      'eumetazoa',
+      'parazoa',
     ]
     if (exactRootAnimals.includes(lbl)) {
       cat = 'animal'
@@ -83,7 +176,19 @@ export function getConceptCategoryInfo(
       !['rosier', 'figuier', 'olivier', 'laitue', 'vigne', 'pommier', 'poirier'].some((p) => lbl.includes(p))
     ) {
       cat = 'animal'
-    } else if (['éthologie', 'ethology', 'comportement', 'prédation', 'intelligence', 'parasitisme', 'hygiène', 'courage', 'sagesse'].includes(lbl)) {
+    } else if (
+      [
+        'éthologie',
+        'ethology',
+        'comportement',
+        'prédation',
+        'intelligence',
+        'parasitisme',
+        'hygiène',
+        'courage',
+        'sagesse',
+      ].includes(lbl)
+    ) {
       cat = 'behavior'
     }
   }
@@ -138,7 +243,7 @@ export function getConceptCategoryInfo(
         colorClass: 'text-amber-600',
         bgClass: 'bg-amber-50',
         borderClass: 'border-amber-200',
-        textClass: 'text-amber-800'
+        textClass: 'text-amber-800',
       }
     case 'behavior':
       return {
@@ -148,7 +253,7 @@ export function getConceptCategoryInfo(
         colorClass: 'text-indigo-600',
         bgClass: 'bg-indigo-50',
         borderClass: 'border-indigo-200',
-        textClass: 'text-indigo-800'
+        textClass: 'text-indigo-800',
       }
     case 'anatomy':
       return {
@@ -158,7 +263,7 @@ export function getConceptCategoryInfo(
         colorClass: 'text-rose-600',
         bgClass: 'bg-rose-50',
         borderClass: 'border-rose-200',
-        textClass: 'text-rose-800'
+        textClass: 'text-rose-800',
       }
     case 'place':
       return {
@@ -168,7 +273,7 @@ export function getConceptCategoryInfo(
         colorClass: 'text-teal-600',
         bgClass: 'bg-teal-50',
         borderClass: 'border-teal-200',
-        textClass: 'text-teal-800'
+        textClass: 'text-teal-800',
       }
     case 'person':
       return {
@@ -178,7 +283,7 @@ export function getConceptCategoryInfo(
         colorClass: 'text-sky-600',
         bgClass: 'bg-sky-50',
         borderClass: 'border-sky-200',
-        textClass: 'text-sky-800'
+        textClass: 'text-sky-800',
       }
     default:
       return {
@@ -188,7 +293,7 @@ export function getConceptCategoryInfo(
         colorClass: 'text-[#9A6530]',
         bgClass: 'bg-[#faf6f0]',
         borderClass: 'border-[#ebdcc9]',
-        textClass: 'text-[#634220]'
+        textClass: 'text-[#634220]',
       }
   }
 }
@@ -206,7 +311,7 @@ export const ConceptCategoryIcon: React.FC<ConceptCategoryIconProps> = ({
   collection,
   label,
   uri,
-  className = 'w-3.5 h-3.5'
+  className = 'w-3.5 h-3.5',
 }) => {
   const info = getConceptCategoryInfo(category, collection, label, uri)
   const IconComponent = info.icon
@@ -230,21 +335,18 @@ export const ConceptCategoryBadge: React.FC<ConceptCategoryBadgeProps> = ({
   uri,
   showLabel = true,
   size = 'md',
-  className = ''
+  className = '',
 }) => {
   const info = getConceptCategoryInfo(category, collection, label, uri)
   const IconComponent = info.icon
 
-  const sizeClasses =
-    size === 'sm'
-      ? 'text-[11px] px-1.5 py-0.5 space-x-1'
-      : 'text-xs px-2 py-0.5 space-x-1.5'
+  const sizeClasses = size === 'sm' ? 'text-[11px] px-1.5 py-0.5 space-x-1' : 'text-xs px-2 py-0.5 space-x-1.5'
 
   const iconSizeClass = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-md font-medium border leading-none shrink-0 ${sizeClasses} ${info.bgClass} ${info.borderClass} ${info.textClass} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-md border leading-none font-medium ${sizeClasses} ${info.bgClass} ${info.borderClass} ${info.textClass} ${className}`}
       title={collection ? `Collection : ${collection}` : info.label}
     >
       <IconComponent className={`${iconSizeClass} shrink-0`} />
@@ -397,4 +499,3 @@ export const CATEGORY_TOC_HOVER: Record<string, string> = {
   person: 'bg-sky-200 text-sky-950 border border-sky-400 shadow-2xs',
   general: 'bg-stone-200 text-stone-950 border border-stone-400 shadow-2xs',
 }
-

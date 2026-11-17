@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchThesaurusAutocomplete, createAnnotation, createThesaurusProposal } from '../api/client'
-import {
-  OpenThesoAutocompleteItem,
-  CreateAnnotationInput,
-  AnnotationScopeType,
-  TargetParagraphDetail
-} from '../types'
+import { OpenThesoAutocompleteItem, CreateAnnotationInput, AnnotationScopeType, TargetParagraphDetail } from '../types'
 import {
   Sparkles,
   X,
@@ -18,22 +13,22 @@ import {
   Layers,
   FileText,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
 
 export interface AnnotationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  paragraphUri: string;
-  targetText: string;
-  startOffset: number;
-  endOffset: number;
-  endParagraphUri?: string;
-  targetParagraphs?: string[];
-  targetParagraphDetails?: TargetParagraphDetail[];
-  initialScopeType?: AnnotationScopeType;
-  onSuccess?: () => void;
+  isOpen: boolean
+  onClose: () => void
+  paragraphUri: string
+  targetText: string
+  startOffset: number
+  endOffset: number
+  endParagraphUri?: string
+  targetParagraphs?: string[]
+  targetParagraphDetails?: TargetParagraphDetail[]
+  initialScopeType?: AnnotationScopeType
+  onSuccess?: () => void
 }
 
 /**
@@ -52,7 +47,7 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
   targetParagraphs,
   targetParagraphDetails,
   initialScopeType,
-  onSuccess
+  onSuccess,
 }) => {
   const { t } = useI18n()
   const queryClient = useQueryClient()
@@ -172,20 +167,20 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
         broader_concept_uri: newBroaderUri || undefined,
         broader_concept_label: newBroaderLabel || undefined,
         definition: newDefinition.trim() || undefined,
-        contributor_name: annotatorName.trim() || 'Chercheur anonyme'
+        contributor_name: annotatorName.trim() || 'Chercheur anonyme',
       })
 
       // Sélection immédiate du concept nouvellement proposé
       const createdItem: OpenThesoAutocompleteItem = {
         label: proposal.pref_label,
         uri: `http://zoomathia.i3s.unice.fr/concept/proposal/${proposal.id}`,
-        identifier: String(proposal.id)
+        identifier: String(proposal.id),
       }
       setSelectedConcept(createdItem)
       setIsDefiningOnTheFly(false)
       queryClient.invalidateQueries({ queryKey: ['thesaurusProposals'] })
     } catch (err: any) {
-      setError(err?.message || "Impossible de créer le concept à la volée.")
+      setError(err?.message || 'Impossible de créer le concept à la volée.')
     } finally {
       setIsSubmittingConcept(false)
     }
@@ -208,7 +203,7 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
     },
     onError: (err: any) => {
       setError(err?.message || "Impossible d'enregistrer l'annotation.")
-    }
+    },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -229,50 +224,46 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
       justification: justification.trim() || undefined,
       scope_type: scopeType,
       end_paragraph_uri: endParagraphUri,
-      target_paragraphs: targetParagraphs
+      target_paragraphs: targetParagraphs,
     })
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-none border border-[#e6dfd3] shadow-2xl max-w-xl w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+      <div className="animate-in fade-in zoom-in-95 my-8 flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-none border border-[#e6dfd3] bg-white shadow-2xl duration-150">
         {/* En-tête */}
-        <div className="p-4 sm:p-5 border-b border-[#f0eae0] flex items-center justify-between bg-[#faf9f6] shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-[#f0eae0] bg-[#faf9f6] p-4 sm:p-5">
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-[#9A6530]" />
-            <h3 className="font-serif font-bold text-lg text-[#2c2724]">
-              {t.modal.title}
-            </h3>
+            <Sparkles className="h-5 w-5 text-[#9A6530]" />
+            <h3 className="font-serif text-lg font-bold text-[#2c2724]">{t.modal.title}</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[#8c8275] hover:text-[#2c2724] p-1.5 rounded-none hover:bg-[#f4ede2] transition-colors"
+            className="rounded-none p-1.5 text-[#8c8275] transition-colors hover:bg-[#f4ede2] hover:text-[#2c2724]"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Corps défilable */}
-        <div className="overflow-y-auto p-5 sm:p-6 space-y-4 text-xs scrollbar-thin flex-1">
-          
+        <div className="flex-1 scrollbar-thin space-y-4 overflow-y-auto p-5 text-xs sm:p-6">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-none flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="flex items-center space-x-2 rounded-none border border-red-200 bg-red-50 p-3 text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Extrait textuel ciblé */}
-          <div className="p-3.5 bg-[#fdfaf5] rounded-none border border-[#ebdcc7] space-y-2">
-            <div className="flex items-center justify-between text-[10px] uppercase tracking-wider font-semibold text-[#8c8275]">
+          <div className="space-y-2 rounded-none border border-[#ebdcc7] bg-[#fdfaf5] p-3.5">
+            <div className="flex items-center justify-between text-[10px] font-semibold tracking-wider text-[#8c8275] uppercase">
               <span>
                 {t.modal.selectedExtract} ({startOffset} - {endOffset}) :
               </span>
-              <span className="font-mono bg-[#f2e9dc] px-1.5 py-0.5 rounded-none text-[#6b4e2b]">
+              <span className="rounded-none bg-[#f2e9dc] px-1.5 py-0.5 font-mono text-[#6b4e2b]">
                 {targetParagraphDetails && targetParagraphDetails.length > 1
                   ? `${targetParagraphDetails.length} paragraphes`
                   : targetParagraphs && targetParagraphs.length > 1
@@ -283,21 +274,19 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
 
             {/* Distinction claire des paragraphes si multi-paragraphes, avec défilement fluide */}
             {targetParagraphDetails && targetParagraphDetails.length > 1 ? (
-              <div className="space-y-2 max-h-52 overflow-y-auto pr-1 scrollbar-thin">
+              <div className="max-h-52 scrollbar-thin space-y-2 overflow-y-auto pr-1">
                 {targetParagraphDetails.map((tp, idx) => (
                   <div
                     key={tp.uri || idx}
-                    className="p-2.5 bg-white/95 rounded-none border border-[#e6dfd1] shadow-2xs space-y-1"
+                    className="space-y-1 rounded-none border border-[#e6dfd1] bg-white/95 p-2.5 shadow-2xs"
                   >
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-mono font-bold px-2 py-0.5 rounded-none bg-[#f4ede2] text-[#855424] border border-[#ded5c6]">
+                      <span className="rounded-none border border-[#ded5c6] bg-[#f4ede2] px-2 py-0.5 font-mono font-bold text-[#855424]">
                         § {tp.id}
                       </span>
-                      <span className="text-[10px] text-[#8c8275] font-mono">
-                        {tp.text.length} car.
-                      </span>
+                      <span className="font-mono text-[10px] text-[#8c8275]">{tp.text.length} car.</span>
                     </div>
-                    <blockquote className="ancient-text text-sm text-[#3b2e21] italic leading-relaxed">
+                    <blockquote className="ancient-text text-sm leading-relaxed text-[#3b2e21] italic">
                       « {tp.text} »
                     </blockquote>
                   </div>
@@ -305,8 +294,8 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
               </div>
             ) : (
               /* Sélection mono-paragraphe : défilable si longue, sans troncature artificielle */
-              <div className="max-h-44 overflow-y-auto pr-1 scrollbar-thin">
-                <blockquote className="ancient-text text-base font-semibold text-[#3b2e21] italic leading-relaxed">
+              <div className="max-h-44 scrollbar-thin overflow-y-auto pr-1">
+                <blockquote className="ancient-text text-base leading-relaxed font-semibold text-[#3b2e21] italic">
                   « {targetText} »
                 </blockquote>
               </div>
@@ -316,22 +305,20 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
           {/* Recherche & Sélection de concept TheZoo */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block font-semibold text-[#595248]">
-                {t.modal.conceptLabel}
-              </label>
+              <label className="block font-semibold text-[#595248]">{t.modal.conceptLabel}</label>
               <button
                 type="button"
                 onClick={() => setIsDefiningOnTheFly(!isDefiningOnTheFly)}
-                className="text-[#9A6530] hover:text-[#784d1e] font-semibold text-xs inline-flex items-center space-x-1"
+                className="inline-flex items-center space-x-1 text-xs font-semibold text-[#9A6530] hover:text-[#784d1e]"
               >
                 {isDefiningOnTheFly ? (
                   <>
-                    <ChevronUp className="w-3.5 h-3.5" />
+                    <ChevronUp className="h-3.5 w-3.5" />
                     <span>{t.modal.defineOnTheFlyHide}</span>
                   </>
                 ) : (
                   <>
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="h-3.5 w-3.5" />
                     <span>{t.modal.defineOnTheFly}</span>
                   </>
                 )}
@@ -340,33 +327,29 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
 
             {/* Volet de création de concept à la volée */}
             {isDefiningOnTheFly && (
-              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-none space-y-3 animate-in fade-in duration-150">
-                <div className="flex items-center space-x-1.5 text-amber-900 font-bold text-xs">
-                  <Layers className="w-4 h-4 text-[#9A6530]" />
+              <div className="animate-in fade-in space-y-3 rounded-none border border-amber-200 bg-amber-50/70 p-4 duration-150">
+                <div className="flex items-center space-x-1.5 text-xs font-bold text-amber-900">
+                  <Layers className="h-4 w-4 text-[#9A6530]" />
                   <span>{t.modal.newConceptTitle}</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="text-[10px] font-semibold uppercase text-amber-900">
-                      {t.modal.newPrefLabel}
-                    </label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[10px] font-semibold text-amber-900 uppercase">{t.modal.newPrefLabel}</label>
                     <input
                       type="text"
                       value={newPrefLabel}
                       onChange={(e) => setNewPrefLabel(e.target.value)}
                       placeholder="Ex: Canis lupus, Aquila..."
-                      className="w-full p-2 rounded-none border border-amber-300 bg-white text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
+                      className="w-full rounded-none border border-amber-300 bg-white p-2 text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase text-amber-900">
-                      {t.modal.newLanguage}
-                    </label>
+                    <label className="text-[10px] font-semibold text-amber-900 uppercase">{t.modal.newLanguage}</label>
                     <select
                       value={newLanguage}
                       onChange={(e) => setNewLanguage(e.target.value as any)}
-                      className="w-full p-2 rounded-lg border border-amber-300 bg-white text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
+                      className="w-full rounded-lg border border-amber-300 bg-white p-2 text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                     >
                       <option value="la">Latin (la)</option>
                       <option value="grc">Grec ancien (grc)</option>
@@ -377,37 +360,33 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase text-amber-900">
-                    {t.modal.newAltLabels}
-                  </label>
+                  <label className="text-[10px] font-semibold text-amber-900 uppercase">{t.modal.newAltLabels}</label>
                   <input
                     type="text"
                     value={newAltLabels}
                     onChange={(e) => setNewAltLabels(e.target.value)}
                     placeholder="Ex: loup, lykos, canis..."
-                    className="w-full p-2 rounded-none border border-amber-300 bg-white text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
+                    className="w-full rounded-none border border-amber-300 bg-white p-2 text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase text-amber-900">
-                    {t.modal.newBroader}
-                  </label>
+                  <label className="text-[10px] font-semibold text-amber-900 uppercase">{t.modal.newBroader}</label>
                   <div className="relative">
                     <input
                       type="text"
                       value={broaderSearch}
                       onChange={(e) => setBroaderSearch(e.target.value)}
                       placeholder="Rechercher un parent dans TheZoo (ex: canidae, carnivore)..."
-                      className="w-full p-2 pl-8 rounded-none border border-amber-300 bg-white text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
+                      className="w-full rounded-none border border-amber-300 bg-white p-2 pl-8 text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                     />
-                    <Search className="w-3.5 h-3.5 text-amber-600 absolute left-2.5 top-2.5" />
+                    <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-amber-600" />
                     {isSearchingBroader && (
-                      <Loader2 className="w-3.5 h-3.5 text-[#9A6530] absolute right-2.5 top-2.5 animate-spin" />
+                      <Loader2 className="absolute top-2.5 right-2.5 h-3.5 w-3.5 animate-spin text-[#9A6530]" />
                     )}
                   </div>
                   {broaderSuggestions.length > 0 && (
-                    <div className="max-h-28 overflow-y-auto border border-amber-200 rounded-none bg-white divide-y divide-amber-100 shadow-sm">
+                    <div className="max-h-28 divide-y divide-amber-100 overflow-y-auto rounded-none border border-amber-200 bg-white shadow-sm">
                       {broaderSuggestions.map((item) => (
                         <button
                           key={item.uri}
@@ -418,34 +397,32 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
                             setBroaderSearch(item.label)
                             setBroaderSuggestions([])
                           }}
-                          className="w-full text-left p-2 hover:bg-amber-50 flex items-center justify-between text-[11px]"
+                          className="flex w-full items-center justify-between p-2 text-left text-[11px] hover:bg-amber-50"
                         >
                           <span className="font-semibold text-[#2c2724]">{item.label}</span>
-                          <span className="text-[9px] text-[#8c8275] font-mono truncate max-w-[150px]">
-                            {item.uri}
-                          </span>
+                          <span className="max-w-[150px] truncate font-mono text-[9px] text-[#8c8275]">{item.uri}</span>
                         </button>
                       ))}
                     </div>
                   )}
                   {newBroaderUri && (
-                    <div className="text-[11px] text-amber-900 flex items-center space-x-1 mt-1">
-                      <Check className="w-3 h-3 text-emerald-600" />
-                      <span>Parent : <strong>{newBroaderLabel || newBroaderUri}</strong></span>
+                    <div className="mt-1 flex items-center space-x-1 text-[11px] text-amber-900">
+                      <Check className="h-3 w-3 text-emerald-600" />
+                      <span>
+                        Parent : <strong>{newBroaderLabel || newBroaderUri}</strong>
+                      </span>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase text-amber-900">
-                    {t.modal.newDefinition}
-                  </label>
+                  <label className="text-[10px] font-semibold text-amber-900 uppercase">{t.modal.newDefinition}</label>
                   <textarea
                     rows={2}
                     value={newDefinition}
                     onChange={(e) => setNewDefinition(e.target.value)}
                     placeholder="Précisez la signification zoo-archéologique ou philologique..."
-                    className="w-full p-2 rounded-none border border-amber-300 bg-white text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none resize-none"
+                    className="w-full resize-none rounded-none border border-amber-300 bg-white p-2 text-xs focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                   />
                 </div>
 
@@ -453,7 +430,7 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsDefiningOnTheFly(false)}
-                    className="px-3 py-1.5 text-xs text-amber-900 hover:bg-amber-100 rounded-none"
+                    className="rounded-none px-3 py-1.5 text-xs text-amber-900 hover:bg-amber-100"
                   >
                     {t.modal.cancelBtn}
                   </button>
@@ -461,16 +438,16 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
                     type="button"
                     onClick={handleCreateConceptOnTheFly}
                     disabled={!newPrefLabel.trim() || isSubmittingConcept}
-                    className="px-3 py-1.5 bg-[#9A6530] hover:bg-[#855424] text-white rounded-none text-xs font-semibold disabled:opacity-50 inline-flex items-center space-x-1.5"
+                    className="inline-flex items-center space-x-1.5 rounded-none bg-[#9A6530] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#855424] disabled:opacity-50"
                   >
                     {isSubmittingConcept ? (
                       <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <Loader2 className="h-3 w-3 animate-spin" />
                         <span>{t.modal.creatingConcept}</span>
                       </>
                     ) : (
                       <>
-                        <Plus className="w-3 h-3" />
+                        <Plus className="h-3 w-3" />
                         <span>{t.modal.createConceptBtn}</span>
                       </>
                     )}
@@ -489,17 +466,15 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
                   setSearchTerm(e.target.value)
                   setSelectedConcept(null)
                 }}
-                className="w-full p-2.5 pl-9 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-sm text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
+                className="w-full rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-2.5 pl-9 text-sm text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
               />
-              <Search className="w-4 h-4 text-[#8c8275] absolute left-3 top-3" />
-              {isSearching && (
-                <Loader2 className="w-4 h-4 text-[#9A6530] absolute right-3 top-3 animate-spin" />
-              )}
+              <Search className="absolute top-3 left-3 h-4 w-4 text-[#8c8275]" />
+              {isSearching && <Loader2 className="absolute top-3 right-3 h-4 w-4 animate-spin text-[#9A6530]" />}
             </div>
 
             {/* Suggestions OpenTheso */}
             {suggestions.length > 0 && !selectedConcept && (
-              <div className="max-h-40 overflow-y-auto border border-[#ded5c6] rounded-none bg-white shadow-md divide-y divide-[#f4ede2]">
+              <div className="max-h-40 divide-y divide-[#f4ede2] overflow-y-auto rounded-none border border-[#ded5c6] bg-white shadow-md">
                 {suggestions.map((item) => (
                   <button
                     key={item.uri}
@@ -509,12 +484,10 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
                       setSearchTerm(item.label)
                       setSuggestions([])
                     }}
-                    className="w-full text-left p-2.5 hover:bg-[#fcfbf9] flex items-center justify-between text-xs transition-colors"
+                    className="flex w-full items-center justify-between p-2.5 text-left text-xs transition-colors hover:bg-[#fcfbf9]"
                   >
                     <span className="font-semibold text-[#2c2724]">{item.label}</span>
-                    <span className="text-[10px] text-[#8c8275] font-mono truncate max-w-[180px]">
-                      {item.uri}
-                    </span>
+                    <span className="max-w-[180px] truncate font-mono text-[10px] text-[#8c8275]">{item.uri}</span>
                   </button>
                 ))}
               </div>
@@ -522,12 +495,12 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
 
             {/* Concept sélectionné */}
             {selectedConcept && (
-              <div className="p-2.5 bg-[#f0f7f2] border border-emerald-200 rounded-none flex items-center justify-between text-emerald-800">
+              <div className="flex items-center justify-between rounded-none border border-emerald-200 bg-[#f0f7f2] p-2.5 text-emerald-800">
                 <div className="flex items-center space-x-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="font-semibold text-xs">{selectedConcept.label}</span>
+                  <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <span className="text-xs font-semibold">{selectedConcept.label}</span>
                 </div>
-                <span className="text-[10px] text-emerald-700 font-mono truncate max-w-[200px]">
+                <span className="max-w-[200px] truncate font-mono text-[10px] text-emerald-700">
                   {selectedConcept.uri.includes('proposal') ? 'Nouveau concept' : 'TheZoo th310'}
                 </span>
               </div>
@@ -536,8 +509,8 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
 
           {/* Zone de justification de l'annotateur */}
           <div className="space-y-1.5">
-            <label className="block font-semibold text-[#595248] flex items-center space-x-1.5">
-              <FileText className="w-3.5 h-3.5 text-[#9A6530]" />
+            <label className="block flex items-center space-x-1.5 font-semibold text-[#595248]">
+              <FileText className="h-3.5 w-3.5 text-[#9A6530]" />
               <span>{t.modal.justificationLabel}</span>
             </label>
             <textarea
@@ -545,31 +518,28 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
               value={justification}
               onChange={(e) => setJustification(e.target.value)}
               placeholder={t.modal.justificationPlaceholder}
-              className="w-full p-2.5 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-xs text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none resize-none"
+              className="w-full resize-none rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-2.5 text-xs text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
             />
           </div>
 
           {/* Nom du contributeur */}
           <div className="space-y-1">
-            <label className="block font-semibold text-[#595248]">
-              {t.modal.annotatorLabel}
-            </label>
+            <label className="block font-semibold text-[#595248]">{t.modal.annotatorLabel}</label>
             <input
               type="text"
               value={annotatorName}
               onChange={(e) => setAnnotatorName(e.target.value)}
-              className="w-full p-2.5 rounded-none border border-[#cfc5b4] bg-[#faf9f6] text-xs text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
+              className="w-full rounded-none border border-[#cfc5b4] bg-[#faf9f6] p-2.5 text-xs text-[#2c2724] focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
             />
           </div>
-
         </div>
 
         {/* Boutons d'action */}
-        <div className="p-4 sm:p-5 border-t border-[#f0eae0] flex items-center justify-end space-x-2 bg-[#faf9f6] shrink-0">
+        <div className="flex shrink-0 items-center justify-end space-x-2 border-t border-[#f0eae0] bg-[#faf9f6] p-4 sm:p-5">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-[#696156] hover:bg-[#f4ede2] rounded-none transition-colors"
+            className="rounded-none px-4 py-2 text-xs font-medium text-[#696156] transition-colors hover:bg-[#f4ede2]"
           >
             {t.modal.cancelBtn}
           </button>
@@ -577,22 +547,21 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={!selectedConcept || createMutation.isPending}
-            className="px-5 py-2 text-xs font-semibold text-white bg-[#9A6530] hover:bg-[#855424] rounded-none shadow-sm transition-all disabled:opacity-50 inline-flex items-center space-x-1.5"
+            className="inline-flex items-center space-x-1.5 rounded-none bg-[#9A6530] px-5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#855424] disabled:opacity-50"
           >
             {createMutation.isPending ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>{t.modal.saving}</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="h-3.5 w-3.5" />
                 <span>{t.modal.submitBtn}</span>
               </>
             )}
           </button>
         </div>
-
       </div>
     </div>
   )

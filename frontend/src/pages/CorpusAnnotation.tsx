@@ -9,7 +9,7 @@ import {
   fetchTranslation,
   fetchSectionAnnotations,
   updateAnnotationStatus,
-  deleteAnnotation
+  deleteAnnotation,
 } from '../api/client'
 import {
   SummaryNode,
@@ -20,7 +20,7 @@ import {
   AnnotationScopeType,
   AnnotationStatus,
   TargetParagraphDetail,
-  ConceptCategory
+  ConceptCategory,
 } from '../types'
 import { AnnotationModal } from '../components/AnnotationModal'
 import { AnnotationLegendModal } from '../components/AnnotationLegendModal'
@@ -43,13 +43,9 @@ import {
   CATEGORY_BADGE_PINNED,
   CATEGORY_BADGE_HOVER,
   CATEGORY_TOC_PINNED,
-  CATEGORY_TOC_HOVER
+  CATEGORY_TOC_HOVER,
 } from '../components/ConceptCategoryBadge'
-import {
-  ReadingParagraphCard,
-  PinnedConceptBanner,
-  useConceptInspection
-} from '../components/reading'
+import { ReadingParagraphCard, PinnedConceptBanner, useConceptInspection } from '../components/reading'
 import { useI18n } from '../i18n'
 import {
   BookOpen,
@@ -74,7 +70,7 @@ import {
   AlignLeft,
   ListChecks,
   Highlighter,
-  HelpCircle
+  HelpCircle,
 } from 'lucide-react'
 
 type StatusFilter = 'all' | 'pending' | 'validated' | 'rejected' | 'reference'
@@ -138,8 +134,9 @@ export const CorpusAnnotation: React.FC = () => {
     } else if (!selectedWorkUri && allWorks.length > 0) {
       // Sélection par défaut de la première œuvre (Pline l'Ancien si disponible)
       const defaultWork =
-        allWorks.find((w) => w.title.toLowerCase().includes('historia naturalis') || w.author.toLowerCase().includes('pline')) ||
-        allWorks[0]
+        allWorks.find(
+          (w) => w.title.toLowerCase().includes('historia naturalis') || w.author.toLowerCase().includes('pline'),
+        ) || allWorks[0]
       if (defaultWork) {
         setSelectedWorkUri(defaultWork.uri)
         if (defaultWork.author) setSelectedAuthor(defaultWork.author)
@@ -199,7 +196,7 @@ export const CorpusAnnotation: React.FC = () => {
   const {
     data: sectionData,
     isLoading: isSectionDataLoading,
-    refetch: refetchSectionData
+    refetch: refetchSectionData,
   } = useQuery({
     queryKey: ['sectionAnnotations', activeSectionUri, language],
     queryFn: () => fetchSectionAnnotations(activeSectionUri, language),
@@ -233,12 +230,11 @@ export const CorpusAnnotation: React.FC = () => {
 
   // Mutation de modération / validation du statut d'une annotation
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: AnnotationStatus }) =>
-      updateAnnotationStatus(id, status),
+    mutationFn: ({ id, status }: { id: number; status: AnnotationStatus }) => updateAnnotationStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sectionAnnotations'] })
       queryClient.invalidateQueries({ queryKey: ['stagedAnnotations'] })
-    }
+    },
   })
 
   // Mutation de suppression d'une annotation
@@ -247,7 +243,7 @@ export const CorpusAnnotation: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sectionAnnotations'] })
       queryClient.invalidateQueries({ queryKey: ['stagedAnnotations'] })
-    }
+    },
   })
 
   // Gestion du repliement TOC
@@ -263,12 +259,12 @@ export const CorpusAnnotation: React.FC = () => {
       .map((book) => {
         const bookMatches = book.title.toLowerCase().includes(filterLower)
         const matchingChildren = (book.children || []).filter((child) =>
-          child.title.toLowerCase().includes(filterLower)
+          child.title.toLowerCase().includes(filterLower),
         )
         if (bookMatches || matchingChildren.length > 0) {
           return {
             ...book,
-            children: matchingChildren.length > 0 ? matchingChildren : book.children
+            children: matchingChildren.length > 0 ? matchingChildren : book.children,
           }
         }
         return null
@@ -284,7 +280,7 @@ export const CorpusAnnotation: React.FC = () => {
   const expandToWordBoundaries = (
     fullText: string,
     start: number,
-    end: number
+    end: number,
   ): { start: number; end: number; text: string } => {
     let s = Math.max(0, Math.min(start, fullText.length))
     let e = Math.max(0, Math.min(end, fullText.length))
@@ -315,7 +311,7 @@ export const CorpusAnnotation: React.FC = () => {
     return {
       start: s,
       end: e,
-      text: fullText.slice(s, e)
+      text: fullText.slice(s, e),
     }
   }
 
@@ -567,20 +563,20 @@ export const CorpusAnnotation: React.FC = () => {
       category: item.category,
       collection: item.collection,
       type: item.type,
-      occurrences: item.offset?.length || 1
+      occurrences: item.offset?.length || 1,
     }))
   }, [referenceAnnotations, activeParagraphUri])
 
   // Aplatissement des annotations Corese pour affichage global (si mode 'all_section')
   const flatReferenceAnnotations = useMemo(() => {
     const list: Array<{
-      paragraph_uri: string;
-      label: string;
-      concept: string;
-      category?: string;
-      collection?: string | null;
-      type: string;
-      occurrences: number;
+      paragraph_uri: string
+      label: string
+      concept: string
+      category?: string
+      collection?: string | null
+      type: string
+      occurrences: number
     }> = []
 
     for (const [pUri, annotMap] of Object.entries(referenceAnnotations)) {
@@ -592,7 +588,7 @@ export const CorpusAnnotation: React.FC = () => {
           category: item.category,
           collection: item.collection,
           type: item.type,
-          occurrences: item.offset?.length || 1
+          occurrences: item.offset?.length || 1,
         })
       }
     }
@@ -604,7 +600,7 @@ export const CorpusAnnotation: React.FC = () => {
     if (!sidebarSearch.trim()) return filteredStagedAnnotations
     const q = sidebarSearch.toLowerCase().trim()
     return filteredStagedAnnotations.filter(
-      (s) => s.concept_label.toLowerCase().includes(q) || s.target_text.toLowerCase().includes(q)
+      (s) => s.concept_label.toLowerCase().includes(q) || s.target_text.toLowerCase().includes(q),
     )
   }, [filteredStagedAnnotations, sidebarSearch])
 
@@ -612,7 +608,7 @@ export const CorpusAnnotation: React.FC = () => {
     if (!sidebarSearch.trim()) return flatReferenceAnnotations
     const q = sidebarSearch.toLowerCase().trim()
     return flatReferenceAnnotations.filter(
-      (r) => r.label.toLowerCase().includes(q) || r.concept.toLowerCase().includes(q)
+      (r) => r.label.toLowerCase().includes(q) || r.concept.toLowerCase().includes(q),
     )
   }, [flatReferenceAnnotations, sidebarSearch])
 
@@ -634,15 +630,23 @@ export const CorpusAnnotation: React.FC = () => {
     }
     const remainingSlots = Math.max(0, sectionPageSize - displayedStaged.length)
     return searchedSectionReference.slice(0, remainingSlots)
-  }, [sidebarScope, activeReferenceAnnotations, statusFilter, searchedSectionReference, sectionPageSize, displayedStaged.length])
+  }, [
+    sidebarScope,
+    activeReferenceAnnotations,
+    statusFilter,
+    searchedSectionReference,
+    sectionPageSize,
+    displayedStaged.length,
+  ])
 
   const totalMatchingSection = useMemo(() => {
     const stagedCount = searchedSectionStaged.length
-    const refCount = (statusFilter === 'all' || statusFilter === 'reference') ? searchedSectionReference.length : 0
+    const refCount = statusFilter === 'all' || statusFilter === 'reference' ? searchedSectionReference.length : 0
     return stagedCount + refCount
   }, [searchedSectionStaged.length, searchedSectionReference.length, statusFilter])
 
-  const hasMoreSection = sidebarScope === 'all_section' && (displayedStaged.length + displayedReference.length < totalMatchingSection)
+  const hasMoreSection =
+    sidebarScope === 'all_section' && displayedStaged.length + displayedReference.length < totalMatchingSection
   const remainingSectionCount = totalMatchingSection - (displayedStaged.length + displayedReference.length)
 
   // Gestion réactive de l'inspection (survol prioritaire, épinglage, résolution multi-paragraphes)
@@ -650,7 +654,7 @@ export const CorpusAnnotation: React.FC = () => {
     referenceAnnotations,
     stagedAnnotations,
     paragraphs,
-    setActiveParagraphUri
+    setActiveParagraphUri,
   })
 
   const {
@@ -667,24 +671,22 @@ export const CorpusAnnotation: React.FC = () => {
     pinnedParagraphsList,
     pinnedParagraphUris,
     hoveredParagraphUris,
-    handleFocusParagraph
+    handleFocusParagraph,
   } = inspectionState
 
   // Filtrage des paragraphes dans la Table des Matières
   const filteredTocParagraphs = useMemo(() => {
     if (!paraTocFilter.trim()) return paragraphs
     const q = paraTocFilter.toLowerCase().trim()
-    return paragraphs.filter(
-      (p) => p.id.toLowerCase().includes(q) || p.text.toLowerCase().includes(q)
-    )
+    return paragraphs.filter((p) => p.id.toLowerCase().includes(q) || p.text.toLowerCase().includes(q))
   }, [paragraphs, paraTocFilter])
 
   // Rendu de la palette de paragraphes pour la section active dans la table des matières
   const renderParagraphPalette = () => {
     if (isParagraphsLoading) {
       return (
-        <div className="p-3 bg-[#fdfcf9] rounded-none border border-[#ede5d8] my-1 flex items-center justify-center space-x-2 text-xs text-[#8c8275]">
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#9A6530]" />
+        <div className="my-1 flex items-center justify-center space-x-2 rounded-none border border-[#ede5d8] bg-[#fdfcf9] p-3 text-xs text-[#8c8275]">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#9A6530]" />
           <span>{t.work.loadingParagraphs}</span>
         </div>
       )
@@ -693,10 +695,10 @@ export const CorpusAnnotation: React.FC = () => {
     if (paragraphs.length === 0) return null
 
     return (
-      <div className="p-2.5 bg-[#fdfcf9] rounded-none border border-[#ede5d8] my-1.5 ml-1 space-y-1.5 shadow-2xs">
-        <div className="flex items-center justify-between pb-1 border-b border-[#f0eae0] text-xs text-[#8c8275]">
-          <span className="font-semibold uppercase tracking-wider text-[10px] text-[#63503d] flex items-center space-x-1">
-            <ListChecks className="w-3 h-3 text-[#9A6530]" />
+      <div className="my-1.5 ml-1 space-y-1.5 rounded-none border border-[#ede5d8] bg-[#fdfcf9] p-2.5 shadow-2xs">
+        <div className="flex items-center justify-between border-b border-[#f0eae0] pb-1 text-xs text-[#8c8275]">
+          <span className="flex items-center space-x-1 text-[10px] font-semibold tracking-wider text-[#63503d] uppercase">
+            <ListChecks className="h-3 w-3 text-[#9A6530]" />
             <span>{t.annotate.paragraphsListTitle}</span>
           </span>
           <span className="text-[10px] font-medium text-[#7a6f62]">
@@ -712,14 +714,14 @@ export const CorpusAnnotation: React.FC = () => {
               value={paraTocFilter}
               onChange={(e) => setParaTocFilter(e.target.value)}
               placeholder={t.annotate.searchParagraphsPlaceholder}
-              className="w-full py-1 pl-6 pr-5 text-[11px] rounded-none border border-[#e3dacb] bg-white text-[#2c2724] focus:outline-none focus:ring-1 focus:ring-[#9A6530]"
+              className="w-full rounded-none border border-[#e3dacb] bg-white py-1 pr-5 pl-6 text-[11px] text-[#2c2724] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
             />
-            <Search className="w-3 h-3 text-[#8c8275] absolute left-1.5 top-2" />
+            <Search className="absolute top-2 left-1.5 h-3 w-3 text-[#8c8275]" />
             {paraTocFilter && (
               <button
                 type="button"
                 onClick={() => setParaTocFilter('')}
-                className="absolute right-1.5 top-1 text-[#8c8275] hover:text-[#2c2724] text-[10px] p-0.5"
+                className="absolute top-1 right-1.5 p-0.5 text-[10px] text-[#8c8275] hover:text-[#2c2724]"
               >
                 ×
               </button>
@@ -728,7 +730,7 @@ export const CorpusAnnotation: React.FC = () => {
         )}
 
         {/* Palette défilable de puces cliquables */}
-        <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto scrollbar-thin pr-0.5 pt-0.5">
+        <div className="flex max-h-48 scrollbar-thin flex-wrap gap-1 overflow-y-auto pt-0.5 pr-0.5">
           {filteredTocParagraphs.map((p) => {
             const isParaActive = activeParagraphUri === p.uri
             const isParaHovered = !!hoveredConcept && (hoveredParagraphUris?.has(p.uri) ?? false)
@@ -740,22 +742,22 @@ export const CorpusAnnotation: React.FC = () => {
                 key={p.uri}
                 type="button"
                 onClick={() => handleFocusParagraph(p.uri)}
-                className={`px-2 py-1 rounded-none text-xs font-mono font-bold transition-colors cursor-pointer border inline-flex items-center space-x-1 ${
+                className={`inline-flex cursor-pointer items-center space-x-1 rounded-none border px-2 py-1 font-mono text-xs font-bold transition-colors ${
                   isParaActive
-                    ? 'bg-[#9A6530] text-white border-[#855424] shadow-xs ring-1 ring-[#9A6530]/40'
+                    ? 'border-[#855424] bg-[#9A6530] text-white shadow-xs ring-1 ring-[#9A6530]/40'
                     : isParaHovered
-                      ? (CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general)
+                      ? CATEGORY_TOC_HOVER[activeInspectionCategory] || CATEGORY_TOC_HOVER.general
                       : isParaPinned
-                        ? (CATEGORY_TOC_PINNED[pinnedConceptCategory] || CATEGORY_TOC_PINNED.general)
+                        ? CATEGORY_TOC_PINNED[pinnedConceptCategory] || CATEGORY_TOC_PINNED.general
                         : annotCount > 0
-                          ? 'bg-amber-50 text-[#543b22] border-amber-200/90 hover:bg-amber-100/70 hover:border-amber-300'
-                          : 'bg-white text-[#543b22] border-[#ded5c6] hover:bg-[#f4ede2] hover:border-[#9A6530]/50'
+                          ? 'border-amber-200/90 bg-amber-50 text-[#543b22] hover:border-amber-300 hover:bg-amber-100/70'
+                          : 'border-[#ded5c6] bg-white text-[#543b22] hover:border-[#9A6530]/50 hover:bg-[#f4ede2]'
                 }`}
                 title={`§ ${p.id}${annotCount > 0 ? ` (${annotCount} annot${annotCount > 1 ? 's' : ''})` : ''} - ${t.annotate.filterParagraphsHelp}`}
               >
                 <span>§ {p.id}</span>
                 {annotCount > 0 && !isParaActive && (
-                  <span className="text-[9px] font-sans font-semibold px-1 py-0 rounded-full bg-[#9A6530]/15 text-[#6e461f]">
+                  <span className="rounded-full bg-[#9A6530]/15 px-1 py-0 font-sans text-[9px] font-semibold text-[#6e461f]">
                     {annotCount}
                   </span>
                 )}
@@ -768,60 +770,58 @@ export const CorpusAnnotation: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col pt-3 pb-4 space-y-3">
-      
+    <div className="flex h-full flex-col space-y-3 pt-3 pb-4">
       {/* 1. Barre d'outils supérieure */}
-      <header className="bg-white/95 rounded-none border border-[#e6dfd1] p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 shrink-0">
-        
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-none border border-[#e6dfd1] bg-white/95 p-3.5 shadow-xs">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-none bg-[#9A6530] text-white flex items-center justify-center shadow-inner shrink-0">
-            <Highlighter className="w-5 h-5" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-[#9A6530] text-white shadow-inner">
+            <Highlighter className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="font-serif font-bold text-lg sm:text-xl text-[#2c2724] leading-tight flex items-center space-x-2">
+            <h1 className="flex items-center space-x-2 font-serif text-lg leading-tight font-bold text-[#2c2724] sm:text-xl">
               <span>{t.annotate.title}</span>
             </h1>
-            <p className="text-xs text-[#736a5f] line-clamp-1">
+            <p className="line-clamp-1 text-xs text-[#736a5f]">
               {currentWork ? `${currentWork.title} — ${currentWork.author}` : t.annotate.subtitle}
             </p>
           </div>
         </div>
 
         {/* Contrôles de lecture & actions */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Traduction */}
           <button
             type="button"
             onClick={() => setShowTranslation(!showTranslation)}
-            className={`px-3 py-1.5 rounded-none border text-xs font-medium transition-all ${
+            className={`rounded-none border px-3 py-1.5 text-xs font-medium transition-all ${
               showTranslation
-                ? 'bg-[#f4ede2] border-[#ded4c5] text-[#2c2724]'
-                : 'bg-white border-[#e6dfd1] text-[#736a5f] hover:bg-[#faf8f5]'
+                ? 'border-[#ded4c5] bg-[#f4ede2] text-[#2c2724]'
+                : 'border-[#e6dfd1] bg-white text-[#736a5f] hover:bg-[#faf8f5]'
             }`}
           >
             {showTranslation ? 'Traduction activée' : 'Traduction masquée'}
           </button>
 
           {/* Taille du texte */}
-          <div className="flex items-center bg-[#f4ede2] p-0.5 rounded-none border border-[#ded4c5] text-xs">
+          <div className="flex items-center rounded-none border border-[#ded4c5] bg-[#f4ede2] p-0.5 text-xs">
             <button
               type="button"
               onClick={() => setTextSize('normal')}
-              className={`px-2 py-1 rounded-none ${textSize === 'normal' ? 'bg-white font-bold shadow-2xs' : 'text-[#736a5f]'}`}
+              className={`rounded-none px-2 py-1 ${textSize === 'normal' ? 'bg-white font-bold shadow-2xs' : 'text-[#736a5f]'}`}
             >
               A
             </button>
             <button
               type="button"
               onClick={() => setTextSize('large')}
-              className={`px-2 py-1 rounded-none ${textSize === 'large' ? 'bg-white font-bold shadow-2xs text-sm' : 'text-[#736a5f]'}`}
+              className={`rounded-none px-2 py-1 ${textSize === 'large' ? 'bg-white text-sm font-bold shadow-2xs' : 'text-[#736a5f]'}`}
             >
               A+
             </button>
             <button
               type="button"
               onClick={() => setTextSize('xlarge')}
-              className={`px-2 py-1 rounded-none ${textSize === 'xlarge' ? 'bg-white font-bold shadow-2xs text-base' : 'text-[#736a5f]'}`}
+              className={`rounded-none px-2 py-1 ${textSize === 'xlarge' ? 'bg-white text-base font-bold shadow-2xs' : 'text-[#736a5f]'}`}
             >
               A++
             </button>
@@ -831,10 +831,10 @@ export const CorpusAnnotation: React.FC = () => {
           <a
             href="/api/annotations/export-ttl"
             download
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-[#9A6530] hover:bg-[#855424] text-white rounded-none text-xs font-semibold shadow-xs transition-all"
+            className="inline-flex items-center space-x-1.5 rounded-none bg-[#9A6530] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-[#855424]"
             title={t.annotate.exportTtl}
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export RDF</span>
           </a>
 
@@ -842,29 +842,26 @@ export const CorpusAnnotation: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsLegendOpen(true)}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white hover:bg-[#faf8f5] text-[#6d4c24] hover:text-[#2c2724] rounded-none border border-[#ded4c5] text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+            className="inline-flex cursor-pointer items-center space-x-1.5 rounded-none border border-[#ded4c5] bg-white px-3 py-1.5 text-xs font-semibold text-[#6d4c24] shadow-2xs transition-all hover:bg-[#faf8f5] hover:text-[#2c2724]"
             title={t.annotate.legendTitle}
           >
-            <HelpCircle className="w-3.5 h-3.5 text-[#9A6530]" />
+            <HelpCircle className="h-3.5 w-3.5 text-[#9A6530]" />
             <span>{t.annotate.legendBtn}</span>
           </button>
         </div>
-
       </header>
 
       {/* 2. Corps en 3 volets (TOC, Studio de Lecture, Panneau d'Annotations) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 overflow-hidden">
-        
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-12">
         {/* VOLET GAUCHE : Table des matières (3 colonnes) */}
-        <aside className="lg:col-span-3 h-full bg-white/95 rounded-none border border-[#e6dfd1] shadow-xs flex flex-col overflow-hidden">
-          
-          <div className="p-3.5 border-b border-[#f0eae0] bg-[#faf8f4] space-y-2 shrink-0">
+        <aside className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd1] bg-white/95 shadow-xs lg:col-span-3">
+          <div className="shrink-0 space-y-2 border-b border-[#f0eae0] bg-[#faf8f4] p-3.5">
             <div className="flex items-center justify-between">
-              <span className="font-serif font-bold text-sm text-[#2c2724] flex items-center space-x-1.5">
-                <BookOpen className="w-4 h-4 text-[#9A6530]" />
+              <span className="flex items-center space-x-1.5 font-serif text-sm font-bold text-[#2c2724]">
+                <BookOpen className="h-4 w-4 text-[#9A6530]" />
                 <span>{t.annotate.tocTitle}</span>
               </span>
-              <span className="text-[11px] font-semibold text-[#8c8275] bg-[#f0eae0] px-2 py-0.5 rounded-full">
+              <span className="rounded-full bg-[#f0eae0] px-2 py-0.5 text-[11px] font-semibold text-[#8c8275]">
                 {paragraphs.length} §
               </span>
             </div>
@@ -883,7 +880,7 @@ export const CorpusAnnotation: React.FC = () => {
                     setActiveParagraphUri('')
                   }
                 }}
-                className="w-full p-1.5 text-xs rounded-lg border border-[#cfc5b4] bg-[#faf9f6] text-[#2c2724] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
+                className="w-full rounded-lg border border-[#cfc5b4] bg-[#faf9f6] p-1.5 text-xs text-[#2c2724] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
               >
                 <option value="">Tous les auteurs</option>
                 {authors.map((a) => (
@@ -901,7 +898,7 @@ export const CorpusAnnotation: React.FC = () => {
                   setActiveParagraphUri('')
                   setSearchParams({ uri: e.target.value })
                 }}
-                className="w-full p-1.5 text-xs rounded-lg border border-[#cfc5b4] bg-[#faf9f6] text-[#2c2724] font-medium focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
+                className="w-full rounded-lg border border-[#cfc5b4] bg-[#faf9f6] p-1.5 text-xs font-medium text-[#2c2724] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
               >
                 {filteredWorks.map((w) => (
                   <option key={w.uri} value={w.uri}>
@@ -918,21 +915,21 @@ export const CorpusAnnotation: React.FC = () => {
                 value={tocFilter}
                 onChange={(e) => setTocFilter(e.target.value)}
                 placeholder={t.annotate.filterToc}
-                className="w-full p-1.5 pl-7 text-[11px] rounded-none border border-[#ded5c6] bg-white text-[#2c2724] focus:outline-none focus:ring-1 focus:ring-[#9A6530]"
+                className="w-full rounded-none border border-[#ded5c6] bg-white p-1.5 pl-7 text-[11px] text-[#2c2724] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
               />
-              <Search className="w-3.5 h-3.5 text-[#8c8275] absolute left-2 top-2" />
+              <Search className="absolute top-2 left-2 h-3.5 w-3.5 text-[#8c8275]" />
             </div>
           </div>
 
           {/* Arborescence défilable */}
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-1 scrollbar-thin">
+          <div className="flex-1 scrollbar-thin space-y-1 overflow-y-auto p-2.5">
             {isSummaryLoading ? (
-              <div className="py-12 flex flex-col items-center justify-center space-y-2 text-[#736a5f]">
-                <Loader2 className="w-5 h-5 text-[#9A6530] animate-spin" />
+              <div className="flex flex-col items-center justify-center space-y-2 py-12 text-[#736a5f]">
+                <Loader2 className="h-5 w-5 animate-spin text-[#9A6530]" />
                 <span className="text-xs">{t.common.loading}</span>
               </div>
             ) : filteredSummary.length === 0 ? (
-              <p className="text-xs text-[#8c8275] italic p-4 text-center">Aucune section trouvée.</p>
+              <p className="p-4 text-center text-xs text-[#8c8275] italic">Aucune section trouvée.</p>
             ) : (
               filteredSummary.map((book) => {
                 const isCollapsed = collapsedNodes[book.uri] ?? false
@@ -954,22 +951,25 @@ export const CorpusAnnotation: React.FC = () => {
                           handleSelectSection(book.uri)
                         }
                       }}
-                      className={`w-full text-left p-2 rounded-none text-xs font-semibold flex items-center justify-between transition-all ${
+                      className={`flex w-full items-center justify-between rounded-none p-2 text-left text-xs font-semibold transition-all ${
                         isBookActive
-                          ? 'bg-[#9A6530] text-white font-bold shadow-xs'
+                          ? 'bg-[#9A6530] font-bold text-white shadow-xs'
                           : isChildActive
-                            ? 'bg-[#f4ede1] text-[#855424] font-bold border border-[#ded4c5]'
+                            ? 'border border-[#ded4c5] bg-[#f4ede1] font-bold text-[#855424]'
                             : 'text-[#38322b] hover:bg-[#f4ede1]'
                       }`}
                     >
                       <span className="truncate pr-1">{book.title}</span>
-                      <div className="flex items-center space-x-1 shrink-0">
+                      <div className="flex shrink-0 items-center space-x-1">
                         {isBookActive && !hasChildren && (
-                          <span className="w-2 h-2 rounded-full bg-amber-300 shadow-2xs" />
+                          <span className="h-2 w-2 rounded-full bg-amber-300 shadow-2xs" />
                         )}
-                        {hasChildren && (
-                          isCollapsed ? <ChevronRight className="w-3.5 h-3.5 opacity-70" /> : <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-                        )}
+                        {hasChildren &&
+                          (isCollapsed ? (
+                            <ChevronRight className="h-3.5 w-3.5 opacity-70" />
+                          ) : (
+                            <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                          ))}
                       </div>
                     </button>
 
@@ -978,7 +978,7 @@ export const CorpusAnnotation: React.FC = () => {
 
                     {/* Feuilles / Chapitres */}
                     {hasChildren && !isCollapsed && (
-                      <div className="pl-3 border-l-2 border-[#eee5d6] ml-2 space-y-0.5 my-1">
+                      <div className="my-1 ml-2 space-y-0.5 border-l-2 border-[#eee5d6] pl-3">
                         {book.children.map((child) => {
                           const isLeafActive = activeSectionUri === child.uri
                           return (
@@ -986,15 +986,15 @@ export const CorpusAnnotation: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleSelectSection(child.uri)}
-                                className={`w-full text-left px-2.5 py-1.5 rounded-none text-xs transition-all flex items-center justify-between ${
+                                className={`flex w-full items-center justify-between rounded-none px-2.5 py-1.5 text-left text-xs transition-all ${
                                   isLeafActive
-                                    ? 'bg-[#9A6530] text-white font-bold shadow-xs'
+                                    ? 'bg-[#9A6530] font-bold text-white shadow-xs'
                                     : 'text-[#595248] hover:bg-[#f4ede1] hover:text-[#2c2724]'
                                 }`}
                               >
                                 <span className="truncate">{child.title}</span>
                                 {isLeafActive && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0 ml-1" />
+                                  <span className="ml-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
                                 )}
                               </button>
 
@@ -1010,21 +1010,19 @@ export const CorpusAnnotation: React.FC = () => {
               })
             )}
           </div>
-
         </aside>
 
         {/* VOLET CENTRAL : Studio de Lecture & Surlignage (6 colonnes) */}
-        <main className="lg:col-span-6 h-full bg-white/95 rounded-none border border-[#e6dfd1] shadow-xs flex flex-col overflow-hidden">
-          
+        <main className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd1] bg-white/95 shadow-xs lg:col-span-6">
           {/* En-tête du texte */}
-          <div className="p-3.5 border-b border-[#f0eae0] bg-[#faf8f4] flex items-center justify-between shrink-0 select-none">
-            <div className="flex items-center space-x-2 min-w-0">
-              <Feather className="w-4 h-4 text-[#9A6530] shrink-0" />
-              <span className="font-serif font-bold text-sm sm:text-base text-[#2c2724] truncate">
+          <div className="flex shrink-0 items-center justify-between border-b border-[#f0eae0] bg-[#faf8f4] p-3.5 select-none">
+            <div className="flex min-w-0 items-center space-x-2">
+              <Feather className="h-4 w-4 shrink-0 text-[#9A6530]" />
+              <span className="truncate font-serif text-sm font-bold text-[#2c2724] sm:text-base">
                 {t.annotate.readingStudio}
               </span>
             </div>
-            <span className="text-[11px] text-[#736a5f] bg-[#f4ede2] px-2.5 py-1 rounded-none border border-[#ded4c5] font-medium hidden sm:inline-block">
+            <span className="hidden rounded-none border border-[#ded4c5] bg-[#f4ede2] px-2.5 py-1 text-[11px] font-medium text-[#736a5f] sm:inline-block">
               Surlignez du texte pour annoter
             </span>
           </div>
@@ -1032,16 +1030,16 @@ export const CorpusAnnotation: React.FC = () => {
           {/* Zone de lecture défilable */}
           <div
             ref={readingContainerRef}
-            className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scrollbar-thin"
+            className="flex-1 scrollbar-thin space-y-4 overflow-y-auto p-4 sm:p-5"
             onMouseUp={() => handleFreeTextSelection()}
           >
             {isParagraphsLoading || isSectionDataLoading ? (
-              <div className="py-24 flex flex-col items-center justify-center space-y-3">
-                <Loader2 className="w-8 h-8 text-[#9A6530] animate-spin" />
+              <div className="flex flex-col items-center justify-center space-y-3 py-24">
+                <Loader2 className="h-8 w-8 animate-spin text-[#9A6530]" />
                 <span className="text-sm font-medium text-[#736a5f]">{t.annotate.loadingSection}</span>
               </div>
             ) : paragraphs.length === 0 ? (
-              <div className="py-24 text-center space-y-2">
+              <div className="space-y-2 py-24 text-center">
                 <p className="text-sm text-[#736a5f]">{t.annotate.selectWorkFirst}</p>
               </div>
             ) : (
@@ -1081,35 +1079,35 @@ export const CorpusAnnotation: React.FC = () => {
               </div>
             )}
           </div>
-
         </main>
 
         {/* VOLET DROIT : Panneau des Annotations & Modération (3 colonnes) */}
-        <aside className="lg:col-span-3 h-full bg-white/95 rounded-none border border-[#e6dfd1] shadow-xs flex flex-col overflow-hidden">
-          
+        <aside className="flex h-full flex-col overflow-hidden rounded-none border border-[#e6dfd1] bg-white/95 shadow-xs lg:col-span-3">
           {/* En-tête & Filtres de statut */}
-          <div className="p-3.5 border-b border-[#f0eae0] bg-[#faf8f4] space-y-2.5 shrink-0">
+          <div className="shrink-0 space-y-2.5 border-b border-[#f0eae0] bg-[#faf8f4] p-3.5">
             <div className="flex items-center justify-between">
-              <span className="font-serif font-bold text-sm text-[#2c2724] flex items-center space-x-1.5">
-                <Sparkles className="w-4 h-4 text-[#9A6530]" />
+              <span className="flex items-center space-x-1.5 font-serif text-sm font-bold text-[#2c2724]">
+                <Sparkles className="h-4 w-4 text-[#9A6530]" />
                 <span>{t.annotate.annotationsPanel}</span>
               </span>
-              <span className="text-[11px] font-bold text-[#9A6530] bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                {sidebarScope === 'active_paragraph' ? (displayedStaged.length + displayedReference.length) : totalSectionCount}
+              <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-[#9A6530]">
+                {sidebarScope === 'active_paragraph'
+                  ? displayedStaged.length + displayedReference.length
+                  : totalSectionCount}
               </span>
             </div>
 
             {/* Bascule Portée : Paragraphe Actif vs Toute la section */}
-            <div className="flex bg-[#f4ede2] p-0.5 rounded-none text-xs font-semibold">
+            <div className="flex rounded-none bg-[#f4ede2] p-0.5 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => {
                   setSidebarScope('active_paragraph')
                   setSectionPageSize(30)
                 }}
-                className={`flex-1 py-1.5 px-2 rounded-none text-center transition-all truncate ${
+                className={`flex-1 truncate rounded-none px-2 py-1.5 text-center transition-all ${
                   sidebarScope === 'active_paragraph'
-                    ? 'bg-white text-[#2c2724] shadow-xs font-bold'
+                    ? 'bg-white font-bold text-[#2c2724] shadow-xs'
                     : 'text-[#696156] hover:text-[#2c2724]'
                 }`}
               >
@@ -1121,9 +1119,9 @@ export const CorpusAnnotation: React.FC = () => {
                   setSidebarScope('all_section')
                   setSectionPageSize(30)
                 }}
-                className={`flex-1 py-1.5 px-2 rounded-none text-center transition-all truncate ${
+                className={`flex-1 truncate rounded-none px-2 py-1.5 text-center transition-all ${
                   sidebarScope === 'all_section'
-                    ? 'bg-white text-[#2c2724] shadow-xs font-bold'
+                    ? 'bg-white font-bold text-[#2c2724] shadow-xs'
                     : 'text-[#696156] hover:text-[#2c2724]'
                 }`}
               >
@@ -1142,21 +1140,21 @@ export const CorpusAnnotation: React.FC = () => {
                     setSectionPageSize(30)
                   }}
                   placeholder={t.annotate.searchAnnotations}
-                  className="w-full p-1.5 pl-7 text-[11px] rounded-none border border-[#ded5c6] bg-white text-[#2c2724] focus:outline-none focus:ring-1 focus:ring-[#9A6530]"
+                  className="w-full rounded-none border border-[#ded5c6] bg-white p-1.5 pl-7 text-[11px] text-[#2c2724] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
                 />
-                <Search className="w-3.5 h-3.5 text-[#8c8275] absolute left-2 top-2" />
+                <Search className="absolute top-2 left-2 h-3.5 w-3.5 text-[#8c8275]" />
               </div>
             )}
 
             {/* Onglets / Filtres par statut */}
-            <div className="grid grid-cols-5 gap-1 bg-[#f4ede2] p-1 rounded-none text-[11px] font-semibold text-center">
+            <div className="grid grid-cols-5 gap-1 rounded-none bg-[#f4ede2] p-1 text-center text-[11px] font-semibold">
               {(
                 [
                   { key: 'all', label: t.annotate.filterAll },
                   { key: 'pending', label: t.annotate.filterPending },
                   { key: 'validated', label: t.annotate.filterValidated },
                   { key: 'rejected', label: t.annotate.filterRejected },
-                  { key: 'reference', label: t.annotate.filterReference }
+                  { key: 'reference', label: t.annotate.filterReference },
                 ] as const
               ).map(({ key, label }) => (
                 <button
@@ -1166,9 +1164,9 @@ export const CorpusAnnotation: React.FC = () => {
                     setStatusFilter(key)
                     setSectionPageSize(30)
                   }}
-                  className={`py-1 rounded-none transition-all truncate ${
+                  className={`truncate rounded-none py-1 transition-all ${
                     statusFilter === key
-                      ? 'bg-white text-[#2c2724] shadow-xs font-bold'
+                      ? 'bg-white font-bold text-[#2c2724] shadow-xs'
                       : 'text-[#696156] hover:text-[#2c2724]'
                   }`}
                 >
@@ -1179,8 +1177,7 @@ export const CorpusAnnotation: React.FC = () => {
           </div>
 
           {/* Liste défilable des annotations */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin">
-            
+          <div className="flex-1 scrollbar-thin space-y-3 overflow-y-auto p-3">
             {/* Section 1 : Propositions Staging (selon filtre et pagination) */}
             {statusFilter !== 'reference' && displayedStaged.length > 0 && (
               <div className="space-y-2.5">
@@ -1198,11 +1195,11 @@ export const CorpusAnnotation: React.FC = () => {
                       onMouseLeave={() => setHoveredConcept(null)}
                       onClick={() => setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))}
                       title={isPinned ? t.annotate.unpinAnnotationTooltip : t.annotate.pinAnnotationTooltip}
-                      className={`p-3 rounded-none border text-xs space-y-2 transition-colors cursor-pointer ${
+                      className={`cursor-pointer space-y-2 rounded-none border p-3 text-xs transition-colors ${
                         isPinned
-                          ? 'ring-2 ring-amber-500 border-amber-400 bg-amber-50/80 shadow-xs'
+                          ? 'border-amber-400 bg-amber-50/80 shadow-xs ring-2 ring-amber-500'
                           : isHovered
-                            ? 'ring-2 ring-[#9A6530] shadow-sm'
+                            ? 'shadow-sm ring-2 ring-[#9A6530]'
                             : ''
                       } ${
                         isValidated
@@ -1214,25 +1211,29 @@ export const CorpusAnnotation: React.FC = () => {
                     >
                       {/* Concept & Badge Statut */}
                       <div className="space-y-1.5">
-                        <div className="flex items-start space-x-1.5 min-w-0">
+                        <div className="flex min-w-0 items-start space-x-1.5">
                           <ConceptCategoryIcon
                             label={item.concept_label}
                             uri={item.concept_uri}
-                            className="w-4 h-4 shrink-0"
+                            className="h-4 w-4 shrink-0"
                           />
-                          <strong className="font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug overflow-visible text-[#2c2724]">
+                          <strong className="min-w-0 flex-1 overflow-visible text-sm leading-snug font-semibold break-words whitespace-normal text-[#2c2724] capitalize">
                             {item.concept_label}
                           </strong>
-                          {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
+                          {isPinned && (
+                            <span className="shrink-0 text-xs" title="Annotation épinglée">
+                              📌
+                            </span>
+                          )}
                         </div>
                         <div className="flex justify-end">
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
                               isValidated
-                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
                                 : isRejected
-                                  ? 'bg-rose-100 text-rose-800 border-rose-300'
-                                  : 'bg-amber-100 text-amber-800 border-amber-300'
+                                  ? 'border-rose-300 bg-rose-100 text-rose-800'
+                                  : 'border-amber-300 bg-amber-100 text-amber-800'
                             }`}
                           >
                             {item.status}
@@ -1243,21 +1244,23 @@ export const CorpusAnnotation: React.FC = () => {
                       {/* Granularité et extrait */}
                       <div className="space-y-1">
                         <div className="flex items-center space-x-1.5 text-[10px] text-[#736a5f]">
-                          <span className="font-semibold uppercase bg-white/80 px-1.5 py-0.5 rounded-none border border-[#ded5c6]">
+                          <span className="rounded-none border border-[#ded5c6] bg-white/80 px-1.5 py-0.5 font-semibold uppercase">
                             {item.scope_type}
                           </span>
-                          <span>pos. {item.start_offset}-{item.end_offset}</span>
+                          <span>
+                            pos. {item.start_offset}-{item.end_offset}
+                          </span>
                         </div>
-                        <p className="italic text-[#3b2e21] ancient-text text-xs line-clamp-2">
+                        <p className="ancient-text line-clamp-2 text-xs text-[#3b2e21] italic">
                           « {item.target_text} »
                         </p>
                       </div>
 
                       {/* Zone de Justification de l'annotateur */}
                       {item.justification && (
-                        <div className="p-2 bg-white/90 rounded-none border border-[#e6dfd1] text-[11px] text-[#595248] space-y-0.5">
-                          <span className="font-semibold text-[#9A6530] text-[10px] uppercase flex items-center space-x-1">
-                            <FileText className="w-3 h-3" />
+                        <div className="space-y-0.5 rounded-none border border-[#e6dfd1] bg-white/90 p-2 text-[11px] text-[#595248]">
+                          <span className="flex items-center space-x-1 text-[10px] font-semibold text-[#9A6530] uppercase">
+                            <FileText className="h-3 w-3" />
                             <span>{t.annotate.justificationTitle}</span>
                           </span>
                           <p className="italic">{item.justification}</p>
@@ -1265,10 +1268,8 @@ export const CorpusAnnotation: React.FC = () => {
                       )}
 
                       {/* Métadonnées & actions de modération */}
-                      <div className="pt-2 border-t border-black/5 flex items-center justify-between text-[11px]">
-                        <span className="text-[#8c8275] text-[10px]">
-                          {item.annotator_name}
-                        </span>
+                      <div className="flex items-center justify-between border-t border-black/5 pt-2 text-[11px]">
+                        <span className="text-[10px] text-[#8c8275]">{item.annotator_name}</span>
 
                         <div className="flex items-center space-x-1">
                           {/* Bouton Valider */}
@@ -1279,10 +1280,10 @@ export const CorpusAnnotation: React.FC = () => {
                                 e.stopPropagation()
                                 updateStatusMutation.mutate({ id: item.id, status: 'Validé' })
                               }}
-                              className="p-1 text-emerald-700 hover:bg-emerald-100 rounded-none transition-colors"
+                              className="rounded-none p-1 text-emerald-700 transition-colors hover:bg-emerald-100"
                               title={t.annotate.validateAction}
                             >
-                              <CheckCircle2 className="w-4 h-4" />
+                              <CheckCircle2 className="h-4 w-4" />
                             </button>
                           )}
 
@@ -1294,10 +1295,10 @@ export const CorpusAnnotation: React.FC = () => {
                                 e.stopPropagation()
                                 updateStatusMutation.mutate({ id: item.id, status: 'Rejeté' })
                               }}
-                              className="p-1 text-rose-700 hover:bg-rose-100 rounded-none transition-colors"
+                              className="rounded-none p-1 text-rose-700 transition-colors hover:bg-rose-100"
                               title={t.annotate.rejectAction}
                             >
-                              <XCircle className="w-4 h-4" />
+                              <XCircle className="h-4 w-4" />
                             </button>
                           )}
 
@@ -1308,10 +1309,10 @@ export const CorpusAnnotation: React.FC = () => {
                               e.stopPropagation()
                               deleteMutation.mutate(item.id)
                             }}
-                            className="p-1 text-[#8c8275] hover:text-red-700 rounded-none transition-colors"
+                            className="rounded-none p-1 text-[#8c8275] transition-colors hover:text-red-700"
                             title={t.annotate.deleteAction}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </div>
@@ -1335,44 +1336,50 @@ export const CorpusAnnotation: React.FC = () => {
                       onMouseLeave={() => setHoveredConcept(null)}
                       onClick={() => setPinnedConcept((prev) => (prev === item.concept ? null : item.concept))}
                       title={isPinned ? t.annotate.unpinAnnotationTooltip : t.annotate.pinAnnotationTooltip}
-                      className={`p-3 rounded-none border text-xs transition-colors cursor-pointer ${
+                      className={`cursor-pointer rounded-none border p-3 text-xs transition-colors ${
                         isPinned
-                          ? 'border-[#9A6530] bg-[#fdf7ee] ring-2 ring-amber-500 shadow-sm'
+                          ? 'border-[#9A6530] bg-[#fdf7ee] shadow-sm ring-2 ring-amber-500'
                           : isHovered
-                            ? 'border-[#9A6530] bg-[#fdfaf5] ring-2 ring-[#9A6530] shadow-sm'
+                            ? 'border-[#9A6530] bg-[#fdfaf5] shadow-sm ring-2 ring-[#9A6530]'
                             : 'border-[#ded5c6] bg-[#faf8f4] hover:bg-white'
                       }`}
                     >
                       <div className="space-y-1.5">
-                        <div className="flex items-start space-x-1.5 min-w-0">
+                        <div className="flex min-w-0 items-start space-x-1.5">
                           <ConceptCategoryIcon
                             label={item.label}
                             uri={item.concept}
                             category={item.category as any}
-                            className="w-3.5 h-3.5 shrink-0"
+                            className="h-3.5 w-3.5 shrink-0"
                           />
-                          <strong className="font-semibold text-sm capitalize min-w-0 flex-1 whitespace-normal break-words leading-snug overflow-visible text-[#2c2724]">
+                          <strong className="min-w-0 flex-1 overflow-visible text-sm leading-snug font-semibold break-words whitespace-normal text-[#2c2724] capitalize">
                             {item.label}
                           </strong>
-                          {isPinned && <span className="text-xs shrink-0" title="Annotation épinglée">📌</span>}
+                          {isPinned && (
+                            <span className="shrink-0 text-xs" title="Annotation épinglée">
+                              📌
+                            </span>
+                          )}
                         </div>
                         <div className="flex justify-end">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-[#7a4f21] border border-amber-300">
+                          <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-[#7a4f21]">
                             {t.annotate.statusReference}
                           </span>
                         </div>
                       </div>
 
-                      <div className="mt-2 pt-2 border-t border-[#ede4d4] flex items-center justify-between text-[10px] text-[#736a5f]">
-                        <span>{item.occurrences} {t.work.occurrencesCount}</span>
+                      <div className="mt-2 flex items-center justify-between border-t border-[#ede4d4] pt-2 text-[10px] text-[#736a5f]">
+                        <span>
+                          {item.occurrences} {t.work.occurrencesCount}
+                        </span>
                         <a
                           href={item.concept}
                           target="_blank"
                           rel="noreferrer"
-                          className="hover:underline text-[#9A6530] inline-flex items-center space-x-0.5"
+                          className="inline-flex items-center space-x-0.5 text-[#9A6530] hover:underline"
                         >
                           <span>{t.work.viewOnTheZoo}</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
+                          <ExternalLink className="h-2.5 w-2.5" />
                         </a>
                       </div>
                     </div>
@@ -1387,7 +1394,7 @@ export const CorpusAnnotation: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSectionPageSize((prev) => prev + 30)}
-                  className="w-full py-2 px-3 bg-[#f4ede2] hover:bg-[#eae0d0] text-[#784d1e] text-xs font-semibold rounded-none border border-[#ded5c6] transition-colors shadow-2xs cursor-pointer"
+                  className="w-full cursor-pointer rounded-none border border-[#ded5c6] bg-[#f4ede2] px-3 py-2 text-xs font-semibold text-[#784d1e] shadow-2xs transition-colors hover:bg-[#eae0d0]"
                 >
                   {t.annotate.loadMore.replace('{remaining}', remainingSectionCount.toString())}
                 </button>
@@ -1396,15 +1403,12 @@ export const CorpusAnnotation: React.FC = () => {
 
             {/* État vide si aucune annotation */}
             {displayedStaged.length === 0 && displayedReference.length === 0 && (
-              <p className="text-xs text-[#8c8275] italic p-4 text-center">
+              <p className="p-4 text-center text-xs text-[#8c8275] italic">
                 {sidebarScope === 'active_paragraph' ? t.annotate.noAnnotationsInPara : t.annotate.noAnnotationsFound}
               </p>
             )}
-
           </div>
-
         </aside>
-
       </div>
 
       {/* 3. Modal d'annotation sémantique interactive */}
@@ -1423,11 +1427,7 @@ export const CorpusAnnotation: React.FC = () => {
       />
 
       {/* 4. Modal d'aide & Légende des annotations */}
-      <AnnotationLegendModal
-        isOpen={isLegendOpen}
-        onClose={() => setIsLegendOpen(false)}
-      />
-
+      <AnnotationLegendModal isOpen={isLegendOpen} onClose={() => setIsLegendOpen(false)} />
     </div>
   )
 }

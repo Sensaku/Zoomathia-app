@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useLocation, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  executeSparqlQuery,
-  fetchSavedQueries,
-  deleteSavedQuery
-} from '../api/client'
+import { executeSparqlQuery, fetchSavedQueries, deleteSavedQuery } from '../api/client'
 import { getApiErrorMessage } from '../api/errors'
 import { SavedSparqlQuery } from '../types'
 import { VenusViewer } from '../components/visualization/VenusViewer'
@@ -39,7 +35,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FolderOpen,
-  Plus
+  Plus,
 } from 'lucide-react'
 
 const LOCAL_STORAGE_HISTORY_KEY = 'zoomathia_sparql_history'
@@ -125,7 +121,7 @@ export const SparqlPlayground: React.FC = () => {
     setQueryTitle('')
     setQueryDescription('')
     setQueryText(
-      `PREFIX zoom: <http://ns.inria.fr/zoomathia/>\nPREFIX oa: <http://www.w3.org/ns/oa#>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n\nSELECT ?s ?p ?o\nWHERE {\n  ?s ?p ?o .\n}\nLIMIT 50`
+      `PREFIX zoom: <http://ns.inria.fr/zoomathia/>\nPREFIX oa: <http://www.w3.org/ns/oa#>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n\nSELECT ?s ?p ?o\nWHERE {\n  ?s ?p ?o .\n}\nLIMIT 50`,
     )
     setError(null)
   }
@@ -171,9 +167,8 @@ export const SparqlPlayground: React.FC = () => {
     // Titre : soit le titre déjà présent, soit un libellé déduit du SPARQL
     let itemTitle = queryTitle?.trim()
     if (!itemTitle || itemTitle === t.sparql.newQuery) {
-      const meaningfulLine = trimmed
-        .split('\n')
-        .find((l) => !l.startsWith('#') && !l.trim().toUpperCase().startsWith('PREFIX')) || ''
+      const meaningfulLine =
+        trimmed.split('\n').find((l) => !l.startsWith('#') && !l.trim().toUpperCase().startsWith('PREFIX')) || ''
       const cleanedLine = meaningfulLine.replace(/\s+/g, ' ').trim()
       itemTitle = cleanedLine ? cleanedLine.substring(0, 50) : t.sparql.adhocQuery
     }
@@ -186,7 +181,7 @@ export const SparqlPlayground: React.FC = () => {
         query: trimmed,
         title: itemTitle,
         description: queryDescription?.trim() || undefined,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       const updated = [newItem, ...filtered].slice(0, 15) // Garder les 15 dernières
       try {
@@ -216,7 +211,7 @@ export const SparqlPlayground: React.FC = () => {
     onError: (err: any) => {
       setExecutionDuration(null)
       setError(getApiErrorMessage(err, t))
-    }
+    },
   })
 
   const handleRunQuery = () => {
@@ -256,7 +251,7 @@ export const SparqlPlayground: React.FC = () => {
         handleNewQuery()
       }
     } catch (err: any) {
-      setError(err?.message || "Impossible de supprimer la requête.")
+      setError(err?.message || 'Impossible de supprimer la requête.')
     }
   }
 
@@ -327,9 +322,7 @@ export const SparqlPlayground: React.FC = () => {
   const exportCsv = () => {
     if (!queryResult || rawRows.length === 0) return
     const header = columns.join(',')
-    const csvLines = rawRows.map((r) =>
-      columns.map((c) => `"${(r[c]?.value || '').replace(/"/g, '""')}"`).join(',')
-    )
+    const csvLines = rawRows.map((r) => columns.map((c) => `"${(r[c]?.value || '').replace(/"/g, '""')}"`).join(','))
     const blob = new Blob([[header, ...csvLines].join('\n')], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -343,7 +336,7 @@ export const SparqlPlayground: React.FC = () => {
     if (!queryResult || rawRows.length === 0) return
     const header = columns.map((c) => `?${c}`).join('\t')
     const tsvLines = filteredRows.map((r) =>
-      columns.map((c) => (r[c]?.value || '').replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t')
+      columns.map((c) => (r[c]?.value || '').replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t'),
     )
     const text = [header, ...tsvLines].join('\n')
     navigator.clipboard.writeText(text)
@@ -352,43 +345,37 @@ export const SparqlPlayground: React.FC = () => {
   }
 
   return (
-    <div className="py-5 space-y-5 max-w-[1920px] mx-auto">
-      
+    <div className="mx-auto max-w-[1920px] space-y-5 py-5">
       {/* En-tête principal & statuts */}
-      <div className="bg-white p-5 rounded-none border border-[#e6dfd3] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 rounded-none border border-[#e6dfd3] bg-white p-5 shadow-xs md:flex-row md:items-center">
         <div>
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-none bg-[#faf4ee] text-[#9A6530] border border-[#f0eae0]">
-              <Code className="w-5 h-5" />
+            <div className="rounded-none border border-[#f0eae0] bg-[#faf4ee] p-2 text-[#9A6530]">
+              <Code className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="font-serif text-xl md:text-2xl font-bold text-[#2c2724]">
-                {t.sparql.title}
-              </h1>
-              <p className="text-xs text-[#736a5f] mt-0.5">
-                {t.sparql.subtitle}
-              </p>
+              <h1 className="font-serif text-xl font-bold text-[#2c2724] md:text-2xl">{t.sparql.title}</h1>
+              <p className="mt-0.5 text-xs text-[#736a5f]">{t.sparql.subtitle}</p>
             </div>
           </div>
         </div>
 
         {/* Badges de statut et sécurité */}
-        <div className="flex items-center space-x-2.5 flex-wrap">
-          <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-[#fbf8f3] border border-[#ded5c6] rounded-none text-xs text-[#696156]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+        <div className="flex flex-wrap items-center space-x-2.5">
+          <div className="inline-flex items-center space-x-1.5 rounded-none border border-[#ded5c6] bg-[#fbf8f3] px-2.5 py-1 text-xs text-[#696156]">
+            <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
             <span className="font-medium">Corese Endpoint</span>
           </div>
 
-          <div className="inline-flex items-center space-x-1 px-2.5 py-1 bg-amber-50/80 border border-amber-200/80 rounded-none text-[11px] text-amber-800">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <div className="inline-flex items-center space-x-1 rounded-none border border-amber-200/80 bg-amber-50/80 px-2.5 py-1 text-[11px] text-amber-800">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
             <span>{t.sparql.guardAlertDesc}</span>
           </div>
         </div>
       </div>
 
       {/* Disposition en deux colonnes : Volet de bibliothèque + Atelier de travail */}
-      <div className="flex flex-col lg:flex-row gap-5 items-start">
-        
+      <div className="flex flex-col items-start gap-5 lg:flex-row">
         {/* Volet latéral gauche : Bibliothèque de requêtes & modèles */}
         <SparqlQuerySidebar
           savedQueries={savedQueries}
@@ -406,28 +393,26 @@ export const SparqlPlayground: React.FC = () => {
         />
 
         {/* Atelier de travail central (Éditeur, Actions, Résultats) */}
-        <div className="flex-1 min-w-0 w-full space-y-4">
-          
+        <div className="w-full min-w-0 flex-1 space-y-4">
           {/* Fiche de la requête active */}
-          <div className="bg-white p-4.5 rounded-none border border-[#e6dfd3] shadow-xs space-y-3.5">
-            
+          <div className="space-y-3.5 rounded-none border border-[#e6dfd3] bg-white p-4.5 shadow-xs">
             {/* Ligne d'en-tête : Nature de la requête et boutons de contrôle */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#f0eae0]">
-              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                <span className="text-xs font-semibold text-[#855424] uppercase tracking-wider">
-                  {selectedQueryId === '' 
-                    ? t.sparql.newQueryDraft 
-                    : isBuiltin 
-                    ? t.sparql.officialQueryTitle.replace('{id}', String(selectedQueryId)) 
-                    : t.sparql.customQueryTitle.replace('{id}', String(selectedQueryId))}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#f0eae0] pb-2.5">
+              <div className="flex flex-wrap items-center space-x-2 gap-y-1">
+                <span className="text-xs font-semibold tracking-wider text-[#855424] uppercase">
+                  {selectedQueryId === ''
+                    ? t.sparql.newQueryDraft
+                    : isBuiltin
+                      ? t.sparql.officialQueryTitle.replace('{id}', String(selectedQueryId))
+                      : t.sparql.customQueryTitle.replace('{id}', String(selectedQueryId))}
                 </span>
                 {isBuiltin && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-none bg-amber-100/80 text-amber-800 border border-amber-200">
+                  <span className="rounded-none border border-amber-200 bg-amber-100/80 px-2 py-0.5 font-mono text-[10px] text-amber-800">
                     {t.sparql.readOnlyBadge}
                   </span>
                 )}
                 {!isBuiltin && selectedQueryId !== '' && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-none bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="rounded-none border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] text-emerald-700">
                     {t.sparql.customEditBadge}
                   </span>
                 )}
@@ -438,20 +423,20 @@ export const SparqlPlayground: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleCloneQuery}
-                    className="inline-flex items-center space-x-1 px-2.5 py-1 bg-[#faf8f5] hover:bg-[#9A6530] hover:text-white border border-[#ded5c6] rounded-none text-xs text-[#595248] transition-colors cursor-pointer"
+                    className="inline-flex cursor-pointer items-center space-x-1 rounded-none border border-[#ded5c6] bg-[#faf8f5] px-2.5 py-1 text-xs text-[#595248] transition-colors hover:bg-[#9A6530] hover:text-white"
                     title={t.sparql.cloneQueryTooltip}
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="h-3.5 w-3.5" />
                     <span>{t.sparql.cloneQueryBtn}</span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={handleNewQuery}
-                  className="inline-flex items-center space-x-1 px-2.5 py-1 bg-[#faf8f5] hover:bg-[#f0eae0] border border-[#ded5c6] rounded-none text-xs text-[#595248] transition-colors cursor-pointer"
+                  className="inline-flex cursor-pointer items-center space-x-1 rounded-none border border-[#ded5c6] bg-[#faf8f5] px-2.5 py-1 text-xs text-[#595248] transition-colors hover:bg-[#f0eae0]"
                   title={t.sparql.resetQueryTooltip}
                 >
-                  <RotateCcw className="w-3 h-3 text-[#9A6530]" />
+                  <RotateCcw className="h-3 w-3 text-[#9A6530]" />
                   <span>{t.sparql.resetQuery}</span>
                 </button>
               </div>
@@ -460,23 +445,20 @@ export const SparqlPlayground: React.FC = () => {
             {/* Champs Nom et Intentions de la requête */}
             {isBuiltin ? (
               <div className="space-y-2">
-                <h2 className="font-serif font-bold text-lg text-[#2c2724]">
-                  {queryTitle}
-                </h2>
+                <h2 className="font-serif text-lg font-bold text-[#2c2724]">{queryTitle}</h2>
                 {queryDescription && (
-                  <div className="p-3 bg-[#faf8f5] border border-[#f0eae0] rounded-none text-xs text-[#595248] flex items-start space-x-2 leading-relaxed">
-                    <Info className="w-4 h-4 text-[#9A6530] shrink-0 mt-0.5" />
+                  <div className="flex items-start space-x-2 rounded-none border border-[#f0eae0] bg-[#faf8f5] p-3 text-xs leading-relaxed text-[#595248]">
+                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#9A6530]" />
                     <div>
-                      <span className="font-semibold text-[#855424]">{t.sparql.researchGoal}</span>{' '}
-                      {queryDescription}
+                      <span className="font-semibold text-[#855424]">{t.sparql.researchGoal}</span> {queryDescription}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="space-y-3 bg-[#fdfbf7] p-3.5 rounded-none border border-[#ece3d4]">
+              <div className="space-y-3 rounded-none border border-[#ece3d4] bg-[#fdfbf7] p-3.5">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#855424] uppercase tracking-wider mb-1">
+                  <label className="mb-1 block text-[11px] font-semibold tracking-wider text-[#855424] uppercase">
                     {t.sparql.queryNameLabel}
                   </label>
                   <input
@@ -484,12 +466,12 @@ export const SparqlPlayground: React.FC = () => {
                     value={queryTitle}
                     onChange={(e) => setQueryTitle(e.target.value)}
                     placeholder={t.sparql.queryNamePlaceholder}
-                    className="w-full font-serif font-bold text-sm md:text-base text-[#2c2724] p-2.5 bg-white border border-[#cfc5b4] rounded-none focus:ring-2 focus:ring-[#9A6530] focus:outline-none placeholder-[#9e9486]"
+                    className="w-full rounded-none border border-[#cfc5b4] bg-white p-2.5 font-serif text-sm font-bold text-[#2c2724] placeholder-[#9e9486] focus:ring-2 focus:ring-[#9A6530] focus:outline-none md:text-base"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#855424] uppercase tracking-wider mb-1">
+                  <label className="mb-1 block text-[11px] font-semibold tracking-wider text-[#855424] uppercase">
                     {t.sparql.queryIntentLabel}
                   </label>
                   <textarea
@@ -497,7 +479,7 @@ export const SparqlPlayground: React.FC = () => {
                     value={queryDescription}
                     onChange={(e) => setQueryDescription(e.target.value)}
                     placeholder={t.sparql.queryIntentPlaceholder}
-                    className="w-full text-xs text-[#2c2724] p-2.5 bg-white border border-[#cfc5b4] rounded-none focus:ring-2 focus:ring-[#9A6530] focus:outline-none placeholder-[#9e9486] leading-relaxed resize-y"
+                    className="w-full resize-y rounded-none border border-[#cfc5b4] bg-white p-2.5 text-xs leading-relaxed text-[#2c2724] placeholder-[#9e9486] focus:ring-2 focus:ring-[#9A6530] focus:outline-none"
                   />
                 </div>
               </div>
@@ -512,11 +494,11 @@ export const SparqlPlayground: React.FC = () => {
             />
 
             {/* Barre d'action principale */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+            <div className="flex flex-col items-stretch justify-between gap-3 pt-1 sm:flex-row sm:items-center">
               <div className="flex items-center space-x-2 text-xs text-[#8c8275]">
                 {executionDuration !== null && (
-                  <div className="flex items-center space-x-1 text-[#595248] bg-[#faf8f5] px-2 py-1 rounded-none border border-[#f0eae0]">
-                    <Clock className="w-3.5 h-3.5 text-[#9A6530]" />
+                  <div className="flex items-center space-x-1 rounded-none border border-[#f0eae0] bg-[#faf8f5] px-2 py-1 text-[#595248]">
+                    <Clock className="h-3.5 w-3.5 text-[#9A6530]" />
                     <span>
                       {executionDuration} {t.sparql.executionTime}
                     </span>
@@ -524,33 +506,31 @@ export const SparqlPlayground: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex items-center space-x-2.5 justify-end">
+              <div className="flex items-center justify-end space-x-2.5">
                 <button
                   type="button"
                   onClick={() => setIsSaveModalOpen(true)}
                   disabled={!queryText.trim()}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 border border-[#9A6530] text-[#9A6530] hover:bg-[#faf4ee] rounded-none font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  className="inline-flex cursor-pointer items-center space-x-1.5 rounded-none border border-[#9A6530] px-4 py-2 text-xs font-semibold text-[#9A6530] transition-colors hover:bg-[#faf4ee] disabled:opacity-50"
                 >
-                  <Bookmark className="w-3.5 h-3.5" />
-                  <span>
-                    {!isBuiltin && selectedQueryId !== '' ? t.sparql.updateQueryBtn : t.sparql.saveQueryBtn}
-                  </span>
+                  <Bookmark className="h-3.5 w-3.5" />
+                  <span>{!isBuiltin && selectedQueryId !== '' ? t.sparql.updateQueryBtn : t.sparql.saveQueryBtn}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleRunQuery}
                   disabled={sparqlMutation.isPending || !queryText.trim()}
-                  className="inline-flex items-center space-x-2 px-6 py-2 bg-[#9A6530] hover:bg-[#855424] text-white rounded-none font-semibold text-xs shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+                  className="inline-flex cursor-pointer items-center space-x-2 rounded-none bg-[#9A6530] px-6 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#855424] hover:shadow disabled:opacity-50"
                 >
                   {sparqlMutation.isPending ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       <span>{t.sparql.running}</span>
                     </>
                   ) : (
                     <>
-                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <Play className="h-3.5 w-3.5 fill-current" />
                       <span>{t.sparql.runQueryBtn}</span>
                     </>
                   )}
@@ -560,8 +540,11 @@ export const SparqlPlayground: React.FC = () => {
 
             {/* Affichage d'erreur avec message soigné */}
             {error && (
-              <div role="alert" className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-none text-xs leading-relaxed flex items-start space-x-2">
-                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div
+                role="alert"
+                className="flex items-start space-x-2 rounded-none border border-red-200 bg-red-50 p-3.5 text-xs leading-relaxed text-red-700"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
                 <div>
                   <span className="font-semibold">{t.common.error} :</span> {error}
                 </div>
@@ -571,54 +554,48 @@ export const SparqlPlayground: React.FC = () => {
 
           {/* Restitution des Résultats */}
           {queryResult && (
-            <div className="bg-white p-5 rounded-none border border-[#e6dfd3] shadow-xs space-y-4">
-              
+            <div className="space-y-4 rounded-none border border-[#e6dfd3] bg-white p-5 shadow-xs">
               {/* En-tête des résultats & Outils */}
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-[#f0eae0]">
+              <div className="flex flex-col items-start justify-between gap-3 border-b border-[#f0eae0] pb-3 md:flex-row md:items-center">
                 <div className="flex items-center space-x-3">
-                  <h2 className="font-serif font-bold text-base text-[#2c2724]">
-                    {t.sparql.title}
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full bg-[#f4ede2] text-xs font-medium text-[#73471c]">
+                  <h2 className="font-serif text-base font-bold text-[#2c2724]">{t.sparql.title}</h2>
+                  <span className="rounded-full bg-[#f4ede2] px-2 py-0.5 text-xs font-medium text-[#73471c]">
                     {queryResult.count} {t.sparql.resultsCount}
                   </span>
                   {executionDuration !== null && (
-                    <span className="text-xs text-[#8c8275]">
-                      ({executionDuration} ms)
-                    </span>
+                    <span className="text-xs text-[#8c8275]">({executionDuration} ms)</span>
                   )}
                 </div>
 
                 {/* Bascule d'affichage & Outils d'exportation */}
-                <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-                  
+                <div className="flex flex-wrap items-center space-x-2 gap-y-2">
                   {/* Onglets Tableau / Graphe */}
-                  <div className="flex items-center space-x-1 bg-[#f4ede2] p-1 rounded-none border border-[#ded5c6]">
+                  <div className="flex items-center space-x-1 rounded-none border border-[#ded5c6] bg-[#f4ede2] p-1">
                     <button
                       type="button"
                       onClick={() => setViewMode('table')}
-                      className={`flex items-center space-x-1.5 px-3 py-1 rounded-none text-xs font-medium transition-all ${
+                      className={`flex items-center space-x-1.5 rounded-none px-3 py-1 text-xs font-medium transition-all ${
                         viewMode === 'table'
                           ? 'bg-white text-[#9A6530] shadow-xs'
                           : 'text-[#696156] hover:text-[#2c2724]'
                       }`}
                     >
-                      <TableIcon className="w-3.5 h-3.5" />
+                      <TableIcon className="h-3.5 w-3.5" />
                       <span>{t.sparql.tableTab}</span>
                     </button>
-                    
+
                     <button
                       type="button"
                       onClick={() => setViewMode('graph')}
                       disabled={!queryResult.spoReady}
                       title={!queryResult.spoReady ? t.sparql.graphRequiresNodes : ''}
-                      className={`flex items-center space-x-1.5 px-3 py-1 rounded-none text-xs font-medium transition-all disabled:opacity-40 ${
+                      className={`flex items-center space-x-1.5 rounded-none px-3 py-1 text-xs font-medium transition-all disabled:opacity-40 ${
                         viewMode === 'graph'
                           ? 'bg-white text-[#9A6530] shadow-xs'
                           : 'text-[#696156] hover:text-[#2c2724]'
                       }`}
                     >
-                      <Network className="w-3.5 h-3.5" />
+                      <Network className="h-3.5 w-3.5" />
                       <span>{t.sparql.graphTab}</span>
                     </button>
                   </div>
@@ -629,17 +606,17 @@ export const SparqlPlayground: React.FC = () => {
                       type="button"
                       onClick={copyTsv}
                       disabled={rawRows.length === 0}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1 bg-white border border-[#ded5c6] rounded-none text-xs text-[#595248] hover:bg-[#f4ede2] transition-colors disabled:opacity-40 cursor-pointer"
+                      className="inline-flex cursor-pointer items-center space-x-1 rounded-none border border-[#ded5c6] bg-white px-2.5 py-1 text-xs text-[#595248] transition-colors hover:bg-[#f4ede2] disabled:opacity-40"
                       title={t.sparql.copyTsv}
                     >
                       {copiedTsv ? (
                         <>
-                          <Check className="w-3 h-3 text-emerald-600" />
-                          <span className="text-emerald-700 font-medium">{t.sparql.copied}</span>
+                          <Check className="h-3 w-3 text-emerald-600" />
+                          <span className="font-medium text-emerald-700">{t.sparql.copied}</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3 h-3" />
+                          <Copy className="h-3 w-3" />
                           <span>{t.sparql.copyTsv}</span>
                         </>
                       )}
@@ -649,10 +626,10 @@ export const SparqlPlayground: React.FC = () => {
                       type="button"
                       onClick={exportCsv}
                       disabled={rawRows.length === 0}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1 bg-white border border-[#ded5c6] rounded-none text-xs text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-40 cursor-pointer"
+                      className="inline-flex cursor-pointer items-center space-x-1 rounded-none border border-[#ded5c6] bg-white px-2.5 py-1 text-xs text-emerald-700 transition-colors hover:bg-emerald-50 disabled:opacity-40"
                       title={t.common.exportCsv}
                     >
-                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
                       <span>CSV</span>
                     </button>
 
@@ -660,25 +637,23 @@ export const SparqlPlayground: React.FC = () => {
                       type="button"
                       onClick={exportJson}
                       disabled={rawRows.length === 0}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1 bg-white border border-[#ded5c6] rounded-none text-xs text-[#3b6ea5] hover:bg-blue-50 transition-colors cursor-pointer"
+                      className="inline-flex cursor-pointer items-center space-x-1 rounded-none border border-[#ded5c6] bg-white px-2.5 py-1 text-xs text-[#3b6ea5] transition-colors hover:bg-blue-50"
                       title={t.common.exportJson}
                     >
-                      <FileCode className="w-3.5 h-3.5" />
+                      <FileCode className="h-3.5 w-3.5" />
                       <span>JSON</span>
                     </button>
                   </div>
-
                 </div>
               </div>
 
               {/* Vue Tableau des résultats */}
               {viewMode === 'table' && (
                 <div className="space-y-3">
-                  
                   {/* Barre de recherche dans le tableau */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex flex-col items-stretch justify-between gap-2 text-xs sm:flex-row sm:items-center">
                     <div className="relative w-full sm:w-72">
-                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#9e9486]" />
+                      <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-[#9e9486]" />
                       <input
                         type="text"
                         value={tableSearch}
@@ -687,11 +662,11 @@ export const SparqlPlayground: React.FC = () => {
                           setCurrentPage(1)
                         }}
                         placeholder={t.sparql.filterResultsPlaceholder}
-                        className="w-full pl-8 pr-3 py-1.5 bg-[#faf9f6] border border-[#ded5c6] rounded-none text-xs text-[#2c2724] placeholder-[#9e9486] focus:outline-none focus:ring-1 focus:ring-[#9A6530]"
+                        className="w-full rounded-none border border-[#ded5c6] bg-[#faf9f6] py-1.5 pr-3 pl-8 text-xs text-[#2c2724] placeholder-[#9e9486] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
                       />
                     </div>
 
-                    <div className="flex items-center space-x-2 text-[#736a5f] self-end sm:self-auto">
+                    <div className="flex items-center space-x-2 self-end text-[#736a5f] sm:self-auto">
                       <span>{t.sparql.rowsPerPage}</span>
                       <select
                         value={pageSize}
@@ -699,7 +674,7 @@ export const SparqlPlayground: React.FC = () => {
                           setPageSize(Number(e.target.value))
                           setCurrentPage(1)
                         }}
-                        className="p-1 border border-[#ded5c6] rounded bg-[#faf9f6] text-xs text-[#2c2724] focus:outline-none focus:ring-1 focus:ring-[#9A6530]"
+                        className="rounded border border-[#ded5c6] bg-[#faf9f6] p-1 text-xs text-[#2c2724] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
                       >
                         <option value={25}>25</option>
                         <option value={50}>50</option>
@@ -710,7 +685,7 @@ export const SparqlPlayground: React.FC = () => {
                   </div>
 
                   {/* Tableau paginé & stylisé */}
-                  <div className="overflow-x-auto border border-[#e6dfd3] rounded-none shadow-xs">
+                  <div className="overflow-x-auto rounded-none border border-[#e6dfd3] shadow-xs">
                     <table className="min-w-full divide-y divide-[#e6dfd3] text-sm">
                       <thead className="bg-[#faf9f6]">
                         <tr>
@@ -720,18 +695,18 @@ export const SparqlPlayground: React.FC = () => {
                               <th
                                 key={col}
                                 onClick={() => handleSort(col)}
-                                className="px-4 py-2.5 text-left font-semibold text-[#595248] uppercase tracking-wider font-mono text-xs cursor-pointer select-none hover:bg-[#f0eae0] transition-colors"
+                                className="cursor-pointer px-4 py-2.5 text-left font-mono text-xs font-semibold tracking-wider text-[#595248] uppercase transition-colors select-none hover:bg-[#f0eae0]"
                               >
                                 <div className="flex items-center space-x-1">
                                   <span>?{col}</span>
                                   {isSorted ? (
                                     sortDirection === 'asc' ? (
-                                      <ArrowUp className="w-3 h-3 text-[#9A6530]" />
+                                      <ArrowUp className="h-3 w-3 text-[#9A6530]" />
                                     ) : (
-                                      <ArrowDown className="w-3 h-3 text-[#9A6530]" />
+                                      <ArrowDown className="h-3 w-3 text-[#9A6530]" />
                                     )
                                   ) : (
-                                    <ArrowUpDown className="w-3 h-3 text-[#b0a799] opacity-40 hover:opacity-100" />
+                                    <ArrowUpDown className="h-3 w-3 text-[#b0a799] opacity-40 hover:opacity-100" />
                                   )}
                                 </div>
                               </th>
@@ -742,24 +717,29 @@ export const SparqlPlayground: React.FC = () => {
                       <tbody className="divide-y divide-[#f0eae0] bg-white">
                         {paginatedRows.length === 0 ? (
                           <tr>
-                            <td colSpan={columns.length} className="text-center py-8 text-xs text-[#8c8275]">
+                            <td colSpan={columns.length} className="py-8 text-center text-xs text-[#8c8275]">
                               {t.sparql.noResults}
                             </td>
                           </tr>
                         ) : (
                           paginatedRows.map((row, rowIdx) => (
-                            <tr key={rowIdx} className="hover:bg-[#faf8f4] transition-colors">
+                            <tr key={rowIdx} className="transition-colors hover:bg-[#faf8f4]">
                               {columns.map((col) => {
                                 const cell = row[col]
                                 const cellVal = cell?.value || ''
                                 const isUrl = cellVal.startsWith('http://') || cellVal.startsWith('https://')
-                                const isParagraph = isUrl && (cellVal.includes('paragraph') || cellVal.includes('zoomathia') || cellVal.includes('phi') || cellVal.includes('tlg'))
+                                const isParagraph =
+                                  isUrl &&
+                                  (cellVal.includes('paragraph') ||
+                                    cellVal.includes('zoomathia') ||
+                                    cellVal.includes('phi') ||
+                                    cellVal.includes('tlg'))
                                 const citation = isParagraph ? parseCitation(cellVal) : null
 
                                 return (
                                   <td
                                     key={col}
-                                    className="px-4 py-2 text-xs text-[#2c2724] border-r border-[#f4ede2] last:border-r-0 max-w-sm truncate"
+                                    className="max-w-sm truncate border-r border-[#f4ede2] px-4 py-2 text-xs text-[#2c2724] last:border-r-0"
                                     title={cellVal}
                                   >
                                     {citation && citation.isZoomathiaUri ? (
@@ -769,9 +749,9 @@ export const SparqlPlayground: React.FC = () => {
                                         rel="noopener noreferrer"
                                         className="group inline-flex flex-col gap-0.5 hover:underline"
                                       >
-                                        <span className="text-[11px] font-semibold text-[#2563eb] flex items-center gap-1">
+                                        <span className="flex items-center gap-1 text-[11px] font-semibold text-[#2563eb]">
                                           <span>{citation.author}</span>
-                                          <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                                          <ExternalLink className="h-3 w-3 opacity-60 group-hover:opacity-100" />
                                         </span>
                                         <span className="text-[11px] text-[#595248]">
                                           {citation.work} ({citation.book}, {citation.section})
@@ -782,9 +762,9 @@ export const SparqlPlayground: React.FC = () => {
                                         to={`/explore-work?uri=${encodeURIComponent(cellVal)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-[#3b6ea5] hover:underline inline-flex items-center gap-1 font-mono text-xs"
+                                        className="inline-flex items-center gap-1 font-mono text-xs text-[#3b6ea5] hover:underline"
                                       >
-                                        <ExternalLink className="w-3 h-3 shrink-0" />
+                                        <ExternalLink className="h-3 w-3 shrink-0" />
                                         <span>{cellVal.split('/').pop()}</span>
                                       </Link>
                                     ) : isUrl ? (
@@ -792,10 +772,10 @@ export const SparqlPlayground: React.FC = () => {
                                         href={cellVal}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-[#9A6530] hover:underline font-mono text-xs inline-flex items-center gap-1"
+                                        className="inline-flex items-center gap-1 font-mono text-xs text-[#9A6530] hover:underline"
                                       >
                                         <span>{cellVal.split('/').pop() || cellVal}</span>
-                                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                        <ExternalLink className="h-2.5 w-2.5 opacity-60" />
                                       </a>
                                     ) : (
                                       <span className="font-mono">{cellVal}</span>
@@ -812,7 +792,7 @@ export const SparqlPlayground: React.FC = () => {
 
                   {/* Barre de pagination */}
                   {pageSize > 0 && totalPages > 1 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-[#736a5f]">
+                    <div className="flex flex-col items-center justify-between gap-3 pt-2 text-xs text-[#736a5f] sm:flex-row">
                       <div>
                         {t.sparql.showingRows
                           .replace('{start}', String((currentPage - 1) * pageSize + 1))
@@ -825,9 +805,9 @@ export const SparqlPlayground: React.FC = () => {
                           type="button"
                           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                           disabled={currentPage === 1}
-                          className="px-2.5 py-1 bg-white border border-[#ded5c6] rounded-none hover:bg-[#f4ede2] transition-colors disabled:opacity-40 cursor-pointer"
+                          className="cursor-pointer rounded-none border border-[#ded5c6] bg-white px-2.5 py-1 transition-colors hover:bg-[#f4ede2] disabled:opacity-40"
                         >
-                          <ChevronLeft className="w-3.5 h-3.5" />
+                          <ChevronLeft className="h-3.5 w-3.5" />
                         </button>
                         <span className="px-2 font-medium text-[#2c2724]">
                           {currentPage} / {totalPages}
@@ -836,32 +816,25 @@ export const SparqlPlayground: React.FC = () => {
                           type="button"
                           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                           disabled={currentPage === totalPages}
-                          className="px-2.5 py-1 bg-white border border-[#ded5c6] rounded-none hover:bg-[#f4ede2] transition-colors disabled:opacity-40 cursor-pointer"
+                          className="cursor-pointer rounded-none border border-[#ded5c6] bg-white px-2.5 py-1 transition-colors hover:bg-[#f4ede2] disabled:opacity-40"
                         >
-                          <ChevronRight className="w-3.5 h-3.5" />
+                          <ChevronRight className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
                   )}
-
                 </div>
               )}
 
               {/* Vue Graphe VENUS */}
               {viewMode === 'graph' && (
-                <div className="h-[650px] border border-[#e6dfd3] rounded-none overflow-hidden shadow-inner">
-                  <VenusViewer
-                    spoData={queryResult}
-                    title={queryTitle || t.sparql.title}
-                  />
+                <div className="h-[650px] overflow-hidden rounded-none border border-[#e6dfd3] shadow-inner">
+                  <VenusViewer spoData={queryResult} title={queryTitle || t.sparql.title} />
                 </div>
               )}
-
             </div>
           )}
-
         </div>
-
       </div>
 
       {/* Modal d'enregistrement de requête */}
@@ -878,7 +851,6 @@ export const SparqlPlayground: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ['savedQueries'] })
         }}
       />
-
     </div>
   )
 }

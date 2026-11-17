@@ -3,13 +3,13 @@
  */
 
 export interface FormattedCitation {
-  author: string;
-  work: string;
-  book: string;
-  section: string;
-  displayLabel: string;
-  shortLabel: string;
-  isZoomathiaUri: boolean;
+  author: string
+  work: string
+  book: string
+  section: string
+  displayLabel: string
+  shortLabel: string
+  isZoomathiaUri: boolean
 }
 
 const AUTHOR_MAP: Record<string, string> = {
