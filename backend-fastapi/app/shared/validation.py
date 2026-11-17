@@ -14,7 +14,7 @@ Example:
 
 import re
 import unicodedata
-from typing import Annotated, Literal
+from typing import Annotated, Final, Literal
 
 from pydantic import AfterValidator, StringConstraints
 
@@ -37,7 +37,7 @@ _PROPOSAL_CONCEPT_IRI = re.compile(re.escape(PROPOSAL_CONCEPT_BASE) + r"[0-9]{1,
 # carriage return are legitimate in a justification or in a selected passage).
 _ALLOWED_CONTROL_CHARACTERS = frozenset("\t\n\r")
 
-SKOS_CONCEPT = "http://www.w3.org/2004/02/skos/core#Concept"
+SKOS_CONCEPT: Final = "http://www.w3.org/2004/02/skos/core#Concept"
 SKOS_COLLECTION = "http://www.w3.org/2004/02/skos/core#Collection"
 
 # Enumerations (RM-THE-05 for the languages).
@@ -47,8 +47,6 @@ ConceptType = Literal[
     "http://www.w3.org/2004/02/skos/core#Concept",
     "http://www.w3.org/2004/02/skos/core#Collection",
 ]
-AnnotationStatus = Literal["En attente de validation", "Validé", "Rejeté"]
-ProposalStatus = Literal["En attente de révision", "Validé", "Rejeté"]
 
 
 def validate_iri(value: str) -> str:

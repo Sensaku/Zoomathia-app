@@ -23,7 +23,7 @@ ACCOUNT_TABLES = {"users", "user_sessions", "password_reset_tokens", "login_thro
 STAGING_TABLES = {"staged_annotations", "thesaurus_proposals", "saved_queries"}
 
 # The schema that the oldest versions of the application created, before the columns that
-# `StagingStore._init_db` used to add one by one.
+# the old synchronous staging store added one by one at startup.
 LEGACY_SCHEMA = """
     CREATE TABLE staged_annotations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,11 +113,13 @@ def test_a_legacy_database_is_adopted_without_losing_a_row(tmp_path: Path) -> No
     assert "broader_concept_label" in column_names(path, "thesaurus_proposals")
     with sqlite3.connect(path) as connection:
         annotation = connection.execute(
-            "SELECT target_text, scope_type, status FROM staged_annotations"
+            "SELECT target_text, scope_type, status, author_label FROM staged_annotations"
         ).fetchall()
-        proposal = connection.execute("SELECT pref_label FROM thesaurus_proposals").fetchall()
-    assert annotation == [("lion", "word_sequence", "En attente de validation")]
-    assert proposal == [("lynx",)]
+        proposal = connection.execute(
+            "SELECT pref_label, status, author_label FROM thesaurus_proposals"
+        ).fetchall()
+    assert annotation == [("lion", "word_sequence", "pending", "Ada")]
+    assert proposal == [("lynx", "pending", "Ada")]
     assert recorded_revisions(path) == head_revisions()
 
 
@@ -127,8 +129,9 @@ def test_a_second_upgrade_changes_nothing(tmp_path: Path) -> None:
     command.upgrade(config, "head")
     with sqlite3.connect(path) as connection:
         connection.execute(
-            "INSERT INTO saved_queries (title, query_text, category, author_name, created_at,"
-            " updated_at) VALUES ('t', 'q', 'c', 'a', 'now', 'now')"
+            "INSERT INTO saved_queries (title, query_text, category, author_label, created_at,"
+            " updated_at) VALUES ('t', 'q', 'c', 'a', '2026-01-01 00:00:00.000000',"
+            " '2026-01-01 00:00:00.000000')"
         )
 
     command.upgrade(config, "head")
@@ -186,7 +189,6 @@ async def test_startup_accepts_a_migrated_database_and_seeds_the_native_question
     path = tmp_path / "migrated.db"
     command.upgrade(alembic_config(sqlite_url(path)), "head")
     monkeypatch.setattr(settings, "STAGING_DB_PATH", str(path))
-    monkeypatch.setattr("app.main.staging_store.db_path", path)
 
     async with lifespan(app):
         database = app.state.database

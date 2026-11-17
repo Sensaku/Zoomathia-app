@@ -6,6 +6,8 @@ value sent by a client, or planted in the store, can never add a triple.
 
 import json
 import logging
+import threading
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import httpx
@@ -14,15 +16,24 @@ from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.compare import isomorphic
 from rdflib.namespace import DCTERMS, RDF, SKOS, XSD
 
-from app.services.staging_store import staging_store
+from app.contributions import router as contributions_router
+from app.contributions import service as contributions_service
+from tests.support.accounts import Member, error_code
+from tests.support.plant import (
+    CONCEPT,
+    PARAGRAPH,
+    plant_annotation,
+    plant_proposal,
+)
 
 OA = Namespace("http://www.w3.org/ns/oa#")
 ZOO = Namespace("http://ns.inria.fr/zoomathia/zoo#")
 
-PARAGRAPH = "http://ns.inria.fr/zoomathia/Aelian/de_natura_animalium/4/24/text/1"
 END_PARAGRAPH = "http://ns.inria.fr/zoomathia/Aelian/de_natura_animalium/4/24/text/2"
-CONCEPT = "https://opentheso.huma-num.fr/?idc=107399&idt=th310"
+# What the export writes for a row planted at 2026-11-16 10:00 UTC, and for a row created by
+# a test (the injected clock stands at 2026-01-01 12:00 UTC).
 CREATED = "2026-11-16T10:00:00+00:00"
+CREATED_BY_API = "2026-01-01T12:00:00+00:00"
 
 # What a hostile client would send to add triples to the export.
 INJECTION_NAME = 'x" ;\n    dcterms:creator "evil" .\n<http://evil/s> <http://evil/p> "o'
@@ -35,58 +46,6 @@ def parse(turtle: str) -> Graph:
     return graph
 
 
-def plant_annotation(**overrides: Any) -> int:
-    """Insert a row directly in the store, the way a row stored before the validation exists."""
-    row: dict[str, Any] = {
-        "paragraph_uri": PARAGRAPH,
-        "target_text": "canis",
-        "start_offset": 0,
-        "end_offset": 5,
-        "concept_uri": CONCEPT,
-        "concept_label": "canis",
-        "concept_type": "http://www.w3.org/2004/02/skos/core#Concept",
-        "annotator_name": "Chercheuse",
-        "justification": None,
-        "scope_type": "word",
-        "end_paragraph_uri": None,
-        "target_paragraphs": json.dumps([PARAGRAPH]),
-        "status": "En attente de validation",
-        "created_at": CREATED,
-    }
-    row.update(overrides)
-    columns = ", ".join(row)
-    placeholders = ", ".join("?" for _ in row)
-    with staging_store._get_connection() as connection:
-        cursor = connection.execute(
-            f"INSERT INTO staged_annotations ({columns}) VALUES ({placeholders})",  # noqa: S608
-            tuple(row.values()),
-        )
-        return int(cursor.lastrowid or 0)
-
-
-def plant_proposal(**overrides: Any) -> int:
-    row: dict[str, Any] = {
-        "pref_label": "cerf",
-        "language": "fr",
-        "alt_labels": json.dumps(["biche"]),
-        "broader_concept_uri": CONCEPT,
-        "broader_concept_label": "cervidé",
-        "definition": "Grand mammifère",
-        "contributor_name": "Chercheuse",
-        "status": "En attente de révision",
-        "created_at": CREATED,
-    }
-    row.update(overrides)
-    columns = ", ".join(row)
-    placeholders = ", ".join("?" for _ in row)
-    with staging_store._get_connection() as connection:
-        cursor = connection.execute(
-            f"INSERT INTO thesaurus_proposals ({columns}) VALUES ({placeholders})",  # noqa: S608
-            tuple(row.values()),
-        )
-        return int(cursor.lastrowid or 0)
-
-
 def expected_annotation_graph(
     annotation_id: int,
     *,
@@ -97,7 +56,8 @@ def expected_annotation_graph(
     start: int = 0,
     end: int = 5,
     scope: str = "word",
-    status: str = "En attente de validation",
+    status: str = "pending",
+    created: str = CREATED,
 ) -> Graph:
     graph = Graph()
     annotation = URIRef(f"http://zoomathia.i3s.unice.fr/annotation/staging/{annotation_id}")
@@ -110,7 +70,7 @@ def expected_annotation_graph(
     graph.add((annotation, ZOO.scopeType, Literal(scope)))
     if justification:
         graph.add((annotation, DCTERMS.description, Literal(justification)))
-    graph.add((annotation, DCTERMS.created, Literal(CREATED, datatype=XSD.dateTime)))
+    graph.add((annotation, DCTERMS.created, Literal(created, datatype=XSD.dateTime)))
     graph.add((target, RDF.type, OA.SpecificResource))
     graph.add((target, OA.hasSource, URIRef(PARAGRAPH)))
     if end_source:
@@ -127,9 +87,9 @@ def expected_annotation_graph(
 
 
 async def test_the_annotation_export_holds_exactly_the_expected_triples(
-    client: httpx.AsyncClient,
+    client: httpx.AsyncClient, contributor: Member
 ) -> None:
-    created = await client.post(
+    created = await contributor.post(
         "/annotations",
         json={
             "paragraph_uri": PARAGRAPH,
@@ -139,13 +99,11 @@ async def test_the_annotation_export_holds_exactly_the_expected_triples(
             "end_offset": 17,
             "concept_uri": CONCEPT,
             "concept_label": "canis",
-            "annotator_name": "Chercheuse",
             "justification": "Mention explicite",
             "scope_type": "multi_paragraph",
         },
     )
     annotation_id = created.json()["id"]
-    stored_at = created.json()["created_at"]
 
     response = await client.get("/annotations/export-ttl")
 
@@ -160,10 +118,9 @@ async def test_the_annotation_export_holds_exactly_the_expected_triples(
         start=4,
         end=17,
         scope="multi_paragraph",
+        name="Ada Lovelace",
+        created=CREATED_BY_API,
     )
-    expected.remove((None, DCTERMS.created, None))
-    annotation = URIRef(f"http://zoomathia.i3s.unice.fr/annotation/staging/{annotation_id}")
-    expected.add((annotation, DCTERMS.created, Literal(stored_at, datatype=XSD.dateTime)))
     assert isomorphic(parse(response.text), expected)
 
 
@@ -197,9 +154,10 @@ async def test_the_export_binds_readable_prefixes(client: httpx.AsyncClient) -> 
 
 
 async def test_names_and_texts_with_quotes_and_line_breaks_cannot_add_a_triple(
-    client: httpx.AsyncClient,
+    client: httpx.AsyncClient, make_member: Callable[..., Awaitable[Member]]
 ) -> None:
-    created = await client.post(
+    hostile = await make_member("hostile@example.org", INJECTION_NAME, "Lab")
+    created = await hostile.post(
         "/annotations",
         json={
             "paragraph_uri": PARAGRAPH,
@@ -208,12 +166,11 @@ async def test_names_and_texts_with_quotes_and_line_breaks_cannot_add_a_triple(
             "end_offset": 5,
             "concept_uri": CONCEPT,
             "concept_label": INJECTION_NAME,
-            "annotator_name": INJECTION_NAME,
             "justification": INJECTION_NAME,
             "scope_type": "word",
         },
     )
-    assert created.status_code == 200
+    assert created.status_code == 201
     annotation_id = created.json()["id"]
 
     graph = parse((await client.get("/annotations/export-ttl")).text)
@@ -247,7 +204,7 @@ async def test_the_selected_text_keeps_its_line_breaks(client: httpx.AsyncClient
         {"concept_uri": "javascript:alert(1)"},
         {"concept_uri": "http://ex.org/a\nb"},
         {"concept_uri": "http://ex.org/" + "a" * 2100},
-        {"annotator_name": "a\x00b"},
+        {"author_label": "a\x00b"},
         {"target_text": "a\x0bb"},
     ],
 )
@@ -281,24 +238,55 @@ async def test_an_export_with_no_row_is_an_empty_valid_document(client: httpx.As
     assert len(parse(response.text)) == 0
 
 
-async def test_a_validated_annotation_keeps_its_status_in_the_export(
-    client: httpx.AsyncClient,
+async def test_the_export_holds_every_status_as_a_code(
+    client: httpx.AsyncClient, second_contributor: Member
 ) -> None:
-    annotation_id = plant_annotation()
-    await client.patch(f"/annotations/{annotation_id}/status", json={"status": "Validé"})
+    validated = plant_annotation()
+    rejected = plant_annotation(target_text="leo")
+    plant_annotation(target_text="aquila")
+    reviewed = {"version": 1, "decision": "validated"}
+    await second_contributor.post(f"/annotations/{validated}/review", json=reviewed)
+    await second_contributor.post(
+        f"/annotations/{rejected}/review",
+        json={"version": 1, "decision": "rejected", "reason": "No."},
+    )
 
     graph = parse((await client.get("/annotations/export-ttl")).text)
 
-    assert list(graph.objects(None, ZOO.proposalStatus)) == [Literal("Validé")]
+    statuses = sorted(str(status) for status in graph.objects(None, ZOO.proposalStatus))
+    assert statuses == ["pending", "rejected", "validated"]
+
+
+async def test_the_creator_is_the_account_name_or_the_historical_author_never_the_email(
+    client: httpx.AsyncClient, contributor: Member
+) -> None:
+    await contributor.post(
+        "/annotations",
+        json={
+            "paragraph_uri": PARAGRAPH,
+            "target_text": "canis",
+            "start_offset": 0,
+            "end_offset": 5,
+            "concept_uri": CONCEPT,
+            "concept_label": "canis",
+        },
+    )
+    plant_annotation()
+
+    response = await client.get("/annotations/export-ttl")
+
+    creators = sorted(str(name) for name in parse(response.text).objects(None, DCTERMS.creator))
+    assert creators == ["Ada Lovelace", "Chercheuse"]
+    assert "example.org" not in response.text
 
 
 # --- Proposals ---
 
 
 async def test_the_proposal_export_holds_exactly_the_expected_triples(
-    client: httpx.AsyncClient,
+    client: httpx.AsyncClient, contributor: Member
 ) -> None:
-    created = await client.post(
+    created = await contributor.post(
         "/thesaurus/proposals",
         json={
             "pref_label": "Cerf élaphe",
@@ -306,7 +294,6 @@ async def test_the_proposal_export_holds_exactly_the_expected_triples(
             "alt_labels": ["Cervus elaphus", 'Grand "cerf"'],
             "broader_concept_uri": CONCEPT,
             "definition": "Grand mammifère\ncervidé",
-            "contributor_name": "Arnaud B.",
         },
     )
     proposal = created.json()
@@ -323,8 +310,8 @@ async def test_the_proposal_export_holds_exactly_the_expected_triples(
     expected.add((concept, SKOS.altLabel, Literal('Grand "cerf"', lang="fr")))
     expected.add((concept, SKOS.broader, URIRef(CONCEPT)))
     expected.add((concept, SKOS.definition, Literal("Grand mammifère\ncervidé", lang="fr")))
-    expected.add((concept, DCTERMS.creator, Literal("Arnaud B.")))
-    expected.add((concept, DCTERMS.created, Literal(proposal["created_at"], datatype=XSD.dateTime)))
+    expected.add((concept, DCTERMS.creator, Literal("Ada Lovelace")))
+    expected.add((concept, DCTERMS.created, Literal(CREATED_BY_API, datatype=XSD.dateTime)))
     assert isomorphic(parse(response.text), expected)
 
 
@@ -341,18 +328,20 @@ async def test_a_proposal_without_broader_or_definition_has_neither_triple(
     assert len(graph) == 4
 
 
-async def test_proposal_labels_cannot_add_a_triple(client: httpx.AsyncClient) -> None:
-    created = await client.post(
+async def test_proposal_labels_cannot_add_a_triple(
+    client: httpx.AsyncClient, make_member: Callable[..., Awaitable[Member]]
+) -> None:
+    hostile = await make_member("hostile@example.org", INJECTION_NAME, "Lab")
+    created = await hostile.post(
         "/thesaurus/proposals",
         json={
             "pref_label": INJECTION_NAME,
             "language": "grc",
             "alt_labels": [INJECTION_NAME],
             "definition": INJECTION_NAME,
-            "contributor_name": INJECTION_NAME,
         },
     )
-    assert created.status_code == 200
+    assert created.status_code == 201
 
     graph = parse((await client.get("/thesaurus/proposals/export-ttl")).text)
 
@@ -378,7 +367,7 @@ async def test_a_stored_proposal_with_an_unsafe_value_is_left_out_and_counted(
     client: httpx.AsyncClient, overrides: dict[str, Any], caplog: pytest.LogCaptureFixture
 ) -> None:
     good_id = plant_proposal()
-    bad_id = plant_proposal(**overrides)
+    bad_id = plant_proposal(**{"pref_label": "biche", **overrides})
 
     with caplog.at_level(logging.WARNING, logger="app.services.rdf_export"):
         response = await client.get("/thesaurus/proposals/export-ttl")
@@ -404,3 +393,71 @@ async def test_a_stored_proposal_with_a_plain_but_unlisted_language_is_still_exp
 
     assert response.headers["x-skipped-rows"] == "0"
     assert len(parse(response.text)) == 7
+
+
+# --- bounded and off the event loop (AGENTS.md, rules 9 and 10) ---
+
+EXPORTS = [
+    ("/annotations/export-ttl", plant_annotation, "target_text"),
+    ("/thesaurus/proposals/export-ttl", plant_proposal, "pref_label"),
+]
+
+
+@pytest.mark.parametrize(("path", "plant", "field"), EXPORTS)
+async def test_an_export_at_the_cap_is_returned_whole(
+    client: httpx.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    plant: Callable[..., int],
+    field: str,
+) -> None:
+    monkeypatch.setattr(contributions_service, "MAX_EXPORTED_CONTRIBUTIONS", 3)
+    for number in range(3):
+        plant(**{field: f"row {number}"})
+
+    response = await client.get(path)
+
+    assert response.status_code == 200
+    assert response.headers["x-skipped-rows"] == "0"
+
+
+@pytest.mark.parametrize(("path", "plant", "field"), EXPORTS)
+async def test_an_export_over_the_cap_is_a_422_never_a_truncation(
+    client: httpx.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    plant: Callable[..., int],
+    field: str,
+) -> None:
+    monkeypatch.setattr(contributions_service, "MAX_EXPORTED_CONTRIBUTIONS", 3)
+    for number in range(4):
+        plant(**{field: f"row {number}"})
+
+    response = await client.get(path)
+
+    assert response.status_code == 422
+    assert error_code(response) == "too_many_results"
+
+
+@pytest.mark.parametrize(
+    ("path", "function"),
+    [
+        ("/annotations/export-ttl", "annotations_to_turtle"),
+        ("/thesaurus/proposals/export-ttl", "proposals_to_turtle"),
+    ],
+)
+async def test_the_serialization_runs_off_the_event_loop(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch, path: str, function: str
+) -> None:
+    threads: list[int] = []
+    original = getattr(contributions_router, function)
+
+    def spy(rows: Any) -> Any:
+        threads.append(threading.get_ident())
+        return original(rows)
+
+    monkeypatch.setattr(contributions_router, function, spy)
+
+    assert (await client.get(path)).status_code == 200
+    assert threads
+    assert threading.get_ident() not in threads

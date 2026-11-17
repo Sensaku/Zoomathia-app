@@ -15,13 +15,7 @@ from app.accounts.passwords import PasswordHasher, check_password_policy, get_pa
 from app.core.database import Database
 from app.main import app
 from app.shared.domain_errors import TooManyAttempts, Unprocessable
-from tests.accounts.conftest import (
-    PASSWORD,
-    MakeAccount,
-    cheap_password_hash,
-    error_code,
-    sign_in,
-)
+from tests.support.accounts import PASSWORD, MakeAccount, cheap_password_hash, error_code, sign_in
 
 EMAIL = "new.person@example.org"
 

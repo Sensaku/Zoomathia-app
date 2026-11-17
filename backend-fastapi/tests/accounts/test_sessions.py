@@ -9,16 +9,8 @@ import pytest
 from app.accounts.models import Role, User, UserStatus
 from app.accounts.tokens import hash_token
 from app.core.database import Database
-from tests.accounts.conftest import (
-    PASSWORD,
-    SESSION_COOKIE,
-    FakeClock,
-    MakeAccount,
-    csrf,
-    error_code,
-    sign_in,
-    stored_sessions,
-)
+from tests.accounts.conftest import SESSION_COOKIE, stored_sessions
+from tests.support.accounts import PASSWORD, FakeClock, MakeAccount, csrf, error_code, sign_in
 
 PASSWORD_CHANGE = {"current_password": PASSWORD, "new_password": "x" * 20}
 

@@ -7,14 +7,8 @@ from sqlalchemy import select
 
 from app.accounts.models import Role, User, UserStatus
 from app.core.database import Database
-from tests.accounts.conftest import (
-    PASSWORD,
-    MakeAccount,
-    csrf,
-    error_code,
-    sign_in,
-    stored_user,
-)
+from tests.accounts.conftest import stored_user
+from tests.support.accounts import PASSWORD, MakeAccount, csrf, error_code, sign_in
 
 REGISTRATION = {
     "email": "  New.Person@Example.org ",

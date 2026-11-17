@@ -1,16 +1,23 @@
-"""Exact matches in the staging store (RM-ACC-02: user text never changes a query's meaning)."""
+"""Exact matches in the contributions and saved queries (RM-ACC-02: text never changes a query).
+
+The paragraph filter is an exact match on IRIs, the proposal and saved query searches match
+their text literally. The `LIKE` escaping itself is tested in `tests/test_shared_sql.py`.
+"""
 
 import json
 from typing import Any
 
 import httpx
-import pytest
 
-from app.services.staging_store import escape_like, staging_store
-from tests.test_rdf_exports import plant_annotation, plant_proposal
+from app.contributions.models import ContributionStatus
+from app.contributions.repository import AnnotationRepository
+from app.core.database import Database
+from tests.support.accounts import Member
+from tests.support.plant import plant_annotation, plant_proposal
 
 BASE = "http://ns.inria.fr/zoomathia/Ex/work/text/"
 CONCEPT = "https://opentheso.huma-num.fr/?idc=1&idt=th310"
+EVERY_STATUS = list(ContributionStatus)
 
 
 async def annotate(client: httpx.AsyncClient, paragraph: str, **changes: Any) -> dict[str, Any]:
@@ -24,7 +31,7 @@ async def annotate(client: httpx.AsyncClient, paragraph: str, **changes: Any) ->
         **changes,
     }
     response = await client.post("/annotations", json=body)
-    assert response.status_code == 200
+    assert response.status_code == 201
     result: dict[str, Any] = response.json()
     return result
 
@@ -32,106 +39,103 @@ async def annotate(client: httpx.AsyncClient, paragraph: str, **changes: Any) ->
 async def ids_for(client: httpx.AsyncClient, paragraph: str) -> list[int]:
     response = await client.get("/annotations", params={"paragraph_uri": paragraph})
     assert response.status_code == 200
-    return [item["id"] for item in response.json()]
+    return [item["id"] for item in response.json()["items"]]
 
 
 async def test_listing_a_paragraph_does_not_return_the_annotations_of_a_longer_iri(
-    client: httpx.AsyncClient,
+    contributor: Member,
 ) -> None:
-    one = await annotate(client, f"{BASE}1")
-    ten = await annotate(client, f"{BASE}10")
-    await annotate(client, f"{BASE}1/extra")
+    one = await annotate(contributor, f"{BASE}1")
+    ten = await annotate(contributor, f"{BASE}10")
+    await annotate(contributor, f"{BASE}1/extra")
 
-    assert await ids_for(client, f"{BASE}1") == [one["id"]]
-    assert await ids_for(client, f"{BASE}10") == [ten["id"]]
+    assert await ids_for(contributor, f"{BASE}1") == [one["id"]]
+    assert await ids_for(contributor, f"{BASE}10") == [ten["id"]]
 
 
 async def test_listing_a_paragraph_matches_a_covered_paragraph_exactly(
-    client: httpx.AsyncClient,
+    contributor: Member,
 ) -> None:
     span = await annotate(
-        client,
+        contributor,
         f"{BASE}1",
         end_paragraph_uri=f"{BASE}2",
         target_paragraphs=[f"{BASE}1", f"{BASE}2"],
         scope_type="multi_paragraph",
     )
 
-    assert await ids_for(client, f"{BASE}2") == [span["id"]]
-    assert await ids_for(client, f"{BASE}20") == []
-    assert await ids_for(client, f"{BASE}") == []
+    assert await ids_for(contributor, f"{BASE}2") == [span["id"]]
+    assert await ids_for(contributor, f"{BASE}20") == []
+    assert await ids_for(contributor, f"{BASE}") == []
 
 
 async def test_a_paragraph_filter_made_of_like_wildcards_matches_nothing(
-    client: httpx.AsyncClient,
+    contributor: Member,
 ) -> None:
-    await annotate(client, f"{BASE}1")
+    await annotate(contributor, f"{BASE}1")
 
-    assert await ids_for(client, "%") == []
-    assert await ids_for(client, "_") == []
-    assert await ids_for(client, f"{BASE}%") == []
+    assert await ids_for(contributor, "%") == []
+    assert await ids_for(contributor, "_") == []
+    assert await ids_for(contributor, f"{BASE}%") == []
 
 
-async def test_a_legacy_row_with_invalid_json_does_not_break_the_listing(
-    client: httpx.AsyncClient,
+async def test_the_status_and_paragraph_filters_combine(
+    contributor: Member, second_contributor: Member
 ) -> None:
-    broken = plant_annotation(paragraph_uri=f"{BASE}1", target_paragraphs="not json [")
-    null_json = plant_annotation(paragraph_uri=f"{BASE}1", target_paragraphs=None)
-
-    assert sorted(await ids_for(client, f"{BASE}1")) == sorted([broken, null_json])
-    assert await ids_for(client, f"{BASE}9") == []
-
-
-async def test_the_status_and_paragraph_filters_combine(client: httpx.AsyncClient) -> None:
-    first = await annotate(client, f"{BASE}1")
-    await annotate(client, f"{BASE}1")
-    await client.patch(f"/annotations/{first['id']}/status", json={"status": "Validé"})
-
-    response = await client.get(
-        "/annotations", params={"paragraph_uri": f"{BASE}1", "status": "Validé"}
+    first = await annotate(contributor, f"{BASE}1")
+    await annotate(contributor, f"{BASE}1")
+    await second_contributor.post(
+        f"/annotations/{first['id']}/review", json={"version": 1, "decision": "validated"}
     )
 
-    assert [item["id"] for item in response.json()] == [first["id"]]
+    response = await contributor.get(
+        "/annotations", params={"paragraph_uri": f"{BASE}1", "status": "validated"}
+    )
+
+    assert [item["id"] for item in response.json()["items"]] == [first["id"]]
 
 
 async def test_a_section_filter_keeps_only_the_annotations_that_cover_its_paragraphs(
-    client: httpx.AsyncClient,
+    database: Database, contributor: Member
 ) -> None:
-    inside = await annotate(client, f"{BASE}1")
+    inside = await annotate(contributor, f"{BASE}1")
     spanning = await annotate(
-        client, f"{BASE}5", target_paragraphs=[f"{BASE}5", f"{BASE}2"], scope_type="multi_paragraph"
+        contributor,
+        f"{BASE}5",
+        target_paragraphs=[f"{BASE}5", f"{BASE}2"],
+        scope_type="multi_paragraph",
     )
-    await annotate(client, f"{BASE}10")
+    await annotate(contributor, f"{BASE}10")
 
-    kept = staging_store.get_annotations(section_paragraphs=[f"{BASE}1", f"{BASE}2"])
+    async with database.session_maker() as session:
+        kept = await AnnotationRepository(session).in_paragraphs(
+            [f"{BASE}1", f"{BASE}2"], EVERY_STATUS, 100
+        )
 
     assert sorted(a.id for a in kept) == sorted([inside["id"], spanning["id"]])
 
 
-async def test_an_empty_section_matches_no_annotation(client: httpx.AsyncClient) -> None:
-    await annotate(client, f"{BASE}1")
-
-    assert staging_store.get_annotations(section_paragraphs=[]) == []
-    assert len(staging_store.get_annotations(section_paragraphs=None)) == 1
-
-
-# --- LIKE escaping ---
-
-
-@pytest.mark.parametrize(
-    ("text", "escaped"),
-    [
-        ("plain", "plain"),
-        ("50%", "50" + chr(92) + "%"),
-        ("a_b", "a" + chr(92) + "_b"),
-        (chr(92), chr(92) * 2),
-        ("%_" + chr(92), chr(92) + "%" + chr(92) + "_" + chr(92) * 2),
-    ],
-)
-def test_escape_like_escapes_the_wildcards_and_the_escape_character(
-    text: str, escaped: str
+async def test_an_empty_section_matches_no_annotation(
+    database: Database, contributor: Member
 ) -> None:
-    assert escape_like(text) == escaped
+    await annotate(contributor, f"{BASE}1")
+
+    async with database.session_maker() as session:
+        assert await AnnotationRepository(session).in_paragraphs([], EVERY_STATUS, 100) == []
+
+
+async def test_a_paragraph_covered_by_a_historical_row_is_found_by_its_json_array(
+    client: httpx.AsyncClient,
+) -> None:
+    historical = plant_annotation(
+        paragraph_uri=f"{BASE}1", target_paragraphs=json.dumps([f"{BASE}1", f"{BASE}2"])
+    )
+
+    assert await ids_for(client, f"{BASE}2") == [historical]
+    assert await ids_for(client, f"{BASE}9") == []
+
+
+# --- proposal search ---
 
 
 async def test_the_proposal_search_matches_percent_and_underscore_literally(
@@ -142,16 +146,14 @@ async def test_the_proposal_search_matches_percent_and_underscore_literally(
     plant_proposal(pref_label="rate 500 sure")
     plant_proposal(pref_label="snakeXcase")
 
-    def ids(items: list[dict[str, Any]]) -> list[int]:
-        return [item["id"] for item in items]
+    def ids(response: httpx.Response) -> list[int]:
+        return [item["id"] for item in response.json()["items"]]
 
-    assert ids((await client.get("/thesaurus/proposals", params={"q": "50%"})).json()) == [percent]
-    assert ids((await client.get("/thesaurus/proposals", params={"q": "e_c"})).json()) == [
-        underscore
-    ]
-    assert ids((await client.get("/thesaurus/proposals", params={"q": "%"})).json()) == [percent]
-    assert ids((await client.get("/thesaurus/proposals", params={"q": "%%"})).json()) == []
-    assert ids((await client.get("/thesaurus/proposals", params={"q": "_"})).json()) == [underscore]
+    assert ids(await client.get("/thesaurus/proposals", params={"q": "50%"})) == [percent]
+    assert ids(await client.get("/thesaurus/proposals", params={"q": "e_c"})) == [underscore]
+    assert ids(await client.get("/thesaurus/proposals", params={"q": "%"})) == [percent]
+    assert ids(await client.get("/thesaurus/proposals", params={"q": "%%"})) == []
+    assert ids(await client.get("/thesaurus/proposals", params={"q": "_"})) == [underscore]
 
 
 async def test_the_proposal_search_still_ignores_case_and_looks_in_every_field(
@@ -159,29 +161,31 @@ async def test_the_proposal_search_still_ignores_case_and_looks_in_every_field(
 ) -> None:
     by_label = plant_proposal(pref_label="Aigle royal")
     by_alt = plant_proposal(pref_label="x1", alt_labels=json.dumps(["Aquila"]))
-    by_author = plant_proposal(pref_label="x2", contributor_name="Arnaud B.")
+    by_author = plant_proposal(pref_label="x2", author_label="Arnaud B.")
+    by_definition = plant_proposal(pref_label="x3", definition="Rapace diurne")
+    by_broader = plant_proposal(pref_label="x4", broader_concept_label="Accipitridé")
 
-    def ids(items: list[dict[str, Any]]) -> list[int]:
-        return sorted(item["id"] for item in items)
+    async def ids(text: str) -> list[int]:
+        response = await client.get("/thesaurus/proposals", params={"q": text})
+        return sorted(item["id"] for item in response.json()["items"])
 
-    assert ids((await client.get("/thesaurus/proposals", params={"q": "AIGLE"})).json()) == [
-        by_label
-    ]
-    assert ids((await client.get("/thesaurus/proposals", params={"q": "aquila"})).json()) == [
-        by_alt
-    ]
-    assert ids((await client.get("/thesaurus/proposals", params={"q": "arnaud"})).json()) == [
-        by_author
-    ]
+    assert await ids("AIGLE") == [by_label]
+    assert await ids("aquila") == [by_alt]
+    assert await ids("arnaud") == [by_author]
+    assert await ids("rapace") == [by_definition]
+    assert await ids("accipitr") == [by_broader]
+
+
+# --- saved queries ---
 
 
 async def test_the_saved_query_search_matches_wildcards_literally(
-    client: httpx.AsyncClient,
+    client: httpx.AsyncClient, contributor: Member
 ) -> None:
     async def save(title: str, description: str | None = None) -> int:
         body = {"title": title, "description": description, "query_text": "ASK { ?s ?p ?o }"}
-        created = await client.post("/queries", json=body)
-        assert created.status_code == 200
+        created = await contributor.post("/queries", json=body)
+        assert created.status_code == 201
         return int(created.json()["id"])
 
     percent = await save("Coverage 100% done")
@@ -191,7 +195,7 @@ async def test_the_saved_query_search_matches_wildcards_literally(
 
     async def titles(search: str) -> list[int]:
         response = await client.get("/queries", params={"search": search})
-        return [q["id"] for q in response.json() if not q["is_builtin"]]
+        return [q["id"] for q in response.json()["items"] if not q["is_builtin"]]
 
     assert await titles("100%") == [percent]
     assert await titles("snake_case") == [underscore]

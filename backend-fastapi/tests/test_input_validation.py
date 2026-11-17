@@ -17,6 +17,7 @@ from app.shared.validation import (
     validate_thezoo_concept_iri,
 )
 from tests.conftest import FakeCorese
+from tests.support.accounts import Member
 
 PARAGRAPH = "http://ns.inria.fr/zoomathia/Aelian/de_natura_animalium/4/24/text/1"
 CONCEPT = "https://opentheso.huma-num.fr/?idc=107399&idt=th310"
@@ -180,16 +181,16 @@ def test_text_with_quotes_line_breaks_and_greek_is_accepted() -> None:
 # --- Annotation request ---
 
 
-async def test_a_valid_annotation_is_created(client: httpx.AsyncClient) -> None:
-    response = await post_annotation(client)
+async def test_a_valid_annotation_is_created(contributor: Member) -> None:
+    response = await post_annotation(contributor)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
-async def test_an_annotation_on_a_concept_proposal_is_accepted(client: httpx.AsyncClient) -> None:
-    response = await post_annotation(client, concept_uri=PROPOSAL_CONCEPT)
+async def test_an_annotation_on_a_concept_proposal_is_accepted(contributor: Member) -> None:
+    response = await post_annotation(contributor, concept_uri=PROPOSAL_CONCEPT)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 @pytest.mark.parametrize(
@@ -208,23 +209,23 @@ async def test_an_annotation_on_a_concept_proposal_is_accepted(client: httpx.Asy
     ],
 )
 async def test_an_annotation_with_an_invalid_reference_or_enumeration_is_refused(
-    client: httpx.AsyncClient, changes: dict[str, Any]
+    contributor: Member, changes: dict[str, Any]
 ) -> None:
-    response = await post_annotation(client, **changes)
+    response = await post_annotation(contributor, **changes)
 
     assert response.status_code == 422
-    assert (await client.get("/annotations")).json() == []
+    assert (await contributor.get("/annotations")).json()["items"] == []
 
 
 @pytest.mark.parametrize(
     "scope_type", ["word", "word_sequence", "sentence", "paragraph", "multi_paragraph"]
 )
 async def test_every_scope_type_of_the_interface_is_accepted(
-    client: httpx.AsyncClient, scope_type: str
+    contributor: Member, scope_type: str
 ) -> None:
-    response = await post_annotation(client, scope_type=scope_type)
+    response = await post_annotation(contributor, scope_type=scope_type)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 @pytest.mark.parametrize(
@@ -234,12 +235,10 @@ async def test_every_scope_type_of_the_interface_is_accepted(
         "http://www.w3.org/2004/02/skos/core#Collection",
     ],
 )
-async def test_both_skos_concept_types_are_accepted(
-    client: httpx.AsyncClient, concept_type: str
-) -> None:
-    response = await post_annotation(client, concept_type=concept_type)
+async def test_both_skos_concept_types_are_accepted(contributor: Member, concept_type: str) -> None:
+    response = await post_annotation(contributor, concept_type=concept_type)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["concept_type"] == concept_type
 
 
@@ -248,52 +247,51 @@ async def test_both_skos_concept_types_are_accepted(
     [
         ("target_text", 50_000),
         ("concept_label", 200),
-        ("annotator_name", 200),
         ("justification", 5_000),
     ],
 )
 async def test_an_annotation_text_field_is_bounded(
-    client: httpx.AsyncClient, field: str, limit: int
+    contributor: Member, field: str, limit: int
 ) -> None:
-    at_limit = await post_annotation(client, **{field: repeated(limit)})
-    beyond = await post_annotation(client, **{field: repeated(limit + 1)})
+    at_limit = await post_annotation(contributor, **{field: repeated(limit)})
+    beyond = await post_annotation(contributor, **{field: repeated(limit + 1)})
 
-    assert at_limit.status_code == 200
+    assert at_limit.status_code == 201
     assert beyond.status_code == 422
 
 
-async def test_annotation_offsets_are_bounded(client: httpx.AsyncClient) -> None:
-    at_limit = await post_annotation(client, start_offset=49_999, end_offset=50_000)
-    beyond = await post_annotation(client, start_offset=0, end_offset=50_001)
-    negative = await post_annotation(client, start_offset=-1)
+async def test_annotation_offsets_are_bounded(contributor: Member) -> None:
+    at_limit = await post_annotation(contributor, start_offset=49_999, end_offset=50_000)
+    beyond = await post_annotation(contributor, start_offset=0, end_offset=50_001)
+    negative = await post_annotation(contributor, start_offset=-1)
 
-    assert at_limit.status_code == 200
+    assert at_limit.status_code == 201
     assert beyond.status_code == 422
     assert negative.status_code == 422
 
 
-async def test_target_paragraphs_are_limited_to_fifty(client: httpx.AsyncClient) -> None:
+async def test_target_paragraphs_are_limited_to_fifty(contributor: Member) -> None:
     paragraphs = [f"{PARAGRAPH}/{n}" for n in range(51)]
 
-    at_limit = await post_annotation(client, target_paragraphs=paragraphs[:50])
-    beyond = await post_annotation(client, target_paragraphs=paragraphs)
+    at_limit = await post_annotation(contributor, target_paragraphs=paragraphs[:50])
+    beyond = await post_annotation(contributor, target_paragraphs=paragraphs)
 
-    assert at_limit.status_code == 200
+    assert at_limit.status_code == 201
     assert beyond.status_code == 422
 
 
 async def test_an_annotation_text_with_a_control_character_is_refused(
-    client: httpx.AsyncClient,
+    contributor: Member,
 ) -> None:
-    response = await post_annotation(client, target_text="canis\x00lupus")
+    response = await post_annotation(contributor, target_text="canis\x00lupus")
 
     assert response.status_code == 422
 
 
 async def test_the_validation_error_does_not_break_the_inverted_offsets_rule(
-    client: httpx.AsyncClient,
+    contributor: Member,
 ) -> None:
-    response = await post_annotation(client, start_offset=20, end_offset=10)
+    response = await post_annotation(contributor, start_offset=20, end_offset=10)
 
     assert response.status_code == 400
 
@@ -301,19 +299,19 @@ async def test_the_validation_error_does_not_break_the_inverted_offsets_rule(
 # --- Proposal request ---
 
 
-async def test_a_valid_proposal_is_created(client: httpx.AsyncClient) -> None:
-    response = await post_proposal(client, broader_concept_uri=CONCEPT, alt_labels=["a", "b"])
+async def test_a_valid_proposal_is_created(contributor: Member) -> None:
+    response = await post_proposal(contributor, broader_concept_uri=CONCEPT, alt_labels=["a", "b"])
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 @pytest.mark.parametrize("language", ["fr", "en", "la", "grc"])
 async def test_every_language_of_the_interface_is_accepted(
-    client: httpx.AsyncClient, language: str
+    contributor: Member, language: str
 ) -> None:
-    response = await post_proposal(client, language=language)
+    response = await post_proposal(contributor, language=language)
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert response.json()["language"] == language
 
 
@@ -321,12 +319,12 @@ async def test_every_language_of_the_interface_is_accepted(
     "language", ["de", "fr ; <x> <y> <z>", "", "fr-FR", "FR", "fr\n@prefix x: <y> ."]
 )
 async def test_a_language_outside_the_allowed_list_is_refused(
-    client: httpx.AsyncClient, language: str
+    contributor: Member, language: str
 ) -> None:
-    response = await post_proposal(client, language=language)
+    response = await post_proposal(contributor, language=language)
 
     assert response.status_code == 422
-    assert (await client.get("/thesaurus/proposals")).json() == []
+    assert (await contributor.get("/thesaurus/proposals")).json()["items"] == []
 
 
 @pytest.mark.parametrize(
@@ -337,9 +335,9 @@ async def test_a_language_outside_the_allowed_list_is_refused(
     ],
 )
 async def test_a_broader_concept_that_is_not_in_thezoo_is_refused(
-    client: httpx.AsyncClient, broader: str
+    contributor: Member, broader: str
 ) -> None:
-    response = await post_proposal(client, broader_concept_uri=broader)
+    response = await post_proposal(contributor, broader_concept_uri=broader)
 
     assert response.status_code == 422
 
@@ -349,33 +347,34 @@ async def test_a_broader_concept_that_is_not_in_thezoo_is_refused(
     [
         ("pref_label", 200),
         ("broader_concept_label", 200),
-        ("contributor_name", 200),
         ("definition", 5_000),
     ],
 )
 async def test_a_proposal_text_field_is_bounded(
-    client: httpx.AsyncClient, field: str, limit: int
+    contributor: Member, field: str, limit: int
 ) -> None:
-    at_limit = await post_proposal(client, **{field: repeated(limit), "pref_label": "at limit"})
-    beyond = await post_proposal(client, **{field: repeated(limit + 1)})
+    at_limit = await post_proposal(
+        contributor, **{field: repeated(limit), "pref_label": "at limit"}
+    )
+    beyond = await post_proposal(contributor, **{field: repeated(limit + 1)})
 
-    assert at_limit.status_code == 200
+    assert at_limit.status_code == 201
     assert beyond.status_code == 422
 
 
-async def test_a_preferred_label_needs_two_characters(client: httpx.AsyncClient) -> None:
-    assert (await post_proposal(client, pref_label="a")).status_code == 422
-    assert (await post_proposal(client, pref_label="ab")).status_code == 200
+async def test_a_preferred_label_needs_two_characters(contributor: Member) -> None:
+    assert (await post_proposal(contributor, pref_label="a")).status_code == 422
+    assert (await post_proposal(contributor, pref_label="ab")).status_code == 201
 
 
 async def test_alternative_labels_are_bounded_in_number_and_length(
-    client: httpx.AsyncClient,
+    contributor: Member,
 ) -> None:
-    at_limit = await post_proposal(client, alt_labels=[repeated(200)] * 20)
-    too_many = await post_proposal(client, pref_label="too many", alt_labels=["x"] * 21)
-    too_long = await post_proposal(client, pref_label="too long", alt_labels=[repeated(201)])
+    at_limit = await post_proposal(contributor, alt_labels=[repeated(200)] * 20)
+    too_many = await post_proposal(contributor, pref_label="too many", alt_labels=["x"] * 21)
+    too_long = await post_proposal(contributor, pref_label="too long", alt_labels=[repeated(201)])
 
-    assert at_limit.status_code == 200
+    assert at_limit.status_code == 201
     assert too_many.status_code == 422
     assert too_long.status_code == 422
 
@@ -383,38 +382,38 @@ async def test_alternative_labels_are_bounded_in_number_and_length(
 # --- Saved queries ---
 
 
-async def test_saved_query_fields_are_bounded(client: httpx.AsyncClient) -> None:
+async def test_saved_query_fields_are_bounded(contributor: Member) -> None:
     for field, limit in (("title", 200), ("description", 2_000), ("category", 100)):
-        at_limit = await client.post("/queries", json={**SAVED_QUERY, field: repeated(limit)})
-        beyond = await client.post("/queries", json={**SAVED_QUERY, field: repeated(limit + 1)})
-        assert at_limit.status_code == 200, field
+        at_limit = await contributor.post("/queries", json={**SAVED_QUERY, field: repeated(limit)})
+        beyond = await contributor.post(
+            "/queries", json={**SAVED_QUERY, field: repeated(limit + 1)}
+        )
+        assert at_limit.status_code == 201, field
         assert beyond.status_code == 422, field
-    at_limit = await client.post("/queries", json={**SAVED_QUERY, "author_name": repeated(200)})
-    beyond = await client.post("/queries", json={**SAVED_QUERY, "author_name": repeated(201)})
-    assert at_limit.status_code == 200
-    assert beyond.status_code == 422
 
 
-async def test_saved_query_text_is_bounded_by_the_guard_limit(client: httpx.AsyncClient) -> None:
+async def test_saved_query_text_is_bounded_by_the_guard_limit(contributor: Member) -> None:
     padding = "#" + repeated(4_900)
-    at_limit = SAVED_QUERY["query_text"] + "\n" + padding
+    at_limit = SAVED_QUERY["query_text"] + chr(10) + padding
     too_long = at_limit + repeated(200)
 
-    ok = await client.post("/queries", json={**SAVED_QUERY, "query_text": at_limit})
-    beyond = await client.post("/queries", json={**SAVED_QUERY, "query_text": too_long})
-    spo_beyond = await client.post("/queries", json={**SAVED_QUERY, "query_spo_text": too_long})
+    ok = await contributor.post("/queries", json={**SAVED_QUERY, "query_text": at_limit})
+    beyond = await contributor.post("/queries", json={**SAVED_QUERY, "query_text": too_long})
+    spo_beyond = await contributor.post(
+        "/queries", json={**SAVED_QUERY, "query_spo_text": too_long}
+    )
 
-    assert ok.status_code == 200
+    assert ok.status_code == 201
     assert beyond.status_code == 422
     assert spo_beyond.status_code == 422
 
 
-async def test_updating_a_saved_query_is_bounded_too(client: httpx.AsyncClient) -> None:
-    query_id = (await client.post("/queries", json=SAVED_QUERY)).json()["id"]
+async def test_updating_a_saved_query_is_bounded_too(contributor: Member) -> None:
+    query_id = (await contributor.post("/queries", json=SAVED_QUERY)).json()["id"]
 
-    ok = await client.put(f"/queries/{query_id}", json={"title": repeated(200)})
-    beyond = await client.put(f"/queries/{query_id}", json={"title": repeated(201)})
-    category = await client.put(f"/queries/{query_id}", json={"category": repeated(101)})
+    ok = await contributor.put(f"/queries/{query_id}", json={"title": repeated(200)})
+    beyond = await contributor.put(f"/queries/{query_id}", json={"title": repeated(201)})
+    category = await contributor.put(f"/queries/{query_id}", json={"category": repeated(101)})
 
     assert ok.status_code == 200
     assert beyond.status_code == 422
@@ -447,20 +446,14 @@ async def test_the_annotation_paragraph_filter_is_bounded(client: httpx.AsyncCli
     assert beyond.status_code == 422
 
 
-@pytest.mark.parametrize(
-    ("path", "valid"),
-    [
-        ("/annotations", "En attente de validation"),
-        ("/thesaurus/proposals", "En attente de révision"),
-    ],
-)
-async def test_status_filters_accept_only_the_known_labels(
-    client: httpx.AsyncClient, path: str, valid: str
+@pytest.mark.parametrize("path", ["/annotations", "/thesaurus/proposals"])
+async def test_status_filters_accept_only_the_status_codes(
+    client: httpx.AsyncClient, path: str
 ) -> None:
-    for status in (valid, "Validé", "Rejeté"):
+    for status in ("pending", "validated", "rejected"):
         assert (await client.get(path, params={"status": status})).status_code == 200
-    assert (await client.get(path, params={"status": "Publié"})).status_code == 422
-    assert (await client.get(path, params={"status": ""})).status_code == 422
+    for unknown in ("published", "", "Validé", "Rejeté", "En attente de validation"):
+        assert (await client.get(path, params={"status": unknown})).status_code == 422
 
 
 async def test_the_autocomplete_text_is_bounded_before_any_request(
@@ -534,57 +527,6 @@ async def test_a_well_formed_legacy_concept_is_accepted(
 
     assert response.status_code == 200
     assert "http://ex.org/concept/c1" in corese.queries[0]
-
-
-# --- Status updates ---
-
-
-@pytest.mark.parametrize("status", ["Publié", "", "validé", "VALIDÉ", None, 3, ["Validé"]])
-async def test_an_unknown_annotation_status_gives_422_and_changes_nothing(
-    client: httpx.AsyncClient, status: Any
-) -> None:
-    annotation_id = (await post_annotation(client)).json()["id"]
-
-    response = await client.patch(f"/annotations/{annotation_id}/status", json={"status": status})
-
-    assert response.status_code == 422
-    assert (await client.get("/annotations")).json()[0]["status"] == "En attente de validation"
-
-
-@pytest.mark.parametrize("status", ["Publié", "", "En attente de validation", None])
-async def test_an_unknown_proposal_status_gives_422_and_changes_nothing(
-    client: httpx.AsyncClient, status: Any
-) -> None:
-    proposal_id = (await post_proposal(client)).json()["id"]
-
-    response = await client.patch(
-        f"/thesaurus/proposals/{proposal_id}/status", json={"status": status}
-    )
-
-    assert response.status_code == 422
-    assert (await client.get("/thesaurus/proposals")).json()[0]["status"] == (
-        "En attente de révision"
-    )
-
-
-async def test_every_known_status_is_accepted_and_an_unknown_id_is_a_404(
-    client: httpx.AsyncClient,
-) -> None:
-    annotation_id = (await post_annotation(client)).json()["id"]
-    proposal_id = (await post_proposal(client)).json()["id"]
-
-    for status in ("En attente de validation", "Validé", "Rejeté"):
-        response = await client.patch(
-            f"/annotations/{annotation_id}/status", json={"status": status}
-        )
-        assert response.status_code == 200
-    for status in ("En attente de révision", "Validé", "Rejeté"):
-        response = await client.patch(
-            f"/thesaurus/proposals/{proposal_id}/status", json={"status": status}
-        )
-        assert response.status_code == 200
-    missing = await client.patch("/annotations/99999/status", json={"status": "Validé"})
-    assert missing.status_code == 404
 
 
 # --- Custom search criteria ---

@@ -28,10 +28,11 @@ Each piece of data has exactly one source of truth. Any copy is derived, read-on
 | Text structure and paragraph text | Corese graph, generated from TEI | — | Ingestion pipeline |
 | TheZoo thesaurus | OpenTheso | SKOS copy in Corese (RM-THE-06) | Thesaurus admin, in OpenTheso |
 | Legacy annotations | Corese graph | — | AutomaZoo and HisINum pipelines |
-| Contributions in progress (pending, suggestions, rejected) | Application database | — | API |
+| Contributions in progress (pending, suggestions, rejected) | Application database (`app/contributions/`) | — | API, as the account of the session (RM-CTB-03) |
 | Validated annotations | Corese, contributions named graph (RM-PUB-01) | Tracking record in the database (author, reviewer, dates) | API, at validation time |
 | Term proposals | Application database | SKOS export | API |
 | Competency questions | Application database (RM-QC-01) | — | API |
+| Saved SPARQL queries (native questions and personal queries) | Application database (`app/queries/`) | — | API, as the account of the session (RM-QC-06) |
 | Accounts and roles | Application database | — | API |
 
 ## Main flows
@@ -108,6 +109,9 @@ TEI-XML (texts), W3C Web Annotation (annotations), SKOS (thesaurus and proposals
 | Frontend stack | React, React Router and Tailwind CSS, mandatory. | Decided |
 | Named graphs | One graph per origin: corpus, thesaurus, legacy annotations, validated contributions. | Proposed |
 | Application database | SQLite in WAL mode first, PostgreSQL later (see "Performance and concurrency"); SQLAlchemy 2 with its async engine (`aiosqlite`, approved 2026-11-16) and Alembic migrations. Alembic owns the schema and is applied before the API starts: the container runs `alembic upgrade head` first, and the application refuses to start on a database that is not at the latest revision. | Decided |
+| Contributions and saved queries | SQLAlchemy domain modules (`app/contributions/`, `app/queries/`), each with models, a permission policy, a repository, a FastAPI-free service and a thin router, on the request's `AsyncSession` (the same session as the account checks, so a permission check and its write share one short transaction). The synchronous `sqlite3` staging store is gone. | Decided (P0-4b) |
+| Permissions | One pure policy per domain (`policy.py`) is the single source: the service refuses with it, the response computes `allowed_actions` with it, and the guarded SQL statement states the same conditions for requests that race; a test links the two. The frontend shows actions from `allowed_actions` and never re-implements the rules. | Decided (P0-4b) |
+| Concurrent edits | Optimistic concurrency: a contribution has a `version`, every edit and review is one conditional statement on it, and a conflict answers 409 `version_conflict`. Statuses are codes (`pending`, `validated`, `rejected`). | Decided (P0-4b) |
 | Documentation site | MkDocs Material with mkdocstrings, TypeDoc and the OpenAPI schema, built by the CI. | Decided |
 | Corese access | A single access layer (SPARQL client); queries sent with POST; no query built by concatenating external values. | Proposed |
 | API contract | Pydantic response models on every route; TypeScript types generated from the OpenAPI schema. | Proposed |
@@ -116,8 +120,8 @@ TEI-XML (texts), W3C Web Annotation (annotations), SKOS (thesaurus and proposals
 
 - Validated annotations stay in SQLite and never reach Corese.
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite table).
-- Accounts, sessions and CSRF exist (P0-4a) but the contribution routes ignore them: the author is still sent by the client, and anyone can change a status (P0-4b).
-- The staging store (annotations, proposals, saved queries) still uses synchronous `sqlite3` beside the async SQLAlchemy engine of the accounts, until its code moves to its domain package; the schema of both is owned by Alembic.
+- The contribution and saved-query routes require an account (P0-4b, done) but the current frontend does not send credentials, so it can no longer contribute: P0-4b ships together with the screens of P0-5a, and the frontend still compares the French status labels until then.
+- The native competency questions are seeded at startup from `app/core/qcs_data.py` and the `.rq` files, and stay read-only for everyone until RM-QC-01.
 - SPARQL queries are built with f-strings and sent with GET.
 - Concept categories are computed twice (backend and frontend) with diverging rules.
 - Legacy RPC routes are still the only API.

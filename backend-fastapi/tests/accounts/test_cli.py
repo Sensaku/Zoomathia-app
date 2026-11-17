@@ -11,7 +11,7 @@ import pytest
 
 from app.accounts.cli import main
 from app.core.config import settings
-from tests.accounts.conftest import PASSWORD
+from tests.support.accounts import PASSWORD
 
 ARGV = [
     "create-admin",

@@ -3,13 +3,14 @@
 Each test states the expected behaviour. A gap that is still open is marked
 `xfail(strict=True)`: when the P0/P1 work fixes it, pytest reports an unexpected pass and
 the marker must be removed, so that the test then guards against regressions. Every gap of
-the audit that was written here is fixed (RM-CTB-04, RM-QC-02 and the exact paragraph match
-by P0-3), so the tests below are plain regression tests.
+the audit that was written here is fixed (RM-CTB-01, RM-CTB-04, RM-QC-02 and the exact
+paragraph match by P0-3 and P0-4b), so the tests below are plain regression tests.
 """
 
 import httpx
 
 from tests.conftest import FakeCorese
+from tests.support.accounts import Member
 
 PARAGRAPH_1 = "http://ns.inria.fr/zoomathia/Ex/work/text/1"
 PARAGRAPH_10 = "http://ns.inria.fr/zoomathia/Ex/work/text/10"
@@ -24,14 +25,22 @@ ANNOTATION = {
 
 
 async def test_rm_ctb_04_client_cannot_create_a_validated_annotation(
-    client: httpx.AsyncClient,
+    contributor: Member,
 ) -> None:
-    response = await client.post(
-        "/annotations", json={**ANNOTATION, "paragraph_uri": PARAGRAPH_1, "status": "Validé"}
+    response = await contributor.post(
+        "/annotations", json={**ANNOTATION, "paragraph_uri": PARAGRAPH_1, "status": "validated"}
     )
 
-    assert response.status_code in (200, 201)
-    assert response.json().get("status") != "Validé"
+    assert response.status_code == 201
+    assert response.json()["status"] == "pending"
+
+
+async def test_rm_ctb_01_nobody_writes_annotations_without_an_account(
+    client: httpx.AsyncClient,
+) -> None:
+    response = await client.post("/annotations", json={**ANNOTATION, "paragraph_uri": PARAGRAPH_1})
+
+    assert response.status_code == 401
 
 
 async def test_rm_qc_02_native_question_cannot_be_overwritten_anonymously(
@@ -42,21 +51,23 @@ async def test_rm_qc_02_native_question_cannot_be_overwritten_anonymously(
     assert response.status_code in (401, 403)
 
 
-async def test_listing_by_paragraph_matches_the_exact_uri(client: httpx.AsyncClient) -> None:
+async def test_listing_by_paragraph_matches_the_exact_uri(
+    client: httpx.AsyncClient, contributor: Member
+) -> None:
     paragraph_10 = PARAGRAPH_10
-    await client.post(
+    await contributor.post(
         "/annotations",
         json={**ANNOTATION, "paragraph_uri": paragraph_10, "target_paragraphs": [paragraph_10]},
     )
 
     own = await client.get("/annotations", params={"paragraph_uri": paragraph_10})
     assert own.status_code == 200
-    assert [item["paragraph_uri"] for item in own.json()] == [paragraph_10]
+    assert [item["paragraph_uri"] for item in own.json()["items"]] == [paragraph_10]
 
     response = await client.get("/annotations", params={"paragraph_uri": PARAGRAPH_1})
 
     assert response.status_code == 200
-    assert all(item["paragraph_uri"] != paragraph_10 for item in response.json())
+    assert all(item["paragraph_uri"] != paragraph_10 for item in response.json()["items"])
 
 
 async def test_rm_acc_02_unbounded_select_is_limited(

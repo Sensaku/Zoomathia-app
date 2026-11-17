@@ -17,6 +17,7 @@ from app.accounts.models import UserStatus
 from app.accounts.schemas import (
     DEFAULT_ADMIN_PAGE_SIZE,
     MAX_ADMIN_PAGE_SIZE,
+    AuthConfigOut,
     LoginRequest,
     MessageOut,
     PasswordChangeRequest,
@@ -112,6 +113,15 @@ async def reset_password(
 ) -> None:
     """Set a new password with the token that an administrator handed over."""
     await service.reset_password(body.token, body.new_password)
+
+
+# --- no session needed ---
+
+
+@auth_router.get("/config", response_model=AuthConfigOut)
+async def auth_config() -> AuthConfigOut:
+    """Whether the sign-up screen can offer registration (public, no personal data)."""
+    return AuthConfigOut(registration_enabled=settings.REGISTRATION_ENABLED)
 
 
 # --- authenticated ---

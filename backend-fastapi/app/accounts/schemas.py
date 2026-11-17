@@ -10,7 +10,7 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
-from app.accounts.models import Role, UserStatus
+from app.accounts.models import Role, User, UserStatus
 from app.accounts.passwords import MAX_PASSWORD_INPUT_LENGTH
 
 MAX_EMAIL_LENGTH = 254
@@ -92,6 +92,21 @@ class UserOut(BaseModel):
     activated_at: datetime | None
 
 
+class PublicIdentity(BaseModel):
+    """What the public sees of an account (RM-CPT-05): never the email."""
+
+    id: int
+    display_name: str
+    affiliation: str
+
+
+def identity_of(user: User | None) -> PublicIdentity | None:
+    """The public identity of an account, or None for a historical contribution."""
+    if user is None:
+        return None
+    return PublicIdentity(id=user.id, display_name=user.display_name, affiliation=user.affiliation)
+
+
 class SessionOut(BaseModel):
     """The logged-in account and the CSRF token to send in `X-CSRF-Token` on unsafe requests."""
 
@@ -104,6 +119,12 @@ class UserPage(BaseModel):
 
     items: list[UserOut]
     total: int
+
+
+class AuthConfigOut(BaseModel):
+    """What a visitor may know before signing in: whether registrations are open (T8)."""
+
+    registration_enabled: bool
 
 
 class MessageOut(BaseModel):

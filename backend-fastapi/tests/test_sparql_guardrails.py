@@ -5,13 +5,16 @@ Corese are bounded in size, heavy queries run under a concurrency limit, and the
 number of criteria of a request is capped.
 """
 
+import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
 
+from app.core.config import settings
 from app.routers import export as export_router
 from app.routers import search as search_router
 from app.services import sparql_client as sparql_client_module
@@ -30,6 +33,7 @@ from app.shared.limits import (
 )
 from app.shared.sparql_guard import prepare_query
 from tests.conftest import FakeCorese
+from tests.support.accounts import Member
 from tests.test_sparql_injection import VALID_IRI, literals
 
 SERVICE_QUERY = "SELECT * WHERE { SERVICE <http://169.254.169.254/> { ?s ?p ?o } }"
@@ -111,18 +115,19 @@ async def test_rm_acc_02_playground_accepts_a_variable_named_like_a_keyword(
 
 
 async def test_rm_acc_02_saved_query_with_service_is_refused(
-    client: httpx.AsyncClient, corese: FakeCorese
+    contributor: Member, corese: FakeCorese
 ) -> None:
     body = {"title": "Federated query", "query_text": SERVICE_QUERY}
 
-    response = await client.post("/queries", json=body)
+    response = await contributor.post("/queries", json=body)
 
     assert response.status_code == 403
-    assert (await client.get("/queries", params={"search": "Federated query"})).json() == []
+    found = await contributor.get("/queries", params={"search": "Federated query"})
+    assert found.json()["items"] == []
 
 
 async def test_rm_acc_02_saved_query_spo_variant_is_validated_too(
-    client: httpx.AsyncClient, corese: FakeCorese
+    contributor: Member, corese: FakeCorese
 ) -> None:
     body = {
         "title": "SPO variant",
@@ -130,32 +135,33 @@ async def test_rm_acc_02_saved_query_spo_variant_is_validated_too(
         "query_spo_text": "DROP ALL",
     }
 
-    response = await client.post("/queries", json=body)
+    response = await contributor.post("/queries", json=body)
 
     assert response.status_code == 403
 
 
 async def test_rm_acc_02_updating_a_saved_query_validates_its_new_text(
-    client: httpx.AsyncClient, corese: FakeCorese
+    contributor: Member, corese: FakeCorese
 ) -> None:
-    created = await client.post(
+    created = await contributor.post(
         "/queries", json={"title": "To be updated", "query_text": UNBOUNDED_QUERY}
     )
     query_id = created.json()["id"]
 
-    response = await client.put(f"/queries/{query_id}", json={"query_text": SERVICE_QUERY})
+    response = await contributor.put(f"/queries/{query_id}", json={"query_text": SERVICE_QUERY})
 
     assert response.status_code == 403
-    assert (await client.get(f"/queries/{query_id}")).json()["query_text"] == UNBOUNDED_QUERY
+    stored = await contributor.get(f"/queries/{query_id}")
+    assert stored.json()["query_text"] == UNBOUNDED_QUERY
 
 
 async def test_rm_acc_02_saved_query_is_stored_as_written_and_bounded_when_executed(
-    client: httpx.AsyncClient, corese: FakeCorese
+    client: httpx.AsyncClient, contributor: Member, corese: FakeCorese
 ) -> None:
-    created = await client.post(
+    created = await contributor.post(
         "/queries", json={"title": "Unbounded on purpose", "query_text": UNBOUNDED_QUERY}
     )
-    assert created.status_code == 200
+    assert created.status_code == 201
     query_id = created.json()["id"]
     assert created.json()["query_text"] == UNBOUNDED_QUERY
 
@@ -168,9 +174,7 @@ async def test_rm_acc_02_saved_query_is_stored_as_written_and_bounded_when_execu
 async def test_rm_acc_02_stored_query_with_service_is_not_executed(
     client: httpx.AsyncClient, corese: FakeCorese
 ) -> None:
-    from app.services.staging_store import staging_store
-
-    with staging_store._get_connection() as connection:
+    with sqlite3.connect(Path(settings.STAGING_DB_PATH)) as connection:
         connection.execute("UPDATE saved_queries SET query_text = ? WHERE id = 1", (SERVICE_QUERY,))
 
     response = await client.post("/queries/1/execute")
@@ -182,7 +186,7 @@ async def test_rm_acc_02_stored_query_with_service_is_not_executed(
 async def test_rm_acc_02_every_stored_native_query_passes_the_guard(
     client: httpx.AsyncClient,
 ) -> None:
-    stored = (await client.get("/queries")).json()
+    stored = (await client.get("/queries")).json()["items"]
     native = [query for query in stored if query["is_builtin"]]
     assert native
 
@@ -498,22 +502,38 @@ async def test_rm_acc_02_heavy_endpoints_answer_429_when_the_client_has_no_free_
 
 
 async def test_rm_acc_02_saved_query_create_and_update_are_heavy_requests_too(
-    client: httpx.AsyncClient,
+    contributor: Member,
 ) -> None:
-    created = await client.post("/queries", json={"title": "Heavy", "query_text": UNBOUNDED_QUERY})
+    created = await contributor.post(
+        "/queries", json={"title": "Heavy", "query_text": UNBOUNDED_QUERY}
+    )
     query_id = created.json()["id"]
     body = {"title": "Heavy", "query_text": UNBOUNDED_QUERY}
 
     with held_slots(CLIENT_ADDRESS, MAX_HEAVY_PER_CLIENT):
-        create_refused = await client.post("/queries", json=body)
-        update_refused = await client.put(f"/queries/{query_id}", json=body)
-    create_allowed = await client.post("/queries", json=body)
-    update_allowed = await client.put(f"/queries/{query_id}", json=body)
+        create_refused = await contributor.post("/queries", json=body)
+        update_refused = await contributor.put(f"/queries/{query_id}", json=body)
+    create_allowed = await contributor.post("/queries", json=body)
+    update_allowed = await contributor.put(f"/queries/{query_id}", json=body)
 
     assert create_refused.status_code == update_refused.status_code == 429
     assert create_refused.headers["retry-after"]
-    assert create_allowed.status_code == update_allowed.status_code == 200
-    assert len((await client.get("/queries", params={"search": "Heavy"})).json()) == 2
+    assert create_allowed.status_code == 201
+    assert update_allowed.status_code == 200
+    found = await contributor.get("/queries", params={"search": "Heavy"})
+    assert len(found.json()["items"]) == 2
+
+
+async def test_rm_acc_02_an_anonymous_write_never_takes_a_heavy_slot(
+    client: httpx.AsyncClient,
+) -> None:
+    """The account is checked first: 401 even when the client has no free slot (RM-QC-06)."""
+    body = {"title": "Heavy", "query_text": UNBOUNDED_QUERY}
+
+    with held_slots(CLIENT_ADDRESS, MAX_HEAVY_PER_CLIENT):
+        response = await client.post("/queries", json=body)
+
+    assert response.status_code == 401
 
 
 async def test_rm_acc_02_a_free_slot_is_enough_to_run_a_heavy_query(

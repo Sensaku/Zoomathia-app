@@ -39,9 +39,24 @@ Une règle modifiée est mise à jour ici dans la même PR que le code.
 | Activer, désactiver un compte, attribuer un rôle | ✘ | ✘ | ✔ | ✘ |
 | Examiner et importer un texte soumis | ✘ | ✘ | ✔ | ✘ |
 | Créer ou modifier une question de compétence native | ✘ | propose (RM-QC-02) | ✔ | ✘ |
-| Modifier ou supprimer sa contribution encore en attente | ✘ | ✔ | ✔ | ✔ |
+| Modifier ou supprimer sa contribution encore en attente (RM-CTB-05) | ✘ | ✔ | ✔ | ✔ |
+| Supprimer la contribution **en attente ou rejetée** d'une autre personne, modération (RM-MOD-05) | ✘ | ✘ | ✔ | ✘ |
+| Modifier ou supprimer une contribution historique sans compte auteur (RM-CTB-06) | ✘ | ✘ | ✔ | ✘ |
 | Retirer une contribution validée, avec motif (RM-PUB-04) | ✘ | la sienne | ✔ | ✘ |
 | Modifier une contribution validée | ✘ | ✘ | ✘ | ✘ |
+| Supprimer une contribution validée | ✘ | ✘ | ✘ | ✘ |
+| Enregistrer une requête SPARQL (RM-QC-06) | ✘ | ✔ | ✔ | — |
+| Modifier ou supprimer une requête enregistrée | ✘ | la sienne | toute requête personnelle | — |
+| Consulter, exécuter, exporter les requêtes enregistrées | ✔ | ✔ | ✔ | ✔ |
+
+*Notes sur la matrice (décidé le 2026-11-16) :*
+
+- Un administrateur suit la règle de l'auteur pour **sa propre** contribution : modifiable et supprimable tant qu'elle est en attente, jamais ensuite. La modération (RM-MOD-05) ne vise que les contributions d'autrui.
+- Une contribution validée ne se supprime jamais : elle se retire (RM-PUB-04, chantier ultérieur).
+- Une contribution historique (RM-CTB-06) n'a pas de compte auteur : seul un administrateur la modifie (tant qu'elle est en attente) ou la supprime (en attente ou rejetée) ; tout compte actif peut relire une historique en attente, puisque son auteur est inconnu (décidé le 2026-11-17).
+- Une requête personnelle enregistrée avant les comptes n'a pas de compte auteur : seul un administrateur la modifie ou la supprime.
+- Une question de compétence native est en lecture seule pour tous, administrateurs compris, tant que RM-QC-01 n'est pas mise en œuvre (voir RM-QC-02).
+- Un compte de service n'a pas de règle pour les requêtes enregistrées (« — ») : à décider avec le chantier de pré-annotation.
 
 ### Règles
 
@@ -53,6 +68,9 @@ Aucun quota d'usage n'est imposé aux utilisateurs. Le service se protège en re
 
 **RM-ACC-03 — Contributions en attente visibles sur demande.** *Décidé.*
 Les contributions non encore relues (annotations, propositions de termes, suggestions des agents IA) sont visibles par tous, mais masquées par défaut. Elles s'affichent quand l'utilisateur active le filtre « contributions en attente », avec un marquage « non relu » explicite.
+
+**RM-ACC-04 — Contributions rejetées et motif publics.** *Décidé (2026-11-16).*
+Les contributions rejetées restent consultables par tous, avec leur motif de rejet : les listes se filtrent par statut, rejets compris. Elles n'apparaissent jamais dans la lecture du corpus (le lecteur n'affiche que les annotations validées, et les annotations en attente sur demande, RM-ACC-03).
 
 **RM-CPT-01 — Comptes locaux.** *Décidé.*
 L'authentification repose sur des comptes gérés par l'application (email et mot de passe). Les exigences de sécurité associées (hachage, vérification de l'email, réinitialisation, protection contre la force brute) sont dans [security.md](security.md).
@@ -69,6 +87,9 @@ La désactivation révoque aussitôt les sessions du compte et ses jetons de ré
 **RM-CPT-04 — Suppression d'une inscription non activée.** *Proposé.*
 Un administrateur peut supprimer un compte **en attente** qui n'a jamais été activé (inscription refusée ou indésirable) : les données personnelles inutiles ne sont pas conservées. Un compte activé un jour ne se supprime pas, il se désactive (RM-CPT-03) ; un administrateur ne peut pas supprimer son propre compte.
 
+**RM-CPT-05 — Identité publique d'un contributeur.** *Décidé (2026-11-16).*
+L'identité publique d'un contributeur, comme auteur ou comme relecteur, est le **nom affiché et l'affiliation** de son compte. L'adresse email n'est jamais publique : elle ne figure dans aucune réponse de l'API, ni dans aucun export RDF ou JSON accessible aux visiteurs.
+
 **RM-CTB-01 — Toute contribution exige un compte actif.** *Décidé.*
 Créer une annotation ou proposer un terme nécessite un compte contributeur actif. Seule exception : le formulaire de soumission de texte (RM-CTB-02).
 
@@ -76,14 +97,21 @@ Créer une annotation ou proposer un terme nécessite un compte contributeur act
 Une personne sans compte peut proposer un texte (fichier TEI-XML ou référence bibliographique) en indiquant obligatoirement son nom, son email et son affiliation. Un administrateur examine chaque soumission avant tout import ; rien n'est publié automatiquement.
 *Proposé :* protection anti-spam compatible avec l'accessibilité (champ piège, limitation de débit, confirmation de l'email), sans CAPTCHA visuel.
 
-**RM-CTB-03 — Auteur fixé par le serveur.** *Proposé (découle de RM-CTB-01).*
-L'auteur d'une contribution est le compte connecté, jamais un champ libre envoyé par le client.
+**RM-CTB-03 — Auteur fixé par le serveur.** *Décidé (2026-11-16).*
+L'auteur d'une contribution est le compte connecté, jamais un champ libre envoyé par le client : un nom ou un identifiant d'auteur envoyé par le client est ignoré.
 
-**RM-CTB-04 — Statut initial fixé par le serveur.** *Proposé (découle de RM-MOD-01).*
-Une contribution est toujours créée « en attente de relecture ». Le client ne peut pas choisir son statut.
+**RM-CTB-04 — Statut initial fixé par le serveur.** *Décidé (2026-11-16).*
+Une contribution est toujours créée « en attente de relecture » (`pending`), quel que soit le statut que le client envoie.
 
-**RM-CTB-05 — Contribution en attente modifiable par son auteur.** *Proposé.*
+**RM-CTB-05 — Contribution en attente modifiable par son auteur.** *Décidé (2026-11-16).*
 Tant qu'elle n'est pas relue, l'auteur peut modifier ou supprimer sa contribution. Une fois relue, seule la règle de retrait s'applique (RM-PUB-04).
+*Modification d'une annotation :* le concept (IRI, libellé, type) et la justification seulement. Le passage annoté (paragraphe, texte, positions, portée) est fixé : pour le changer, l'auteur supprime l'annotation et en crée une autre.
+*Modification d'une proposition de terme :* tous les champs.
+*Technique (décidé le 2026-11-17) :* chaque modification et chaque relecture incrémente un numéro de version que le client renvoie ; un conflit de version donne une erreur 409, pour qu'un relecteur ne valide pas un contenu que l'auteur vient de modifier.
+
+**RM-CTB-06 — Contributions historiques.** *Décidé (2026-11-16).*
+Les contributions enregistrées avant l'existence des comptes gardent le nom libre de leur auteur comme **auteur historique**, sans compte, et gardent leur statut. Seul un administrateur les modifie ou les supprime, dans les limites de RM-CTB-05 (modification : en attente seulement) et de RM-MOD-05 (suppression : en attente ou rejetée).
+*Technique (décidé le 2026-11-17) :* l'auteur d'une contribution historique en attente étant inconnu, tout compte actif peut la relire.
 
 **RM-MOD-01 — Relecture par les pairs.** *Décidé.*
 Tout contributeur actif peut valider ou rejeter la contribution d'un autre contributeur, jamais la sienne. Cette règle s'applique aussi aux administrateurs.
@@ -91,8 +119,14 @@ Tout contributeur actif peut valider ou rejeter la contribution d'un autre contr
 **RM-MOD-02 — Une seule relecture.** *Décidé.*
 Une validation par un pair suffit à publier une annotation ou une proposition de terme.
 
-**RM-MOD-03 — Traçabilité de la relecture.** *Proposé.*
-Le relecteur et la date de relecture sont enregistrés. Un rejet est accompagné d'un motif.
+**RM-MOD-03 — Traçabilité de la relecture.** *Décidé (2026-11-16).*
+Le relecteur et la date de relecture sont enregistrés. Un rejet exige un motif (non vide, 2 000 caractères au plus) ; une validation n'en comporte pas.
+
+**RM-MOD-05 — Modération par un administrateur.** *Décidé (2026-11-16).*
+Un administrateur peut supprimer la contribution **en attente ou rejetée** d'une autre personne (contribution historique comprise). Une contribution validée n'est jamais supprimée : elle sera retirée (RM-PUB-04). Les suppressions de modération sont journalisées (identifiants seulement, ni nom ni email).
+
+**RM-MOD-06 — Une relecture est définitive.** *Décidé (2026-11-16).*
+Une contribution validée ne peut ensuite être que retirée (RM-PUB-04). Une contribution rejetée reste dans l'historique : son auteur en crée une nouvelle. Il n'y a ni réouverture ni autre changement de statut.
 
 **RM-MOD-04 — Contributions automatiques.** *Décidé.*
 Chaque agent IA ou pipeline dispose d'un compte de service avec un jeton d'API. Ses annotations portent leur provenance (outil, version, score de confiance) et restent des **suggestions** jusqu'à la relecture d'un contributeur humain. Un compte de service ne relit jamais.
@@ -111,7 +145,7 @@ Chaque agent IA ou pipeline dispose d'un compte de service avec un jeton d'API. 
 
 Une contribution validée peut ensuite être **retirée** (RM-PUB-04) : elle quitte le graphe, son historique reste consultable.
 
-*Proposé (technique) :* les statuts sont stockés sous forme de codes (`pending`, `suggested`, `validated`, `rejected`, `retracted`) et traduits dans l'interface. Les libellés français actuels (« En attente de validation », « En attente de révision », « Validé »…) servent aujourd'hui de valeurs : c'est à migrer.
+*Décidé (2026-11-16, technique) :* les statuts sont stockés sous forme de codes et traduits dans l'interface. Les codes `pending`, `validated` et `rejected` sont en service ; `suggested` et `retracted` arrivent avec leurs fonctionnalités (pré-annotation, RM-PUB-04). La migration des anciens libellés français (« En attente de validation », « En attente de révision », « Validé », « Rejeté ») est faite côté serveur ; l'interface actuelle les compare encore comme libellés jusqu'aux écrans des comptes (P0-5).
 
 ---
 
@@ -182,6 +216,7 @@ Les questions de compétence natives sont stockées dans la base applicative, se
 
 **RM-QC-02 — Édition par les administrateurs, propositions par les contributeurs.** *Décidé.*
 Un administrateur modifie une QC directement. Un contributeur peut proposer une modification, appliquée après validation par un administrateur. La relecture par les pairs ne s'applique pas aux QC.
+*Technique (décidé le 2026-11-17) :* tant que RM-QC-01 n'est pas mise en œuvre, les questions natives existent en trois copies (`app/core/qcs_data.py`, `data/queries/*.rq`, base de données) : l'édition par un administrateur attend la source unique. D'ici là, toute modification ou suppression d'une QC native répond 403 (`builtin_query`) à tout le monde, administrateurs compris.
 
 **RM-QC-03 — Historique des versions.** *Proposé.*
 Chaque modification conserve la version précédente (auteur, date, contenu), qui peut être restaurée.
@@ -192,8 +227,9 @@ Même circuit que RM-QC-02 : un administrateur crée une QC native, un contribut
 **RM-QC-05 — Garde-fous.** *Proposé.*
 Toute QC, native ou proposée, est une requête SELECT ou ASK qui respecte les garde-fous de RM-ACC-02.
 
-**RM-QC-06 — Requêtes personnelles.** *Proposé.*
-Une requête enregistrée par un contributeur lui appartient. Elle est visible par tous en lecture, modifiable et supprimable par son auteur ou un administrateur.
+**RM-QC-06 — Requêtes personnelles.** *Décidé (2026-11-16).*
+Enregistrer une requête SPARQL exige un compte actif. Une requête enregistrée par un contributeur lui appartient (l'auteur est le compte connecté, jamais un champ du client) ; elle est visible par tous en lecture, exécutable et exportable par tous, modifiable et supprimable par son auteur ou un administrateur. Une requête enregistrée avant les comptes n'a pas de compte auteur : seul un administrateur la modifie ou la supprime. Son auteur est public (RM-CPT-05).
+*À trancher avec le chantier de pré-annotation (2026-11-17) :* un compte de service peut-il enregistrer des requêtes ? Rien n'est à mettre en œuvre d'ici là : les comptes de service n'existent pas encore (RM-MOD-04).
 
 ---
 
@@ -241,4 +277,6 @@ L'export CSV ou JSON d'une recherche personnalisée contient les lignes brutes d
 
 ## Décisions en attente
 
-Aucune question ouverte dans ce document au 2026-11-15. Les règles « Proposé » restent à valider en relecture.
+Une seule question est ouverte (**À trancher**) : les requêtes enregistrées par un compte de service (RM-QC-06), à trancher avec le chantier de pré-annotation.
+
+Les choix techniques que le chantier P0-4b avait mis en œuvre par défaut (RM-CTB-05, RM-CTB-06, RM-QC-02) ont été confirmés le 2026-11-17. Les autres règles « Proposé » restent à valider en relecture.

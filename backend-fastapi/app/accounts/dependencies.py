@@ -1,8 +1,8 @@
 """FastAPI dependencies of the accounts domain: current account, CSRF check, roles.
 
 The CSRF check lives in `optional_auth`, which every authenticating dependency builds on,
-so any route that requires a session gets it: the contribution routes will, once they require
-an account (P0-4b).
+so any route that requires a session gets it: the contribution routes do since P0-4b
+(RM-CTB-01).
 """
 
 from fastapi import Depends, Header, Request

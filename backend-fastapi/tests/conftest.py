@@ -1,7 +1,8 @@
 """Shared test fixtures.
 
 Every test runs against a temporary SQLite database built from the Alembic migrations,
-and outgoing HTTP requests are blocked: no test touches `data/staging.db` or the
+with a controllable clock and a cheap password hasher in place of the real ones, and outgoing
+HTTP requests are blocked: no test touches `data/staging.db` or the
 production Corese, except the tests marked `live`, which are skipped unless `--live` is
 given.
 """
@@ -12,6 +13,7 @@ import os
 import shutil
 import tempfile
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs
@@ -29,14 +31,26 @@ import respx  # noqa: E402
 from alembic import command  # noqa: E402
 from sqlalchemy.engine import URL  # noqa: E402
 
+from app.accounts.models import Role, User, UserStatus  # noqa: E402
+from app.accounts.passwords import PasswordHasher, get_password_hasher  # noqa: E402
+from app.core.clock import get_clock  # noqa: E402
 from app.core.config import settings  # noqa: E402
 from app.core.database import Database  # noqa: E402
 from app.core.migrations import alembic_config  # noqa: E402
 from app.main import app  # noqa: E402
+from app.queries.service import seed_builtin_queries  # noqa: E402
 from app.services.sparql_client import sparql_client  # noqa: E402
-from app.services.staging_store import StagingStore, staging_store  # noqa: E402
 from app.shared import limits  # noqa: E402
 from app.shared.sparql_guard import clear_prepared_queries  # noqa: E402
+from tests.support.accounts import (  # noqa: E402
+    PASSWORD,
+    FakeClock,
+    MakeAccount,
+    Member,
+    cheap_password_hash,
+    csrf,
+    sign_in,
+)
 
 _ENDPOINT = httpx.URL(settings.SPARQL_ENDPOINT)
 
@@ -216,6 +230,27 @@ def fresh_prepared_queries() -> Iterator[None]:
 _template_database: Path | None = None
 
 
+def _seed_native_questions(path: Path) -> None:
+    """Seed the native competency questions of the database at `path`.
+
+    The seeding is asynchronous like at startup. It runs on its own event loop in a thread,
+    so that it works whether or not the caller is inside a running loop.
+    """
+
+    async def seed() -> None:
+        url = URL.create("sqlite+aiosqlite", database=str(path)).render_as_string(
+            hide_password=False
+        )
+        template = Database(url)
+        try:
+            await seed_builtin_queries(template)
+        finally:
+            await template.dispose()
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(asyncio.run, seed()).result()
+
+
 def template_database() -> Path:
     """A database migrated to the head revision and seeded, built once per test session.
 
@@ -227,7 +262,7 @@ def template_database() -> Path:
         template = _TMP_DIR / "template.db"
         url = URL.create("sqlite", database=str(template)).render_as_string(hide_password=False)
         command.upgrade(alembic_config(url), "head")
-        StagingStore(template).seed_builtin_queries()
+        _seed_native_questions(template)
         _template_database = template
     return _template_database
 
@@ -236,13 +271,12 @@ def template_database() -> Path:
 def fresh_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Give every test its own copy of the migrated database.
 
-    The staging store and the settings (hence the SQLAlchemy engine and the Alembic URL)
-    point at the copy for the duration of the test.
+    The settings (hence the SQLAlchemy engine and the Alembic URL) point at the copy for the
+    duration of the test.
     """
     path = tmp_path / "staging.db"
     shutil.copyfile(template_database(), path)
     monkeypatch.setattr(settings, "STAGING_DB_PATH", str(path))
-    monkeypatch.setattr(staging_store, "db_path", path)
     yield
 
 
@@ -276,3 +310,121 @@ async def client(database: Database) -> AsyncIterator[httpx.AsyncClient]:
         transport=httpx.ASGITransport(app=app), base_url="https://test"
     ) as http_client:
         yield http_client
+
+
+# --- accounts and signed-in clients ---
+
+
+@pytest.fixture
+def clock() -> FakeClock:
+    return FakeClock()
+
+
+@pytest.fixture
+def hasher() -> PasswordHasher:
+    return PasswordHasher(cheap_password_hash())
+
+
+@pytest.fixture(autouse=True)
+def account_dependencies(clock: FakeClock, hasher: PasswordHasher) -> Iterator[None]:
+    """Replace the clock and the hasher of the application for the duration of a test."""
+    app.dependency_overrides[get_clock] = lambda: clock
+    app.dependency_overrides[get_password_hasher] = lambda: hasher
+    yield
+    app.dependency_overrides.pop(get_clock, None)
+    app.dependency_overrides.pop(get_password_hasher, None)
+
+
+@pytest.fixture
+def registration_open(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "REGISTRATION_ENABLED", True)
+
+
+@pytest.fixture
+def make_account(database: Database, hasher: PasswordHasher, clock: FakeClock) -> MakeAccount:
+    """Insert an account directly, without going through registration."""
+
+    async def make(
+        email: str = "member@example.org",
+        password: str = PASSWORD,
+        role: Role = Role.CONTRIBUTOR,
+        status: UserStatus = UserStatus.ACTIVE,
+        display_name: str = "Test Person",
+        affiliation: str = "Test Lab",
+    ) -> User:
+        user = User(
+            email=email,
+            display_name=display_name,
+            affiliation=affiliation,
+            password_hash=await hasher.hash(password),
+            role=role,
+            status=status,
+            license_accepted_at=clock(),
+            created_at=clock(),
+        )
+        async with database.session_maker() as session:
+            session.add(user)
+            await session.commit()
+        return user
+
+    return make
+
+
+@pytest.fixture
+async def new_client(database: Database) -> AsyncIterator[Callable[[], httpx.AsyncClient]]:
+    """Make more HTTP clients, each with its own cookie jar (another browser)."""
+    clients: list[httpx.AsyncClient] = []
+
+    def make() -> httpx.AsyncClient:
+        http_client = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="https://test"
+        )
+        clients.append(http_client)
+        return http_client
+
+    yield make
+    for http_client in clients:
+        await http_client.aclose()
+
+
+@pytest.fixture
+async def make_member(
+    database: Database, make_account: MakeAccount
+) -> AsyncIterator[Callable[..., Awaitable[Member]]]:
+    """Make an account and a client signed in as it, sending its CSRF token by default."""
+    members: list[Member] = []
+
+    async def make(
+        email: str, display_name: str, affiliation: str, role: Role = Role.CONTRIBUTOR
+    ) -> Member:
+        user = await make_account(
+            email=email, role=role, display_name=display_name, affiliation=affiliation
+        )
+        member = Member(transport=httpx.ASGITransport(app=app), base_url="https://test")
+        members.append(member)
+        member.user = user
+        member.csrf_token = await sign_in(member, email)
+        member.headers.update(csrf(member.csrf_token))
+        return member
+
+    yield make
+    for member in members:
+        await member.aclose()
+
+
+@pytest.fixture
+async def contributor(make_member: Callable[..., Awaitable[Member]]) -> Member:
+    """A signed-in contributor."""
+    return await make_member("ada@example.org", "Ada Lovelace", "Analytical Lab")
+
+
+@pytest.fixture
+async def second_contributor(make_member: Callable[..., Awaitable[Member]]) -> Member:
+    """Another signed-in contributor, to review the first one's work."""
+    return await make_member("grace@example.org", "Grace Hopper", "Compiler Lab")
+
+
+@pytest.fixture
+async def admin(make_member: Callable[..., Awaitable[Member]]) -> Member:
+    """A signed-in administrator."""
+    return await make_member("root@example.org", "Root Admin", "Admin Lab", Role.ADMIN)

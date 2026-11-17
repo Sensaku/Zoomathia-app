@@ -21,9 +21,11 @@ Technical documents (English): `docs/architecture.md` (components, sources of tr
 | Path | Content |
 |---|---|
 | `backend-fastapi/app/routers/` | HTTP endpoints: thin, validation and calls to services only |
-| `backend-fastapi/app/services/` | Business logic, SPARQL and OpenTheso clients, SQLite store |
-| `backend-fastapi/app/models/` | Pydantic models |
-| `backend-fastapi/app/accounts/` | Accounts domain (target layout): users, roles, sessions, CSRF, administration, `cli.py` for the first admin |
+| `backend-fastapi/app/services/` | Business logic, SPARQL and OpenTheso clients, RDF exports |
+| `backend-fastapi/app/models/` | Pydantic models (only the SPARQL playground request is left) |
+| `backend-fastapi/app/accounts/` | Accounts domain (target layout): users, roles, sessions, CSRF, administration, `cli.py` for the first admin; `viewer.py` (the acting account and its router helpers) and `PublicIdentity` in `schemas.py`, shared by the other domains |
+| `backend-fastapi/app/contributions/` | Contributions domain (target layout): annotations and term proposals, `policy.py` (permissions, the single source of `allowed_actions`), repository with guarded writes, service, router |
+| `backend-fastapi/app/queries/` | Saved SPARQL queries domain (target layout): same layers, and the seeding of the native competency questions at startup |
 | `backend-fastapi/app/core/database.py` | Async SQLAlchemy engine, `Base`, `get_db`; `clock.py` and `migrations.py` beside it |
 | `backend-fastapi/migrations/` | Alembic revisions: the only owner of the database schema |
 | `backend-fastapi/data/files/` | TEI-XML corpus (do not modify) |
@@ -140,7 +142,8 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 - The default SPARQL endpoint (`http://zoomathia.i3s.unice.fr/sparql`) is the **shared production** Corese. Unbounded queries (`SELECT *` without `LIMIT`, global `DESCRIBE`) can crash it (out of memory).
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite) until RM-QC-01 is implemented. Keep them consistent if you must touch them.
 - Concept categories are computed twice (backend `classify_concept`, frontend `getConceptCategoryInfo`) with diverging rules, until RM-CON-01 and RM-CON-02 are implemented.
-- Statuses are stored as French labels ("En attente de validation", "Validé"…) and compared as strings in the frontend; migration to codes is planned.
+- Statuses are codes in the backend (`pending`, `validated`, `rejected`; migrations 0003 and 0004 converted the old French labels), but **the frontend still compares the French labels until P0-5**: with P0-4b it can no longer contribute (no session, no CSRF token, new response shapes), so P0-4b ships together with P0-5a.
+- Permissions live in `app/contributions/policy.py` and `app/queries/policy.py`; the guarded SQL statements of the repositories state the same rules. Change a rule in both, and the test that checks that they agree (`test_the_sql_guards_agree_with_the_policy`) tells you if you forgot one.
 - Annotation offsets in the free-text selection handlers are computed with `indexOf` (first occurrence): known bug, see RM-ANN-01.
 - Keep `vite-plus`, the `vite` alias (`npm:@voidzero-dev/vite-plus-core`) and the `vitest` pin aligned: each appears in `devDependencies` and in `overrides` of `frontend/package.json`, with the same version. Upgrade them together (procedure in the decision record); a dependency bot must never bump one alone.
 
@@ -149,5 +152,5 @@ Full rules in `docs/development-guidelines.md`. The essentials:
 1. Framing documents and development guidelines (this file and `docs/`): done on 2026-11-15.
 2. Next:
    - tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend, tests, documentation site and CI done on 2026-11-15; frontend tooling (Vite+, Vitest, Playwright with axe, TypeDoc, Node 24) done on 2026-11-16; the component catalogue tool is postponed to the start of P0-5a;
-   - P0 security work (`docs/security.md`, "Known gaps"): the escaping helpers (P0-1), the unified SPARQL validation and guardrails (P0-2a, P0-2b) and the integrity of contributions (P0-3: server-side status, RDF serialization, protected native competency questions, input validation) are done; the account foundation (P0-4a: application database under SQLAlchemy 2 and Alembic, local accounts with admin activation, sessions with CSRF, admin endpoints, first-admin command) is done on 2026-11-16; P0-4b (the contribution endpoints require an active account, author from the session, peer review) ships together with the screens of P0-5.
+   - P0 security work (`docs/security.md`, "Known gaps"): the escaping helpers (P0-1), the unified SPARQL validation and guardrails (P0-2a, P0-2b) and the integrity of contributions (P0-3: server-side status, RDF serialization, protected native competency questions, input validation) are done; the account foundation (P0-4a: application database under SQLAlchemy 2 and Alembic, local accounts with admin activation, sessions with CSRF, admin endpoints, first-admin command) is done on 2026-11-16; P0-4b (the contribution and saved-query endpoints require an active account, author from the session, peer review with traceability, statuses as codes, `GET /auth/config`) is done on 2026-11-16 in the backend and ships (push, deployment) together with the first slice of the screens, P0-5a.
 3. Then: competency questions in the database, publication of validated annotations to Corese, categories from TheZoo collections, versioned REST API, TEI ingestion and pre-annotation.

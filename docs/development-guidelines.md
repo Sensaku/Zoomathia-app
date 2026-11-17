@@ -57,10 +57,10 @@ backend-fastapi/app/
   core/          settings, logging, database session, error handlers, security primitives
   shared/        cross-domain code: SPARQL client and escaping helpers, domain errors, pagination
   corpus/        works, parts, paragraphs, witnesses, translations
-  annotations/   contributions, reviews, publication to Corese
-  thesaurus/     concepts, categories, term proposals, OpenTheso client
-  queries/       competency questions, personal queries, SPARQL playground
-  accounts/      users, roles, service accounts, authentication
+  contributions/ annotations and term proposals: create, edit, peer review, delete, Turtle export; publication to Corese (later)
+  thesaurus/     concepts, categories, OpenTheso client
+  queries/       competency questions, saved queries, SPARQL playground
+  accounts/      users, roles, service accounts, authentication; the acting viewer and the public identity that the other domains share
   ingestion/     TEI submissions, conversion, pre-annotation (later)
   main.py        application factory and router registration
 ```
@@ -68,7 +68,7 @@ backend-fastapi/app/
 Each domain package follows the same layout:
 
 ```text
-annotations/
+contributions/
   router.py      HTTP only: parse the request, call the service, return response schemas
   service.py     business rules; no FastAPI import; raises domain errors
   repository.py  database access (SQLAlchemy)
@@ -85,7 +85,7 @@ Tests mirror this layout in `backend-fastapi/tests/<domain>/`.
 - **Services do not import FastAPI** and never raise `HTTPException`. They raise domain errors (`NotFound`, `Forbidden`, `Conflict`, `UpstreamUnavailable`…), mapped to HTTP statuses by handlers in `core/`.
 - **Dependencies are injected** with `Depends` (database session, SPARQL client, current user), so tests can override them.
 - **Pydantic v2 schemas for every request and response.** Statuses, roles, polarities and modes are enumerations, never free strings.
-- **No blocking I/O in `async` handlers.** SQLAlchemy's async engine (`aiosqlite`, decided and approved 2026-11-16), consistent with the async SPARQL client. The staging store still uses synchronous `sqlite3` until its domain moves to the target structure.
+- **No blocking I/O in `async` handlers.** SQLAlchemy's async engine (`aiosqlite`, decided and approved 2026-11-16), consistent with the async SPARQL client. The contributions and the saved queries run on the same async session (`app/contributions/`, `app/queries/`); no synchronous `sqlite3` store remains.
 - **Errors** use one format for all clients. *Proposed:* Problem Details (RFC 9457, `application/problem+json`).
 - **List endpoints are paginated**, within the bounds of RM-ACC-02.
 - **Logging** through the `logging` module, without secrets or personal data; never `print`.
@@ -95,7 +95,8 @@ Tests mirror this layout in `backend-fastapi/tests/<domain>/`.
 
 - Typed SQLAlchemy 2.0 models (`Mapped[...]`).
 - One Alembic migration per schema change, committed with the code that needs it, never edited once pushed.
-- Statuses stored as codes (`pending`, `suggested`, `validated`, `rejected`, `retracted`) and translated in the UI.
+- Statuses stored as codes (`pending`, `suggested`, `validated`, `rejected`, `retracted`) and translated in the UI. `pending`, `validated` and `rejected` are in use (P0-4b); the other two arrive with their features.
+- A migration that rebuilds a table validates the data first and aborts with the offending ids rather than guessing, keeps the `AUTOINCREMENT` counter, and has a downgrade that loses no row, with a round-trip test.
 - Tests build a temporary database from the migrations.
 
 ### SPARQL: `.rq` files and a builder
@@ -194,7 +195,7 @@ Modules identified for the coming work. Check each one's version and maintenance
 | RDF exports, SPARQL validation | `rdflib` (approved 2026-11-15) | Correct Turtle serialization; SPARQL 1.1 parser to check the query form and reject `SERVICE` | Does not parse Corese-specific extensions (such queries are rejected) |
 | Password hashing | `pwdlib` (Argon2, approved 2026-11-15) | Argon2id, the option used in the FastAPI documentation | Hashing only, no account management; avoid `passlib`, unmaintained |
 | Local accounts (registration, sessions, roles) | Minimal in-house flow on `pwdlib` with server-side sessions (decided 2026-11-15; account foundation implemented in P0-4a, `app/accounts/`) | Full control of admin activation and peer review; hashing from a maintained library | Security-sensitive code to own: tests and Opus review required. `fastapi-users` was rejected: maintenance mode since 2026 |
-| Application database, ORM | `sqlalchemy[asyncio]` (SQLAlchemy 2, approved 2026-11-16) | Typed models (`Mapped[...]`), async sessions, the same code on SQLite now and PostgreSQL later | Pulls `greenlet`; more to learn than raw SQL; the staging store still uses `sqlite3` until it moves |
+| Application database, ORM | `sqlalchemy[asyncio]` (SQLAlchemy 2, approved 2026-11-16) | Typed models (`Mapped[...]`), async sessions, the same code on SQLite now and PostgreSQL later | Pulls `greenlet`; more to learn than raw SQL |
 | Schema migrations | `alembic` (approved 2026-11-16) | One reviewed revision per schema change, applied before the API starts; builds the temporary databases of the tests | Autogenerate does not see everything (SQLite batch mode, check constraints): read every generated revision |
 | Async SQLite driver | `aiosqlite` (approved 2026-11-16) | Lets SQLAlchemy's async engine use SQLite without blocking the event loop | A thread per connection under the hood; goes away with a PostgreSQL driver |
 | Anti-flood throttling | nginx `limit_req` | Already in the stack, no code to write | Per IP only; per-route business limits would need `slowapi` |

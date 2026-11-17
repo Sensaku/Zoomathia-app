@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -6,15 +5,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.accounts.router import router as accounts_router
+from app.contributions.router import annotations_router, proposals_router
 from app.core.config import settings
 from app.core.database import Database
 from app.core.migrations import ensure_database_is_current
+from app.queries.router import router as queries_router
+from app.queries.service import seed_builtin_queries
 from app.routers import (
     annotations,
     competency_questions,
     concepts,
     export,
-    saved_queries,
     search,
     sparql_playground,
     texts,
@@ -22,7 +23,6 @@ from app.routers import (
     works,
 )
 from app.services.sparql_client import sparql_client
-from app.services.staging_store import staging_store
 from app.shared.errors import register_error_handlers
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     app.state.database = database
     try:
         await ensure_database_is_current(database)
-        await asyncio.to_thread(staging_store.seed_builtin_queries)
+        await seed_builtin_queries(database)
         yield
     finally:
         await database.dispose()
@@ -86,8 +86,10 @@ app.include_router(search.router)
 app.include_router(export.router)
 app.include_router(thesaurus.router)
 app.include_router(annotations.router)
+app.include_router(annotations_router)
+app.include_router(proposals_router)
 app.include_router(sparql_playground.router)
-app.include_router(saved_queries.router)
+app.include_router(queries_router)
 app.include_router(accounts_router)
 
 

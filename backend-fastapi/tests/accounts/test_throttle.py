@@ -14,13 +14,7 @@ from app.accounts.throttle import LoginThrottler
 from app.core.database import Database
 from app.main import app
 from app.shared.domain_errors import TooManyAttempts
-from tests.accounts.conftest import (
-    PASSWORD,
-    FakeClock,
-    MakeAccount,
-    cheap_password_hash,
-    error_code,
-)
+from tests.support.accounts import PASSWORD, FakeClock, MakeAccount, cheap_password_hash, error_code
 
 WRONG = "this is not the password"
 

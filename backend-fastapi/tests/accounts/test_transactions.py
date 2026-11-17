@@ -24,8 +24,8 @@ from app.accounts.service import AccountService
 from app.core.config import settings
 from app.core.database import Database
 from app.main import app
-from tests.accounts.conftest import (
-    NEW_PASSWORD,
+from tests.accounts.conftest import NEW_PASSWORD
+from tests.support.accounts import (
     PASSWORD,
     FakeClock,
     MakeAccount,
@@ -80,8 +80,9 @@ def write_with_a_short_timeout() -> None:
     try:
         with connection:
             connection.execute(
-                "INSERT INTO saved_queries (title, query_text, category, author_name,"
-                " created_at, updated_at) VALUES ('t', 'q', 'c', 'a', 'now', 'now')"
+                "INSERT INTO saved_queries (title, query_text, category, author_label,"
+                " created_at, updated_at) VALUES ('t', 'q', 'c', 'a',"
+                " '2026-01-01 00:00:00.000000', '2026-01-01 00:00:00.000000')"
             )
     finally:
         connection.close()

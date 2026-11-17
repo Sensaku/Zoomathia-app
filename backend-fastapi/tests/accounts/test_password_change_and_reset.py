@@ -8,15 +8,8 @@ from sqlalchemy import select
 from app.accounts.models import PasswordResetToken, Role
 from app.accounts.tokens import hash_token
 from app.core.database import Database
-from tests.accounts.conftest import (
-    NEW_PASSWORD,
-    PASSWORD,
-    FakeClock,
-    MakeAccount,
-    csrf,
-    error_code,
-    sign_in,
-)
+from tests.accounts.conftest import NEW_PASSWORD
+from tests.support.accounts import PASSWORD, FakeClock, MakeAccount, csrf, error_code, sign_in
 
 LOGIN = {"email": "member@example.org", "password": PASSWORD}
 

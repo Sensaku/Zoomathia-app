@@ -9,15 +9,16 @@ safely (an IRI with a `>`, a malformed language tag). Such a row is left out of 
 logged by its identifier and counted in `RdfExport.skipped_rows`, so the loss is visible.
 """
 
+import json
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import TypeVar
 
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS, XSD
 
-from app.models.annotation_models import AnnotationResponse, ThesaurusProposalResponse
+from app.contributions.models import Annotation, TermProposal
 from app.shared.validation import (
     PROPOSAL_CONCEPT_BASE,
     validate_iri,
@@ -33,7 +34,7 @@ ZOO = Namespace("http://ns.inria.fr/zoomathia/zoo#")
 # IRIs minted by the server for the staged resources.
 ANNOTATION_BASE = "http://zoomathia.i3s.unice.fr/annotation/staging/"
 
-_Row = TypeVar("_Row", AnnotationResponse, ThesaurusProposalResponse)
+_Row = TypeVar("_Row", Annotation, TermProposal)
 
 
 @dataclass(frozen=True)
@@ -55,41 +56,52 @@ def _is_exportable(row: _Row, check: Callable[[_Row], None]) -> bool:
     return True
 
 
-def _check_annotation(annotation: AnnotationResponse) -> None:
+def _creator(row: Annotation | TermProposal) -> str:
+    """The name that `dcterms:creator` carries: the account's display name, or the historical one.
+
+    The email is never exported (RM-CPT-05).
+    """
+    if row.author is not None:
+        return row.author.display_name
+    return row.author_label or ""
+
+
+def _check_annotation(annotation: Annotation) -> None:
     validate_iri(annotation.concept_uri)
     validate_iri(annotation.paragraph_uri)
     if annotation.end_paragraph_uri:
         validate_iri(annotation.end_paragraph_uri)
     for text in (
         annotation.target_text,
-        annotation.annotator_name,
-        annotation.status,
+        _creator(annotation),
         annotation.scope_type,
         annotation.justification or "",
     ):
         validate_text(text)
 
 
-def _check_proposal(proposal: ThesaurusProposalResponse) -> None:
+def _check_proposal(proposal: TermProposal) -> None:
     validate_language_tag(proposal.language)
     if proposal.broader_concept_uri:
         validate_iri(proposal.broader_concept_uri)
     for text in (
         proposal.pref_label,
-        *proposal.alt_labels,
+        *json.loads(proposal.alt_labels),
         proposal.definition or "",
-        proposal.contributor_name,
+        _creator(proposal),
     ):
         validate_text(text)
 
 
-def _filter_exportable(rows: list[_Row], check: Callable[[_Row], None]) -> tuple[list[_Row], int]:
+def _filter_exportable(
+    rows: Sequence[_Row], check: Callable[[_Row], None]
+) -> tuple[list[_Row], int]:
     """The rows that pass `check`, and how many were refused."""
     kept = [row for row in rows if _is_exportable(row, check)]
     return kept, len(rows) - len(kept)
 
 
-def annotations_to_turtle(annotations: list[AnnotationResponse]) -> RdfExport:
+def annotations_to_turtle(annotations: Sequence[Annotation]) -> RdfExport:
     """Serialize annotations as Turtle, in the W3C Web Annotation model (`oa:`).
 
     Each annotation has the IRI `http://zoomathia.i3s.unice.fr/annotation/staging/<id>`,
@@ -98,8 +110,12 @@ def annotations_to_turtle(annotations: list[AnnotationResponse]) -> RdfExport:
     (`oa:exact`, `oa:start` and `oa:end` as `xsd:integer`). `dcterms:created` is an
     `xsd:dateTime`.
 
+    `dcterms:creator` is the display name of the author's account, or the historical author
+    of a row stored before accounts existed (RM-CTB-06); `zoo:proposalStatus` is the status
+    code (`pending`, `validated`, `rejected`).
+
     Args:
-        annotations: The stored annotations.
+        annotations: The stored annotations, with their author loaded.
 
     Returns:
         The Turtle document, and the number of annotations left out because one of their
@@ -123,12 +139,14 @@ def annotations_to_turtle(annotations: list[AnnotationResponse]) -> RdfExport:
         graph.add((annotation, RDF.type, OA.Annotation))
         graph.add((annotation, OA.hasBody, URIRef(a.concept_uri)))
         graph.add((annotation, OA.hasTarget, target))
-        graph.add((annotation, DCTERMS.creator, Literal(a.annotator_name)))
-        graph.add((annotation, ZOO.proposalStatus, Literal(a.status)))
+        graph.add((annotation, DCTERMS.creator, Literal(_creator(a))))
+        graph.add((annotation, ZOO.proposalStatus, Literal(a.status.value)))
         graph.add((annotation, ZOO.scopeType, Literal(a.scope_type)))
         if a.justification:
             graph.add((annotation, DCTERMS.description, Literal(a.justification)))
-        graph.add((annotation, DCTERMS.created, Literal(a.created_at, datatype=XSD.dateTime)))
+        graph.add(
+            (annotation, DCTERMS.created, Literal(a.created_at.isoformat(), datatype=XSD.dateTime))
+        )
 
         graph.add((target, RDF.type, OA.SpecificResource))
         graph.add((target, OA.hasSource, URIRef(a.paragraph_uri)))
@@ -144,7 +162,7 @@ def annotations_to_turtle(annotations: list[AnnotationResponse]) -> RdfExport:
     return RdfExport(turtle=graph.serialize(format="turtle"), skipped_rows=skipped)
 
 
-def proposals_to_turtle(proposals: list[ThesaurusProposalResponse]) -> RdfExport:
+def proposals_to_turtle(proposals: Sequence[TermProposal]) -> RdfExport:
     """Serialize thesaurus proposals as Turtle, in SKOS.
 
     Each proposal is a `skos:Concept` with the IRI
@@ -153,7 +171,7 @@ def proposals_to_turtle(proposals: list[ThesaurusProposalResponse]) -> RdfExport
     `dcterms:creator` and `dcterms:created` (`xsd:dateTime`).
 
     Args:
-        proposals: The stored proposals.
+        proposals: The stored proposals, with their author loaded.
 
     Returns:
         The Turtle document, and the number of proposals left out because their language
@@ -168,13 +186,15 @@ def proposals_to_turtle(proposals: list[ThesaurusProposalResponse]) -> RdfExport
         concept = URIRef(f"{PROPOSAL_CONCEPT_BASE}{p.id}")
         graph.add((concept, RDF.type, SKOS.Concept))
         graph.add((concept, SKOS.prefLabel, Literal(p.pref_label, lang=p.language)))
-        for alt in p.alt_labels:
+        for alt in json.loads(p.alt_labels):
             graph.add((concept, SKOS.altLabel, Literal(alt, lang=p.language)))
         if p.broader_concept_uri:
             graph.add((concept, SKOS.broader, URIRef(p.broader_concept_uri)))
         if p.definition:
             graph.add((concept, SKOS.definition, Literal(p.definition, lang=p.language)))
-        graph.add((concept, DCTERMS.creator, Literal(p.contributor_name)))
-        graph.add((concept, DCTERMS.created, Literal(p.created_at, datatype=XSD.dateTime)))
+        graph.add((concept, DCTERMS.creator, Literal(_creator(p))))
+        graph.add(
+            (concept, DCTERMS.created, Literal(p.created_at.isoformat(), datatype=XSD.dateTime))
+        )
 
     return RdfExport(turtle=graph.serialize(format="turtle"), skipped_rows=skipped)

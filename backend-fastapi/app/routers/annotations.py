@@ -1,74 +1,46 @@
 """
-Routeur FastAPI pour les annotations manuelles au standard W3C Web Annotation (oa:).
-Permet aux chercheurs d'annoter des passages textuels, de modérer les propositions et d'exporter les triplets RDF.
+Reader endpoint that groups the annotations of a section: the reference ones from Corese and
+the staged ones from the contributions database (RM-ACC-03).
+
+The contribution routes themselves (create, list, edit, review, delete, export) live in
+`app.contributions.router`. This route stays here because it mixes SPARQL and staged data.
 """
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Query
 
-from app.models.annotation_models import (
-    AnnotationResponse,
-    CreateAnnotationRequest,
-    UpdateAnnotationStatusRequest,
-)
+from app.accounts.dependencies import optional_auth
+from app.accounts.service import AuthContext
+from app.accounts.viewer import viewer_of
+from app.contributions.router import get_annotation_service
+from app.contributions.schemas import annotation_out
+from app.contributions.service import AnnotationService
 from app.routers.concepts import classify_concept
 from app.services.sparql_client import sparql_client
-from app.services.staging_store import staging_store
-from app.shared.sparql import MAX_IRI_LENGTH, sparql_iri, sparql_lang
-from app.shared.validation import AnnotationStatus
+from app.shared.sparql import sparql_iri, sparql_lang
 
 router = APIRouter(prefix="/annotations", tags=["annotations"])
-
-
-@router.post("", response_model=AnnotationResponse)
-async def create_annotation(annotation: CreateAnnotationRequest):
-    """Store a new annotation (word, sequence, sentence, paragraph or several paragraphs).
-
-    RM-CTB-04: the server sets the status ("En attente de validation"); a `status` in the
-    body is ignored.
-    """
-    # Si intra-paragraphe, l'offset de fin doit être strictement supérieur au début
-    if not annotation.end_paragraph_uri or annotation.end_paragraph_uri == annotation.paragraph_uri:
-        if annotation.end_offset <= annotation.start_offset:
-            raise HTTPException(
-                status_code=400,
-                detail="L'offset de fin doit être strictement supérieur à l'offset de début.",
-            )
-    return staging_store.add_annotation(annotation)
-
-
-@router.get("", response_model=list[AnnotationResponse])
-async def list_annotations(
-    paragraph_uri: str | None = Query(
-        None, max_length=MAX_IRI_LENGTH, description="IRI of the paragraph (exact match)"
-    ),
-    status: AnnotationStatus | None = Query(
-        None, description="Filter by status ('En attente de validation', 'Validé', 'Rejeté')"
-    ),
-):
-    """List the staged annotations, filterable by paragraph and by status."""
-    return staging_store.get_annotations(paragraph_uri=paragraph_uri, status=status)
-
-
-@router.patch("/{annotation_id}/status", response_model=AnnotationResponse)
-async def update_annotation_status(annotation_id: int, req: UpdateAnnotationStatusRequest):
-    """Update the validation status of an annotation (an unknown status gives 422)."""
-    updated = staging_store.update_annotation_status(annotation_id, req.status)
-    if not updated:
-        raise HTTPException(status_code=404, detail="Annotation introuvable")
-    return updated
 
 
 @router.get("/section")
 async def get_section_annotations(
     section_uri: str = Query(..., description="URI de la section / chapitre"),
     lang: str = Query("en", description="Code langue pour les labels"),
+    include_pending: bool = Query(
+        False, description="Also return the annotations that no peer has reviewed yet"
+    ),
+    context: AuthContext | None = Depends(optional_auth),
+    service: AnnotationService = Depends(get_annotation_service),
 ) -> dict[str, Any]:
     """
     Récupère en un appel groupé toutes les annotations de référence Corese d'une section
-    ainsi que les annotations en staging (propositions en cours).
+    ainsi que les annotations en staging : les validées, et les en attente si `include_pending`
+    (RM-ACC-03). Une annotation rejetée n'apparaît jamais dans le lecteur.
     Élimine la tempête N+1 de requêtes sur le Triplestore.
+
+    Raises:
+        Unprocessable: `too_many_results` si la section dépasse 2 000 annotations staging.
     """
     section_iri = sparql_iri(section_uri)
     lang_tag = sparql_lang(lang)
@@ -176,37 +148,12 @@ async def get_section_annotations(
             if p_val:
                 section_paras_set.add(p_val)
 
-    staged = staging_store.get_annotations(section_paragraphs=list(section_paras_set))
+    staged = await service.section(sorted(section_paras_set), include_pending)
+    viewer = viewer_of(context)
 
     return {
         "section_uri": section_uri,
         "paragraph_count": len(section_paras_set),
         "reference_annotations": reference_annotations,
-        "staged_annotations": [s.model_dump() for s in staged],
+        "staged_annotations": [annotation_out(s, viewer).model_dump(mode="json") for s in staged],
     }
-
-
-@router.delete("/{annotation_id}")
-async def delete_annotation(annotation_id: int):
-    """Supprime une annotation du staging."""
-    success = staging_store.delete_annotation(annotation_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Annotation introuvable")
-    return {"message": "Annotation supprimée avec succès", "id": annotation_id}
-
-
-@router.get("/export-ttl")
-async def export_annotations_turtle():
-    """Download every staged annotation as W3C Web Annotation Turtle (RM-PUB-01).
-
-    `X-Skipped-Rows` counts the stored rows left out because they hold an unsafe value.
-    """
-    export = staging_store.export_annotations_to_turtle()
-    return Response(
-        content=export.turtle,
-        media_type="text/turtle",
-        headers={
-            "Content-Disposition": "attachment; filename=zoomathia_staging_annotations.ttl",
-            "X-Skipped-Rows": str(export.skipped_rows),
-        },
-    )

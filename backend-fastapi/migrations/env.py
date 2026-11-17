@@ -11,6 +11,8 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 import app.accounts.models  # noqa: F401  (registers the account tables in Base.metadata)
+import app.contributions.models  # noqa: F401  (registers the contribution tables too)
+import app.queries.models  # noqa: F401  (and the saved queries table)
 from app.core.config import settings
 from app.core.database import Base
 
@@ -26,8 +28,8 @@ def include_object(
 ) -> bool:
     """Leave out the tables that have no model.
 
-    The staging tables (annotations, proposals, saved queries) are created by revision 0001
-    and are still written with plain SQL: autogenerate must never propose to drop them.
+    Every table of the application has a model since revision 0004; the guard stays so that
+    autogenerate never proposes to drop a table that it does not know.
     """
     return not (type_ == "table" and reflected and compare_to is None)
 
