@@ -33,7 +33,7 @@ Technical documents (English): `docs/architecture.md` (components, sources of tr
 | `backend-fastapi/data/files/` | TEI-XML corpus (do not modify) |
 | `backend-fastapi/data/queries/` | Competency question SPARQL files, to be migrated to the database (RM-QC-01) |
 | `frontend/src/api/` | The only code that calls the backend: `client.ts` (public functions), `http.ts` (request core: session cookie, CSRF, errors) |
-| `frontend/src/features/`, `frontend/src/shared/` | Target layout (since P0-5a): `features/accounts/` (session, sign-in, account), `features/contributions/` (statuses, reviews, edits), `shared/ui/` (design-system components, shown in `frontend/catalogue.html`) |
+| `frontend/src/features/`, `frontend/src/shared/` | Target layout (since P0-5a): `features/accounts/` (session, sign-in, account), `features/contributions/` (statuses, creation and edit dialogs, reviews), `features/reading/` (reference annotation card, load errors, text size), `shared/ui/` (design-system components, shown in `frontend/catalogue.html`) |
 | `frontend/src/pages/`, `frontend/src/components/` | React UI, legacy layout |
 | `frontend/e2e/`, `backend-fastapi/tests/e2e/` | Playwright journeys and their local stack: the backend on a temporary database, a fake Corese, fixtures in `frontend/e2e/fixtures/` |
 | `frontend/src/i18n/` | Typed FR/EN translations |

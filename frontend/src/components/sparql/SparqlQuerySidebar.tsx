@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useId } from 'react'
 import { SavedSparqlQuery } from '../../types'
 import { useI18n } from '../../i18n'
 import { formatAuthor } from '../../features/contributions'
 import { fill } from '../../features/contributions/lib/fill'
+import { getApiErrorMessage } from '../../api/errors'
+import { Alert, Button } from '../../shared/ui'
 import { FolderOpen, Search, History, Trash2, Plus, ChevronLeft, ChevronRight, Download, X } from 'lucide-react'
 
 export interface HistoryItem {
@@ -22,6 +24,12 @@ interface SparqlQuerySidebarProps {
   onDeleteQuery: (query: SavedSparqlQuery) => void
   onApplyTemplate: (templateCode: string) => void
   isQueriesLoading?: boolean
+  /** Failure of the saved-query list: shown instead of the lists, never read as "no query" (rule 9). */
+  loadError?: unknown
+  /** Reloads the saved-query list. */
+  onRetryLoad?: () => void
+  /** True while the retry runs: the retry button shows it and is disabled. */
+  isRetryingLoad?: boolean
   historyQueries: HistoryItem[]
   onSelectHistory: (item: HistoryItem) => void
   onClearHistory: () => void
@@ -29,6 +37,23 @@ interface SparqlQuerySidebarProps {
   onToggleCollapse: () => void
 }
 
+/** Keeps the saved queries whose title, description, category or code contains `searchTerm`. */
+function filterQueries(list: SavedSparqlQuery[], searchTerm: string): SavedSparqlQuery[] {
+  if (!searchTerm.trim()) return list
+  const lower = searchTerm.toLowerCase()
+  return list.filter(
+    (q) =>
+      q.title.toLowerCase().includes(lower) ||
+      (q.description && q.description.toLowerCase().includes(lower)) ||
+      q.category.toLowerCase().includes(lower) ||
+      q.query_text.toLowerCase().includes(lower),
+  )
+}
+
+/**
+ * Library of the SPARQL playground: official questions, the user's queries (both from the server,
+ * with a loading and a failure state), the local history, quick templates and the JSON export.
+ */
 export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
   savedQueries,
   selectedQueryId,
@@ -37,6 +62,9 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
   onDeleteQuery,
   onApplyTemplate,
   isQueriesLoading = false,
+  loadError,
+  onRetryLoad,
+  isRetryingLoad = false,
   historyQueries,
   onSelectHistory,
   onClearHistory,
@@ -46,6 +74,8 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
   const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<'cq' | 'custom' | 'history'>('cq')
   const [searchTerm, setSearchTerm] = useState('')
+  const searchId = useId()
+  const hasLoadError = loadError !== undefined && loadError !== null
 
   const templates = useMemo(
     () => [
@@ -77,21 +107,8 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
     return savedQueries.filter((q) => !q.is_builtin)
   }, [savedQueries])
 
-  // Filtrage selon le terme de recherche
-  const filterList = (list: SavedSparqlQuery[]) => {
-    if (!searchTerm.trim()) return list
-    const lower = searchTerm.toLowerCase()
-    return list.filter(
-      (q) =>
-        q.title.toLowerCase().includes(lower) ||
-        (q.description && q.description.toLowerCase().includes(lower)) ||
-        q.category.toLowerCase().includes(lower) ||
-        q.query_text.toLowerCase().includes(lower),
-    )
-  }
-
-  const filteredOfficials = useMemo(() => filterList(officialQueries), [officialQueries, searchTerm])
-  const filteredCustoms = useMemo(() => filterList(customQueries), [customQueries, searchTerm])
+  const filteredOfficials = useMemo(() => filterQueries(officialQueries, searchTerm), [officialQueries, searchTerm])
+  const filteredCustoms = useMemo(() => filterQueries(customQueries, searchTerm), [customQueries, searchTerm])
 
   const filteredHistory = useMemo(() => {
     if (!searchTerm.trim()) return historyQueries
@@ -106,17 +123,18 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
 
   if (isCollapsed) {
     return (
-      <div className="hidden w-14 shrink-0 flex-col items-center rounded-none border border-[#e6dfd3] bg-white px-2 py-4 shadow-sm transition-all lg:flex">
+      <div className="hidden w-14 shrink-0 flex-col items-center rounded-none border border-rule bg-white px-2 py-4 shadow-sm transition-all lg:flex">
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="rounded-none p-2 text-[#736a5f] transition-colors hover:bg-[#faf6f0] hover:text-[#9A6530]"
+          className="rounded-none p-2 text-ink-subtle transition-colors hover:bg-paper-raised hover:text-accent-strong"
           title={t.sparql.showSidebar}
+          aria-label={t.sparql.showSidebar}
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight aria-hidden="true" className="h-5 w-5" />
         </button>
-        <div className="writing-vertical mt-6 flex flex-col items-center space-y-4 font-serif text-xs text-[#8c8275] select-none">
-          <FolderOpen className="h-4 w-4 text-[#9A6530]" />
+        <div className="writing-vertical mt-6 flex flex-col items-center space-y-4 font-serif text-xs text-ink-subtle select-none">
+          <FolderOpen className="h-4 w-4 text-accent-strong" />
           <span className="tracking-widest uppercase [writing-mode:vertical-rl]">{t.sparql.sidebarTitle}</span>
         </div>
       </div>
@@ -124,101 +142,115 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
   }
 
   return (
-    <aside className="flex h-[750px] w-full shrink-0 flex-col overflow-hidden rounded-none border border-[#e6dfd3] bg-white shadow-sm transition-all lg:w-80">
+    <aside className="flex h-[750px] w-full shrink-0 flex-col overflow-hidden rounded-none border border-rule bg-white shadow-sm transition-all lg:w-80">
       {/* En-tête du volet */}
-      <div className="flex items-center justify-between border-b border-[#e6dfd3] bg-[#faf8f5] p-3.5">
+      <div className="flex items-center justify-between border-b border-rule bg-paper-raised p-3.5">
         <div className="flex items-center space-x-2">
-          <FolderOpen className="h-4 w-4 text-[#9A6530]" />
-          <h2 className="font-serif text-sm font-bold text-[#2c2724]">{t.sparql.sidebarTitle}</h2>
+          <FolderOpen className="h-4 w-4 text-accent-strong" />
+          <h2 className="font-serif text-sm font-bold text-ink">{t.sparql.sidebarTitle}</h2>
         </div>
         <div className="flex items-center space-x-1">
           <button
             type="button"
             onClick={onNewQuery}
-            className="rounded-none p-1 text-[#9A6530] transition-colors hover:bg-[#f0eae0]"
+            className="rounded-none p-1 text-accent-strong transition-colors hover:bg-paper-sunken"
             title={t.sparql.newQuery}
+            aria-label={t.sparql.newQuery}
           >
-            <Plus className="h-4 w-4" />
+            <Plus aria-hidden="true" className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="hidden rounded-none p-1 text-[#736a5f] transition-colors hover:bg-[#f0eae0] hover:text-[#2c2724] lg:inline-flex"
+            className="hidden rounded-none p-1 text-ink-subtle transition-colors hover:bg-paper-sunken hover:text-ink lg:inline-flex"
             title={t.sparql.hideSidebar}
+            aria-label={t.sparql.hideSidebar}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
       </div>
 
       {/* Barre de recherche */}
-      <div className="border-b border-[#f0eae0] bg-white p-2.5">
+      <div className="border-b border-rule bg-white p-2.5">
         <div className="relative">
-          <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-[#9e9486]" />
+          <Search aria-hidden="true" className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-ink-subtle" />
+          <label htmlFor={searchId} className="sr-only">
+            {t.sparql.searchLabel}
+          </label>
           <input
+            id={searchId}
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t.sparql.searchPlaceholder}
-            className="w-full rounded-none border border-[#ded5c6] bg-[#faf9f6] py-1.5 pr-7 pl-8 text-xs text-[#2c2724] placeholder-[#9e9486] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
+            className="w-full rounded-none border border-rule-strong bg-paper-raised py-1.5 pr-7 pl-8 text-xs text-ink placeholder-ink-subtle focus-visible:outline-2 focus-visible:outline-accent"
           />
           {searchTerm && (
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute top-2 right-2 text-[#9e9486] hover:text-[#2c2724]"
+              className="absolute top-2 right-2 text-ink-subtle hover:text-ink"
+              aria-label={t.sparql.clearSearch}
             >
-              <X className="h-3.5 w-3.5" />
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
       </div>
 
       {/* Onglets de navigation de la bibliothèque */}
-      <div className="flex border-b border-[#f0eae0] bg-[#faf8f5] text-xs font-medium">
+      <div className="flex border-b border-rule bg-paper-raised text-xs font-medium">
         <button
           type="button"
           onClick={() => setActiveTab('cq')}
+          aria-pressed={activeTab === 'cq'}
           className={`flex flex-1 items-center justify-center space-x-1 border-b-2 py-2 text-center transition-all ${
             activeTab === 'cq'
-              ? 'border-[#9A6530] bg-white font-semibold text-[#9A6530]'
-              : 'border-transparent text-[#736a5f] hover:text-[#2c2724]'
+              ? 'border-accent bg-white font-semibold text-accent-strong'
+              : 'border-transparent text-ink-subtle hover:text-ink'
           }`}
         >
           <span>{t.sparql.tabCq}</span>
-          <span className="py-0.2 rounded-full bg-[#f0eae0] px-1.5 font-mono text-[10px] text-[#665e52]">
-            {officialQueries.length}
-          </span>
+          {!hasLoadError && (
+            <span className="py-0.2 rounded-full bg-paper-sunken px-1.5 font-mono text-[10px] text-ink-muted">
+              {officialQueries.length}
+            </span>
+          )}
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('custom')}
+          aria-pressed={activeTab === 'custom'}
           className={`flex flex-1 items-center justify-center space-x-1 border-b-2 py-2 text-center transition-all ${
             activeTab === 'custom'
-              ? 'border-[#9A6530] bg-white font-semibold text-[#9A6530]'
-              : 'border-transparent text-[#736a5f] hover:text-[#2c2724]'
+              ? 'border-accent bg-white font-semibold text-accent-strong'
+              : 'border-transparent text-ink-subtle hover:text-ink'
           }`}
         >
           <span>{t.sparql.tabCustom}</span>
-          <span className="py-0.2 rounded-full bg-[#f0eae0] px-1.5 font-mono text-[10px] text-[#665e52]">
-            {customQueries.length}
-          </span>
+          {!hasLoadError && (
+            <span className="py-0.2 rounded-full bg-paper-sunken px-1.5 font-mono text-[10px] text-ink-muted">
+              {customQueries.length}
+            </span>
+          )}
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('history')}
+          aria-pressed={activeTab === 'history'}
           className={`flex flex-1 items-center justify-center space-x-1 border-b-2 py-2 text-center transition-all ${
             activeTab === 'history'
-              ? 'border-[#9A6530] bg-white font-semibold text-[#9A6530]'
-              : 'border-transparent text-[#736a5f] hover:text-[#2c2724]'
+              ? 'border-accent bg-white font-semibold text-accent-strong'
+              : 'border-transparent text-ink-subtle hover:text-ink'
           }`}
         >
           <History className="h-3 w-3" />
           <span>{t.sparql.tabHistory}</span>
           {historyQueries.length > 0 && (
-            <span className="py-0.2 rounded-full bg-[#f0eae0] px-1.5 font-mono text-[10px] text-[#665e52]">
+            <span className="py-0.2 rounded-full bg-paper-sunken px-1.5 font-mono text-[10px] text-ink-muted">
               {historyQueries.length}
             </span>
           )}
@@ -227,13 +259,25 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
 
       {/* Liste défilante de requêtes */}
       <div className="flex-1 scrollbar-thin space-y-1.5 overflow-y-auto p-2">
-        {isQueriesLoading && <div className="py-8 text-center text-xs text-[#8c8275]">{t.sparql.loadingLibrary}</div>}
+        {isQueriesLoading && <div className="py-8 text-center text-xs text-ink-subtle">{t.sparql.loadingLibrary}</div>}
+
+        {/* A failed load is never shown as an empty list (rule 9); the history is local and unaffected. */}
+        {hasLoadError && !isQueriesLoading && activeTab !== 'history' && (
+          <div className="space-y-2 p-1">
+            <Alert tone="error">{getApiErrorMessage(loadError, t)}</Alert>
+            {onRetryLoad && (
+              <Button variant="secondary" size="sm" onClick={onRetryLoad} isLoading={isRetryingLoad}>
+                {t.common.retry}
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* 1. Onglet CQs */}
-        {activeTab === 'cq' && !isQueriesLoading && (
+        {activeTab === 'cq' && !isQueriesLoading && !hasLoadError && (
           <>
             {filteredOfficials.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[#8c8275]">{t.sparql.noQueriesFound}</div>
+              <div className="py-8 text-center text-xs text-ink-subtle">{t.sparql.noQueriesFound}</div>
             ) : (
               filteredOfficials.map((q) => {
                 const isSelected = selectedQueryId === q.id
@@ -251,7 +295,7 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
                   >
                     <span className="mb-1 flex items-center justify-between gap-1">
                       <span className="rounded-none bg-paper-sunken px-1.5 py-0.5 font-mono text-[10px] font-bold text-accent-strong uppercase">
-                        QC {q.id}
+                        {fill(t.sparql.qcBadge, { id: String(q.id) })}
                       </span>
                       <span className="max-w-[120px] truncate text-[10px] text-ink-subtle">{q.category}</span>
                     </span>
@@ -264,15 +308,15 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
         )}
 
         {/* 2. Onglet Requêtes personnalisées */}
-        {activeTab === 'custom' && !isQueriesLoading && (
+        {activeTab === 'custom' && !isQueriesLoading && !hasLoadError && (
           <>
             {filteredCustoms.length === 0 ? (
-              <div className="space-y-2 py-8 text-center text-xs text-[#8c8275]">
+              <div className="space-y-2 py-8 text-center text-xs text-ink-subtle">
                 <p>{t.sparql.noQueriesFound}</p>
                 <button
                   type="button"
                   onClick={onNewQuery}
-                  className="inline-flex items-center space-x-1 text-xs text-[#9A6530] hover:underline"
+                  className="inline-flex items-center space-x-1 text-xs text-accent-strong hover:underline"
                 >
                   <Plus className="h-3 w-3" />
                   <span>{t.sparql.newQuery}</span>
@@ -336,7 +380,7 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
                 <button
                   type="button"
                   onClick={onClearHistory}
-                  className="cursor-pointer text-[10px] text-[#8c8275] underline hover:text-red-700"
+                  className="cursor-pointer text-[10px] text-ink-subtle underline hover:text-red-700"
                 >
                   {t.sparql.clearHistory}
                 </button>
@@ -344,7 +388,7 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
             )}
 
             {filteredHistory.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[#8c8275]">{t.sparql.emptyHistory}</div>
+              <div className="py-8 text-center text-xs text-ink-subtle">{t.sparql.emptyHistory}</div>
             ) : (
               filteredHistory.map((item) => {
                 const dateStr = new Date(item.timestamp).toLocaleTimeString([], {
@@ -357,22 +401,25 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
                     .split('\n')
                     .find((l) => !l.startsWith('#') && !l.startsWith('PREFIX')) || item.query.trim().split('\n')[0]
                 return (
-                  <div
+                  <button
                     key={item.id}
+                    type="button"
                     onClick={() => onSelectHistory(item)}
-                    className="cursor-pointer rounded-none border border-[#f0eae0] bg-white p-2.5 text-left transition-all hover:border-[#ded5c6] hover:bg-[#faf8f5]"
+                    className="block w-full cursor-pointer rounded-none border border-rule bg-white p-2.5 text-left transition-all hover:border-rule-strong hover:bg-paper-raised focus-visible:outline-2 focus-visible:outline-accent"
                   >
-                    <div className="mb-1 flex items-center justify-between gap-1 text-[11px]">
-                      <span className="max-w-[170px] truncate font-semibold text-[#2c2724]" title={item.title}>
+                    <span className="mb-1 flex items-center justify-between gap-1 text-[11px]">
+                      <span className="max-w-[170px] truncate font-semibold text-ink" title={item.title}>
                         {item.title || t.sparql.untitledQuery}
                       </span>
-                      <span className="shrink-0 font-mono text-[10px] text-[#a69d90]">{dateStr}</span>
-                    </div>
-                    {item.description && <p className="mb-1 truncate text-[10px] text-[#736a5f]">{item.description}</p>}
-                    <code className="line-clamp-2 block rounded-none border border-[#f0eae0] bg-[#faf9f6] p-1 font-mono text-[11px] text-[#595248]">
+                      <span className="shrink-0 font-mono text-[10px] text-ink-subtle">{dateStr}</span>
+                    </span>
+                    {item.description && (
+                      <span className="mb-1 block truncate text-[10px] text-ink-subtle">{item.description}</span>
+                    )}
+                    <code className="line-clamp-2 block rounded-none border border-rule bg-paper-raised p-1 font-mono text-[11px] text-ink-muted">
                       {firstLine}
                     </code>
-                  </div>
+                  </button>
                 )
               })
             )}
@@ -381,9 +428,9 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
       </div>
 
       {/* Pied de panneau : Modèles rapides et export JSON */}
-      <div className="space-y-2 border-t border-[#e6dfd3] bg-[#faf8f5] p-2.5">
+      <div className="space-y-2 border-t border-rule bg-paper-raised p-2.5">
         <div>
-          <span className="mb-1 block text-[11px] font-semibold tracking-wider text-[#8c8275] uppercase">
+          <span className="mb-1 block text-[11px] font-semibold tracking-wider text-ink-subtle uppercase">
             {t.sparql.templatesTitle}
           </span>
           <div className="grid grid-cols-1 gap-1">
@@ -392,11 +439,11 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
                 key={tmpl.label}
                 type="button"
                 onClick={() => onApplyTemplate(tmpl.code)}
-                className="flex w-full cursor-pointer items-center justify-between rounded-none border border-[#ded5c6] bg-white px-2 py-1 text-left text-[11px] text-[#595248] transition-colors hover:bg-[#f4ede2]"
+                className="flex w-full cursor-pointer items-center justify-between rounded-none border border-rule-strong bg-white px-2 py-1 text-left text-[11px] text-ink-muted transition-colors hover:bg-paper-sunken"
                 title={tmpl.desc}
               >
                 <span className="truncate font-medium">{tmpl.label}</span>
-                <span className="shrink-0 font-mono text-[10px] text-[#9A6530]">{t.sparql.insertTemplate}</span>
+                <span className="shrink-0 font-mono text-[10px] text-accent-strong">{t.sparql.insertTemplate}</span>
               </button>
             ))}
           </div>
@@ -406,7 +453,7 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
         <a
           href="/api/queries/export/json"
           download
-          className="inline-flex w-full items-center justify-center space-x-1.5 rounded-none border border-[#ded5c6] bg-white py-1.5 text-xs text-[#736a5f] transition-colors hover:bg-[#f4ede2]"
+          className="inline-flex w-full items-center justify-center space-x-1.5 rounded-none border border-rule-strong bg-white py-1.5 text-xs text-ink-subtle transition-colors hover:bg-paper-sunken"
           title={t.common.exportJson}
         >
           <Download className="h-3.5 w-3.5" />

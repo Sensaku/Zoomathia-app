@@ -26,6 +26,7 @@ export interface TranslationDictionary {
     download: string
     exportJson: string
     exportCsv: string
+    retry: string
   }
   nav: {
     brandSubtitle: string
@@ -129,6 +130,15 @@ export interface TranslationDictionary {
     occurrencesCount: string
     paragraphLinks: string
     goToParagraph: string
+    authorSelectLabel: string
+    workSelectLabel: string
+    loadingWork: string
+    resolvingReference: string
+    bookFallback: string
+    chapterFallback: string
+    sectionFallback: string
+    otherParagraphsProposals: string
+    paragraphsUnavailable: string
   }
   corpus: {
     title: string
@@ -272,6 +282,14 @@ export interface TranslationDictionary {
     tabCustom: string
     tabHistory: string
     searchPlaceholder: string
+    searchLabel: string
+    clearSearch: string
+    filterResultsLabel: string
+    previousPage: string
+    nextPage: string
+    coreseEndpoint: string
+    /** Uses `{id}`. */
+    qcBadge: string
     noQueriesFound: string
     clearHistory: string
     emptyHistory: string
@@ -454,31 +472,34 @@ export interface TranslationDictionary {
     pinnedAnnotationBanner: string
     spansAcrossParagraphs: string
     pickParagraphForRejected: string
+    exportRdf: string
+    noSectionFound: string
+    selectToAnnotate: string
+    annotationCount: string
+    clearFilter: string
+    scopeGroupLabel: string
+    statusGroupLabel: string
   }
   modal: {
     signInMessage: string
     title: string
     selectedExtract: string
+    paragraphCount: string
+    oneParagraph: string
+    characters: string
     conceptLabel: string
-    conceptPlaceholder: string
+    conceptSource: string
+    newConceptSource: string
     justificationLabel: string
     justificationPlaceholder: string
-    scopeTypeLabel: string
     cancelBtn: string
     submitBtn: string
-    saving: string
+    errorSummaryTitle: string
     selectConceptError: string
     defineOnTheFly: string
     defineOnTheFlyHide: string
     newConceptTitle: string
-    newPrefLabel: string
-    newLanguage: string
-    newAltLabels: string
-    newBroader: string
-    newDefinition: string
     createConceptBtn: string
-    creatingConcept: string
-    conceptCreatedSuccess: string
   }
   auth: {
     errorsTitle: string

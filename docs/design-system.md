@@ -9,7 +9,7 @@
 2. **Keep and formalize the current identity**, "ink and parchment": warm neutrals, a bronze accent, a classical display font, square corners. It continues the visual heritage of the previous application (the Nile mosaic of Palestrina, the bronze accent).
 3. **Accessible by design** (RGAA): low vision, browser zoom, keyboard use, colour-vision deficiencies.
 4. **A calm interface.** Annotations and tools appear when needed and never compete with the text.
-5. **One source for every visual value:** design tokens. No hex literal in components (about 1,600 today, migrated progressively).
+5. **One source for every visual value:** design tokens. No hex literal in components (about 870 today, migrated progressively).
 
 ## Design tokens
 
@@ -37,7 +37,7 @@ The current palette, formalized. Contrast ratios are measured against the page b
 | `warning`, `warning-soft` | `#7c5a12`, `#f8f0dc` (*Proposed*) | Status "non relu", warnings | 6.1:1 |
 
 - Body text reaches at least **4.5:1**; large text, icons, control borders and focus indicators at least **3:1**.
-- **Known gaps to fix:** `#8c8275` is used about 100 times as a text colour (3.65:1, below AA). The legacy input borders (`#ded5c6`, `#cfc5b4`, 1.4:1 and 1.65:1) are below the 3:1 required for control boundaries; new controls use `rule-strong`.
+- **Known gaps to fix:** `#8c8275` is still used about 50 times as a text colour (3.65:1, below AA), outside the reader, the annotation studio and the SPARQL playground. The legacy input borders (`#ded5c6`, `#cfc5b4`, 1.4:1 and 1.65:1) are below the 3:1 required for control boundaries; new controls use `rule-strong`.
 - White text on `accent` reaches 4.9:1: acceptable for buttons.
 - **Navbar** (dark bar, *Proposed* tokens, contrast on `chrome`): `chrome` `#1f1d1a`, `chrome-raised` `#2c2723`, `chrome-line` `#453e37` (decorative), `on-chrome` `#f4efe6` (14.7:1), `on-chrome-muted` `#a89e90` (6.4:1), `focus-on-chrome` `#e0b77d` (9.0:1, focus ring).
 
@@ -118,7 +118,7 @@ A print stylesheet prints the passage with its citation (author, work, reference
 - With no separate mockups, the **component catalogue is the visual reference**: every shared component (`src/shared/ui/`) is shown with its variants and states (default, hover, focus, disabled, loading, error).
 - A new screen is assembled from catalogue components first. A new shared component enters the catalogue in the same change.
 - **Shared components** (`src/shared/ui/`, P0-5a): `Button` (primary, secondary, danger, ghost; loading state), `TextField`, `TextAreaField`, `CheckboxField`, `Alert` (icon and text per tone), `ErrorSummary`, `Dialog` (focus kept inside, Escape closes, focus returns to the opener, a click outside does not close it) and `ConfirmDialog` (focus starts on "cancel").
-- **Feature components:** `StatusBadge`, `ContributorLine`, `ContributionActions`, `RejectDialog`, `PendingToggle`, `ConceptPicker` (TheZoo search from 2 typed characters), the edit dialogs and cards of annotations and proposals (`src/features/contributions/`); `AccountMenu` (disclosure button), `SessionExpiredNotice`, `SignInPrompt` (`src/features/accounts/`).
+- **Feature components:** `StatusBadge`, `ContributorLine`, `ContributionActions`, `RejectDialog`, `PendingToggle`, `ConceptPicker` (TheZoo search from 2 typed characters), the creation and edit dialogs and the cards of annotations and proposals (`src/features/contributions/`); `ReferenceAnnotationCard` (a Corese annotation, followed with a toggle button), `LoadError` (a failed load and its retry) and `TextSizeToggle` (the A, A+, A++ buttons) (`src/features/reading/`); `AccountMenu` (disclosure button), `SessionExpiredNotice`, `SignInPrompt` (`src/features/accounts/`).
 - **Tool:** an in-house page, `frontend/catalogue.html`: run `npm run dev` and open `/catalogue.html`. No dependency, absent from the production build, checked by a Vitest test with axe ([decision record 0002](decisions/0002-catalogue-and-e2e-stack.md)).
 
 ## Checklist for a visual change

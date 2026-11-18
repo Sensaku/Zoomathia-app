@@ -60,9 +60,7 @@ test.describe('Annotation studio', () => {
     const pending = page.getByRole('article').filter({ has: page.getByRole('button', { name: pendingLabel }) })
     await expect(pending).toBeVisible()
     await expect(pending.getByText('Non relu', { exact: true })).toBeVisible()
-
-    // The studio around the panel is legacy: check the annotation cards and the filter, the P0-5a UI.
-    await expectNoAxeViolations(page, ['article', '[type="checkbox"]'])
+    await expectNoAxeViolations(page)
 
     await author.context.close()
     await reviewer.context.close()

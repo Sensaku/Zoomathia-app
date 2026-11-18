@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useId, useState, type Ref } from 'react'
 import { getApiErrorMessage } from '../../../api/errors'
 import { useI18n } from '../../../i18n/I18nContext'
 import { Alert, Button, TextField } from '../../../shared/ui'
@@ -21,6 +21,8 @@ export interface ConceptPickerProps {
   id?: string
   /** Shows a "remove" button, for an optional concept. */
   allowClear?: boolean
+  /** Ref of the search field, for a dialog that focuses it on open. */
+  inputRef?: Ref<HTMLInputElement>
 }
 
 /**
@@ -28,7 +30,16 @@ export interface ConceptPickerProps {
  * tab order. Choosing a result calls `onChange` and empties the search. The result count is
  * announced in a polite live region.
  */
-export function ConceptPicker({ label, value, onChange, hint, error, id, allowClear = false }: ConceptPickerProps) {
+export function ConceptPicker({
+  label,
+  value,
+  onChange,
+  hint,
+  error,
+  id,
+  allowClear = false,
+  inputRef,
+}: ConceptPickerProps) {
   const { t } = useI18n()
   const text = t.contributions.conceptPicker
   const [term, setTerm] = useState('')
@@ -68,6 +79,7 @@ export function ConceptPicker({ label, value, onChange, hint, error, id, allowCl
         )}
       </div>
       <TextField
+        ref={inputRef}
         id={fieldId}
         label={text.searchLabel}
         hint={hint ?? text.searchHint}

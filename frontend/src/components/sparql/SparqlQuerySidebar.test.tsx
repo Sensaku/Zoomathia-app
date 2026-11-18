@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vite-plus/test'
@@ -26,7 +27,11 @@ function query(overrides: Partial<SavedSparqlQuery>): SavedSparqlQuery {
   }
 }
 
-async function setup(saved: SavedSparqlQuery[]) {
+async function setup(
+  saved: SavedSparqlQuery[],
+  extra: Partial<ComponentProps<typeof SparqlQuerySidebar>> = {},
+  tab: RegExp | null = /Mes requêtes/,
+) {
   const onDeleteQuery = vi.fn()
   const view = renderWithProviders(
     <SparqlQuerySidebar
@@ -41,9 +46,10 @@ async function setup(saved: SavedSparqlQuery[]) {
       onClearHistory={() => undefined}
       isCollapsed={false}
       onToggleCollapse={() => undefined}
+      {...extra}
     />,
   )
-  await userEvent.click(screen.getByRole('button', { name: /Mes requêtes/ }))
+  if (tab) await userEvent.click(screen.getByRole('button', { name: tab }))
   return { onDeleteQuery, ...view }
 }
 
@@ -67,8 +73,54 @@ describe('SparqlQuerySidebar', () => {
     expect(screen.getByText('Jean (antérieur aux comptes)')).toBeInTheDocument()
   })
 
+  it('rule 9: a failed list shows an alert and a retry, never "no query found", on both tabs', async () => {
+    const onRetryLoad = vi.fn()
+    await setup([], { loadError: new Error('boom'), onRetryLoad }, /Mes requêtes/)
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.queryByText('Aucune requête trouvée.')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Questions CQs' }))
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.queryByText('Aucune requête trouvée.')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }))
+    expect(onRetryLoad).toHaveBeenCalledTimes(1)
+  })
+
+  it('rule 9: the local history stays usable when the list failed', async () => {
+    const onSelectHistory = vi.fn()
+    const item = { id: 'h1', query: 'SELECT * WHERE { ?s ?p ?o }', title: 'Ma requête', timestamp: 1 }
+    await setup([], { loadError: new Error('boom'), historyQueries: [item], onSelectHistory }, /Historique/)
+    expect(screen.queryByRole('alert')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: /Ma requête/ }))
+    expect(onSelectHistory).toHaveBeenCalledWith(item)
+  })
+
+  it('an empty list without failure still says that no query was found', async () => {
+    await setup([])
+    expect(screen.getByText('Aucune requête trouvée.')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('names the search field and the icon-only buttons', async () => {
+    await setup([query({})], {}, null)
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filtrer les requêtes' }), 'loup')
+    expect(screen.getByRole('button', { name: 'Effacer le filtre' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nouvelle requête' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Masquer la bibliothèque' })).toBeInTheDocument()
+  })
+
   it('has no accessibility violation', async () => {
     const { container } = await setup([query({ allowed_actions: ['delete'] })])
+    await expectNoAxeViolations(container)
+  })
+
+  it('has no accessibility violation with a failed list', async () => {
+    const { container } = await setup([], { loadError: new Error('boom'), onRetryLoad: () => undefined })
+    await expectNoAxeViolations(container)
+  })
+
+  it('has no accessibility violation on the history tab', async () => {
+    const item = { id: 'h1', query: 'SELECT * WHERE { ?s ?p ?o }', title: 'Ma requête', timestamp: 1 }
+    const { container } = await setup([], { historyQueries: [item] }, /Historique/)
     await expectNoAxeViolations(container)
   })
 })

@@ -82,7 +82,7 @@ Les choix d'outillage et la procédure de mise à jour de Vite+ sont dans [`docs
 ```text
 src/
   api/          client HTTP du backend (seul module qui l'appelle)
-  features/     fonctionnalités (structure cible) : comptes, contributions
+  features/     fonctionnalités (structure cible) : comptes, contributions, lecture
   shared/       composants du design system (ui/) et utilitaires (lib/)
   catalogue/    page catalogue des composants (développement seulement)
   components/   composants réutilisables (ancienne structure)

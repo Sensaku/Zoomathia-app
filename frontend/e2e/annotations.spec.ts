@@ -30,8 +30,7 @@ test.describe('Annotations in the reader', () => {
     // Only the justification changes: the concept search is not used.
     const dialog = author.page.getByRole('dialog', { name: `Modifier « ${label} »` })
     await expect(dialog).toBeVisible()
-    // The page behind the dialog is legacy (known colour-contrast and select-name findings): check the dialog.
-    await expectNoAxeViolations(author.page, ['dialog'])
+    await expectNoAxeViolations(author.page)
     await dialog.getByLabel(/^Justification/).fill(newJustification)
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(dialog).toBeHidden()
@@ -75,11 +74,26 @@ test.describe('Annotations in the reader', () => {
     const pending = cardOf(visitor.page, pendingLabel)
     await expect(pending).toBeVisible()
     await expect(pending.getByText('Non relu', { exact: true })).toBeVisible()
-    // The panel around the cards is legacy: check the cards and the filter, which are the P0-5a UI.
-    await expectNoAxeViolations(visitor.page, ['article', '[type="checkbox"]'])
+    await expectNoAxeViolations(visitor.page)
 
     await author.context.close()
     await reviewer.context.close()
+    await visitor.context.close()
+  })
+
+  test('a visitor follows a reference concept with the keyboard', async ({ browser }) => {
+    const visitor = await openPerson(browser)
+    const { page } = visitor
+    await page.goto(readerParagraphUrl(corpus.paragraphs[0].iri))
+
+    // The Corese annotation of the first paragraph is a card whose concept is a toggle button.
+    const follow = page.getByRole('article').getByRole('button', { name: corpus.referenceAnnotation.label })
+    await expect(follow).toHaveAttribute('aria-pressed', 'false')
+    await follow.focus()
+    await page.keyboard.press('Enter')
+    await expect(follow).toHaveAttribute('aria-pressed', 'true')
+    await expectNoAxeViolations(page)
+
     await visitor.context.close()
   })
 })
