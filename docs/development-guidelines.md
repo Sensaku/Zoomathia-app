@@ -2,7 +2,7 @@
 
 > Decided on 2026-11-15. Every rule is **Decided** unless marked **Proposed** (a default to validate).
 > The rules apply to all new code; existing code is brought in line when it is modified.
-> All the tooling described here is installed, except the component catalogue tool (postponed to P0-5a): see "Adoption".
+> All the tooling described here is in place: see "Adoption".
 
 ## Principles
 
@@ -155,6 +155,7 @@ Each feature contains `components/`, `hooks/` (React Query hooks such as `useWor
 - **Vite+** provides linting (Oxlint, with the `react`, `jsx-a11y`, `typescript`, `unicorn` and `oxc` plugins), formatting (Oxfmt, with Tailwind class sorting) and tests (Vitest). Adopted on 2026-11-16: choices, checks and upgrade procedure in [decision record 0001](decisions/0001-frontend-tooling.md).
 - **Versions are pinned** (exact versions, lockfile committed); every upgrade is a deliberate commit.
 - **npm scripts are the stable contract** for humans, agents and CI: `dev`, `build`, `preview`, `typecheck`, `lint`, `format`, `format:check`, `test`, `test:e2e`, `docs`. `tsc` stays the only type checker while the project pins TypeScript 6.0.
+- **Component catalogue:** an in-house page, `frontend/catalogue.html`, and **end-to-end stack:** the real backend with a fake Corese ([decision record 0002](decisions/0002-catalogue-and-e2e-stack.md)).
 
 ## Performance and concurrency
 
@@ -210,7 +211,6 @@ Check the version and maintenance status of a module when you add it.
 | API types on the frontend | `openapi-typescript` | Types generated from OpenAPI; types only, no runtime validation |
 | SPARQL editor | CodeMirror 6 with the SPARQL mode of `@codemirror/legacy-modes`, or YASGUI | Would replace the in-house editor, highlighter and tokenizer (~580 lines). **To evaluate:** bundle size (YASGUI is heavy), styling, maintenance |
 | Accessible UI primitives (dialogs, menus, comboboxes) | Radix UI or React Aria, headless and styled with Tailwind | Could replace the in-house `MultiSelectCombobox` (314 lines). **To evaluate:** bundle size, fit with the design tokens |
-| Component catalogue | Storybook, or Ladle | Visual reference replacing mockups ([design-system.md](design-system.md)). **Postponed to the start of P0-5a** (owner decision, 2026-11-16): see [decision record 0001](decisions/0001-frontend-tooling.md) |
 | Changelog | `git-cliff` | `CHANGELOG.md` generated from Conventional Commits; needs disciplined commit messages |
 | Load testing | `locust`, or k6 | Scenarios at the target load (50 concurrent users). **To choose at adoption:** Locust is written in Python, like the backend; k6 is more efficient at high load but uses JavaScript and another runtime |
 
@@ -298,7 +298,7 @@ Findings are ranked by severity, with file and line, the concrete failure scenar
 - **On every push to `main`:**
   - backend: `ruff check`, `ruff format --check`, mypy, tests without network;
   - frontend: lint, format check, type check, tests, build;
-  - Playwright smoke journeys (`e2e` job, also on pull requests); the critical journeys come with P0-5a.
+  - Playwright journeys (`e2e` job, also on pull requests): the smoke pages and the critical journeys, on the local stack ([decision record 0002](decisions/0002-catalogue-and-e2e-stack.md)).
 - **Weekly:** `pip-audit` and `npm audit`, apart from the push checks, so they never block a push. A finding makes the scheduled run fail visibly, and the run summary lists the findings.
 - A failing pipeline on `main` is fixed before any other work.
 
@@ -363,7 +363,7 @@ Accessibility is built into every component, not added at the end.
 
 *Proposed order* to bring the repository in line with these guidelines:
 
-1. **Tooling:** Ruff, mypy, Vite+ (Oxlint, Oxfmt, Vitest), Playwright, MkDocs Material with mkdocstrings and TypeDoc, their configuration files, the npm and uv scripts, the CI workflow. *Status:* done (backend tooling, documentation site and CI on 2026-11-15; frontend tooling with Node 24 on 2026-11-16), except the component catalogue tool, postponed to P0-5a.
+1. **Tooling:** Ruff, mypy, Vite+ (Oxlint, Oxfmt, Vitest), Playwright, MkDocs Material with mkdocstrings and TypeDoc, their configuration files, the npm and uv scripts, the CI workflow. *Status:* done (backend tooling, documentation site and CI on 2026-11-15; frontend tooling with Node 24 on 2026-11-16); the component catalogue and the end-to-end stack came with P0-5a (2026-11-18).
 2. **Test foundation:** `conftest.py` with a temporary database and simulated Corese; first unit tests of the decided rules. *Status (2026-11-15):* done for the backend, including the known gaps of the audit, written as strict `xfail` tests (`tests/test_known_gaps.py`).
 3. **Progressive restructuring:** new code goes straight into the target structure; existing modules move when they are modified, starting with the domains touched by the P0 security work (accounts, annotations).
 

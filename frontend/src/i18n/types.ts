@@ -46,6 +46,11 @@ export interface TranslationDictionary {
     thesaurusDesc: string
     about: string
     language: string
+    signIn: string
+    myAccount: string
+    signOut: string
+    accountMenu: string
+    signOutFailed: string
   }
   footer: {
     projectTitle: string
@@ -120,11 +125,10 @@ export interface TranslationDictionary {
     stagingTitle: string
     referenceTitle: string
     noReferencePara: string
-    extract: string
-    annotator: string
     viewOnTheZoo: string
-    deleteStagingTooltip: string
     occurrencesCount: string
+    paragraphLinks: string
+    goToParagraph: string
   }
   corpus: {
     title: string
@@ -257,7 +261,11 @@ export interface TranslationDictionary {
     queryGoalLabel: string
     queryGoalPlaceholder: string
     categoryLabel: string
-    authorLabel: string
+    /** Uses `{title}`. */
+    deleteTitle: string
+    signInToSave: string
+    formErrorsTitle: string
+    saveModeLabel: string
     titleRequired: string
     sidebarTitle: string
     tabCq: string
@@ -290,6 +298,8 @@ export interface TranslationDictionary {
     rowsPerPage: string
     showingRows: string
     newQueryDraft: string
+    /** Saved queries cut off by the page limit. Uses `{shown}` and `{total}`. */
+    savedQueriesPartial: string
     officialQueryTitle: string
     customQueryTitle: string
     readOnlyBadge: string
@@ -335,48 +345,47 @@ export interface TranslationDictionary {
     graphRequiresNodes: string
   }
   thesaurus: {
+    badge: string
     title: string
     subtitle: string
     formTitle: string
     formSubtitle: string
     prefLabel: string
     prefLabelPlaceholder: string
+    prefLabelRequired: string
     languageLabel: string
+    /** Names of the proposal languages (RM-THE-05). */
+    languageNames: { fr: string; en: string; la: string; grc: string }
     altLabels: string
-    altLabelsPlaceholder: string
-    tagAddHelp: string
+    altLabelsHint: string
+    altLabelsInvalid: string
     definition: string
     definitionPlaceholder: string
     broaderLabel: string
-    broaderPlaceholder: string
-    contributorName: string
+    signInToPropose: string
+    errorsTitle: string
     submitBtn: string
     submitting: string
     successMessage: string
-    prefLabelRequired: string
+    showPending: string
     proposalsTitle: string
-    proposalsAwaiting: string
-    selectedParent: string
     exportTtlBtn: string
     noProposals: string
-    filterAll: string
+    tabsLabel: string
     filterPending: string
     filterValidated: string
     filterRejected: string
+    searchLabel: string
     searchPlaceholder: string
-    statusPending: string
-    statusValidated: string
-    statusRejected: string
-    actionValidate: string
-    actionReject: string
-    actionDelete: string
-    confirmDelete: string
+    /** Uses `{count}`. */
+    total: string
+    loadMore: string
     openInTheZoo: string
-    statTotal: string
-    statPending: string
-    statValidated: string
     hierarchy: string
-    removeBroader: string
+    synonyms: string
+    /** Uses `{subject}`. */
+    editTitle: string
+    editNothing: string
   }
   about: {
     title: string
@@ -416,9 +425,6 @@ export interface TranslationDictionary {
     filterValidated: string
     filterRejected: string
     filterReference: string
-    validateAction: string
-    rejectAction: string
-    deleteAction: string
     justificationTitle: string
     noJustification: string
     scopeWord: string
@@ -427,9 +433,6 @@ export interface TranslationDictionary {
     scopeParagraph: string
     scopeMultiParagraph: string
     densityBadge: string
-    statusPending: string
-    statusValidated: string
-    statusRejected: string
     statusReference: string
     noAnnotationsFound: string
     activeParagraphTab: string
@@ -450,13 +453,14 @@ export interface TranslationDictionary {
     unpinAnnotationTooltip: string
     pinnedAnnotationBanner: string
     spansAcrossParagraphs: string
+    pickParagraphForRejected: string
   }
   modal: {
+    signInMessage: string
     title: string
     selectedExtract: string
     conceptLabel: string
     conceptPlaceholder: string
-    annotatorLabel: string
     justificationLabel: string
     justificationPlaceholder: string
     scopeTypeLabel: string
@@ -476,6 +480,66 @@ export interface TranslationDictionary {
     creatingConcept: string
     conceptCreatedSuccess: string
   }
+  auth: {
+    errorsTitle: string
+    emailLabel: string
+    emailRequired: string
+    passwordLabel: string
+    passwordRequired: string
+    newPasswordRequired: string
+    confirmLabel: string
+    confirmRequired: string
+    confirmMismatch: string
+    newPasswordHint: string
+    signInPrompt: string
+    login: {
+      title: string
+      submit: string
+      forgot: string
+      alreadySignedIn: string
+      goToAccount: string
+    }
+    account: {
+      title: string
+      loading: string
+      loadFailed: string
+      profileTitle: string
+      name: string
+      affiliation: string
+      email: string
+      role: string
+      roleContributor: string
+      roleAdmin: string
+      memberSince: string
+    }
+    password: {
+      title: string
+      current: string
+      currentRequired: string
+      currentWrong: string
+      new: string
+      submit: string
+      success: string
+    }
+    reset: {
+      title: string
+      submit: string
+      missingTitle: string
+      missingText: string
+      success: string
+      goToLogin: string
+    }
+    expired: {
+      message: string
+      signInAgain: string
+      dismiss: string
+    }
+    session: {
+      checkFailed: string
+      retry: string
+      unavailableRetry: string
+    }
+  }
   apiErrors: {
     generic: string
     tooManyHeavyQueries: string
@@ -483,5 +547,114 @@ export interface TranslationDictionary {
     sparqlTimeout: string
     sparqlUnavailable: string
     requestRejected: string
+    invalidInput: string
+    invalidCredentials: string
+    accountPending: string
+    accountDeactivated: string
+    tooManyAttempts: string
+    tooManyAttemptsWait: string
+    serverBusy: string
+    serverBusyWait: string
+    databaseBusy: string
+    csrfFailed: string
+    notAuthenticated: string
+    invalidResetToken: string
+    invalidPassword: string
+    notAuthor: string
+    ownContribution: string
+    notPending: string
+    versionConflict: string
+    validatedContribution: string
+    duplicateProposal: string
+    builtinQuery: string
+    annotationNotFound: string
+    proposalNotFound: string
+    queryNotFound: string
+    tooManyResults: string
+  }
+  contributions: {
+    status: {
+      pending: string
+      validated: string
+      rejected: string
+    }
+    /** Contributor line. Templates use `{author}`, `{reviewer}`, `{date}`, `{reason}`. */
+    line: {
+      createdBy: string
+      historicalAuthor: string
+      unknownPerson: string
+      validatedBy: string
+      rejectedBy: string
+      rejectionReason: string
+    }
+    /** Review and delete actions. Templates use `{subject}`. */
+    actions: {
+      validate: string
+      reject: string
+      edit: string
+      delete: string
+      cancel: string
+      validateTitle: string
+      validateMessage: string
+      deleteTitle: string
+      deleteMessage: string
+    }
+    reject: {
+      title: string
+      reasonLabel: string
+      reasonRequired: string
+      publicWarning: string
+      errorSummaryTitle: string
+    }
+    pendingFilter: {
+      label: string
+      hint: string
+    }
+    /** TheZoo concept picker. `resultCount` uses `{count}`. */
+    conceptPicker: {
+      searchLabel: string
+      searchHint: string
+      chosen: string
+      none: string
+      remove: string
+      loading: string
+      empty: string
+      resultCount: string
+      resultsLabel: string
+    }
+    /** Edit dialog of an annotation (RM-CTB-05). `title` uses `{subject}`. */
+    annotationEdit: {
+      title: string
+      conceptLabel: string
+      conceptRequired: string
+      justificationLabel: string
+      justificationHint: string
+      unchanged: string
+      submit: string
+      errorSummaryTitle: string
+    }
+    /** Staged annotation card. `position` uses `{start}` and `{end}`, `paragraphCount` uses `{count}`. */
+    stagedCard: {
+      position: string
+      paragraphCount: string
+    }
+    /** Dialog that ends a review, edit or deletion refused by a conflict (RM-CTB-05). */
+    conflict: {
+      title: string
+      /** Shown under every conflict message: closing the dialog reloads the list. */
+      reloadHint: string
+      closeWindow: string
+    }
+    /** Rejected annotations of the studio (RM-ACC-04). `partial` uses `{shown}` and `{total}`. */
+    rejectedList: {
+      loading: string
+      empty: string
+      retry: string
+      partial: string
+    }
+    /** Notice after a new annotation is saved while the unreviewed ones are hidden (RM-ACC-03). */
+    pendingNotice: {
+      message: string
+    }
   }
 }

@@ -1,6 +1,7 @@
 /**
- * Client API HTTP typé pour l'application Zoomathia.
- * Toutes les requêtes transitent par le proxy Vite (/api) vers le backend FastAPI.
+ * Typed HTTP client of the Zoomathia application, and the only module that calls the backend.
+ * Requests go through the Vite proxy (`/api`) to the FastAPI backend, on the shared request
+ * core of `http.ts` (JSON, cookies, CSRF header, error mapping).
  */
 
 import {
@@ -17,156 +18,141 @@ import {
   CustomSearchParams,
   StagedAnnotation,
   CreateAnnotationInput,
+  AnnotationListParams,
+  AnnotationUpdateInput,
+  ReviewInput,
   OpenThesoAutocompleteItem,
   ThesaurusProposal,
   CreateThesaurusProposalInput,
+  ProposalListParams,
+  ProposalUpdateInput,
   SparqlQueryResult,
   SavedSparqlQuery,
+  SavedQueryExecution,
+  SavedQueryListParams,
   CreateSavedQueryInput,
   UpdateSavedQueryInput,
   ThesaurusCollection,
   ConceptCategory,
   SectionAnnotationsResponse,
+  Page,
+  Session,
 } from '../types'
 import { ApiError } from './errors'
+import { BASE_URL, buildQuery, connectSession, requestBlob, requestJson } from './http'
+import type { CsrfCredential, SessionBridge } from './http'
 
-export { ApiError }
+export { ApiError, BASE_URL, connectSession }
+export type { CsrfCredential, SessionBridge }
 
-export const BASE_URL = import.meta.env.VITE_API_URL || '/api'
+// --- Authors and works ---
 
-/** Throws an `ApiError` for an unsuccessful response, with the backend `detail` when the body is JSON. */
-async function throwApiError(res: Response): Promise<never> {
-  const errorBody = await res.text().catch(() => '')
-  let detail: unknown
-  try {
-    const parsed: unknown = JSON.parse(errorBody)
-    if (parsed && typeof parsed === 'object' && 'detail' in parsed) {
-      detail = (parsed as { detail: unknown }).detail
-    }
-  } catch {
-    // Non-JSON body (a proxy error page, for example): no structured detail.
-  }
-  throw new ApiError(res.status, `Erreur API [${res.status}] ${res.statusText}: ${errorBody}`, detail)
-}
-
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, options)
-  if (!res.ok) {
-    await throwApiError(res)
-  }
-  return res.json() as Promise<T>
-}
-
-// --- Auteurs & Œuvres ---
-
+// `fetchAuthors`, `fetchWorks` and `fetchQCList` take no argument and have no `signal`: pages pass
+// them directly as `queryFn`, and React Query would hand them its context object as the first argument.
 export async function fetchAuthors(): Promise<Author[]> {
-  return fetchJson<Author[]>(`${BASE_URL}/getAuthors`)
+  return requestJson<Author[]>('/getAuthors')
 }
 
 export async function fetchWorks(): Promise<Work[]> {
-  return fetchJson<Work[]>(`${BASE_URL}/getWorks`)
+  return requestJson<Work[]>('/getWorks')
 }
 
-export async function fetchWorksFromAuthor(author: string): Promise<Work[]> {
-  const params = new URLSearchParams({ author })
-  return fetchJson<Work[]>(`${BASE_URL}/getWorksFromAuthors?${params.toString()}`)
+export async function fetchWorksFromAuthor(author: string, signal?: AbortSignal): Promise<Work[]> {
+  return requestJson<Work[]>(`/getWorksFromAuthors${buildQuery({ author })}`, { signal })
 }
 
-export async function fetchWorkMetadata(uri: string): Promise<WorkMetadata> {
-  const params = new URLSearchParams({ uri })
-  return fetchJson<WorkMetadata>(`${BASE_URL}/getMetadata?${params.toString()}`)
+export async function fetchWorkMetadata(uri: string, signal?: AbortSignal): Promise<WorkMetadata> {
+  return requestJson<WorkMetadata>(`/getMetadata${buildQuery({ uri })}`, { signal })
 }
 
-export async function fetchWorkParts(titleUri: string): Promise<any[]> {
-  const params = new URLSearchParams({ title: titleUri })
-  return fetchJson<any[]>(`${BASE_URL}/getWorkPart?${params.toString()}`)
+export async function fetchWorkParts(titleUri: string, signal?: AbortSignal): Promise<any[]> {
+  return requestJson<any[]>(`/getWorkPart${buildQuery({ title: titleUri })}`, { signal })
 }
 
-export async function fetchTranslation(uri: string): Promise<{ uri: string; title: string } | null> {
-  const params = new URLSearchParams({ uri })
-  return fetchJson<{ uri: string; title: string } | null>(`${BASE_URL}/getTranslation?${params.toString()}`)
+export async function fetchTranslation(
+  uri: string,
+  signal?: AbortSignal,
+): Promise<{ uri: string; title: string } | null> {
+  return requestJson<{ uri: string; title: string } | null>(`/getTranslation${buildQuery({ uri })}`, { signal })
 }
 
-// --- Textes & Structure ---
+// --- Texts and structure ---
 
-export async function fetchSummary(uri: string): Promise<SummaryNode[]> {
-  const params = new URLSearchParams({ uri })
-  return fetchJson<SummaryNode[]>(`${BASE_URL}/getSummary?${params.toString()}`)
+export async function fetchSummary(uri: string, signal?: AbortSignal): Promise<SummaryNode[]> {
+  return requestJson<SummaryNode[]>(`/getSummary${buildQuery({ uri })}`, { signal })
 }
 
-export async function fetchParagraphs(uri: string): Promise<Paragraph[]> {
-  const params = new URLSearchParams({ uri })
-  return fetchJson<Paragraph[]>(`${BASE_URL}/getParagraphs?${params.toString()}`)
+export async function fetchParagraphs(uri: string, signal?: AbortSignal): Promise<Paragraph[]> {
+  return requestJson<Paragraph[]>(`/getParagraphs${buildQuery({ uri })}`, { signal })
 }
 
-export async function resolveUri(uri: string): Promise<ResolvedUri> {
-  const params = new URLSearchParams({ uri })
-  return fetchJson<ResolvedUri>(`${BASE_URL}/resolveUri?${params.toString()}`)
+export async function resolveUri(uri: string, signal?: AbortSignal): Promise<ResolvedUri> {
+  return requestJson<ResolvedUri>(`/resolveUri${buildQuery({ uri })}`, { signal })
 }
 
-// --- Annotations & Thésaurus ---
+// --- Concepts and thesaurus ---
 
-export async function fetchConcepts(uri: string, lang = 'en'): Promise<AnnotationMap> {
-  const params = new URLSearchParams({ uri, lang })
-  return fetchJson<AnnotationMap>(`${BASE_URL}/getConcepts?${params.toString()}`)
+export async function fetchConcepts(uri: string, lang = 'en', signal?: AbortSignal): Promise<AnnotationMap> {
+  return requestJson<AnnotationMap>(`/getConcepts${buildQuery({ uri, lang })}`, { signal })
 }
 
-export async function fetchThesaurus(lang = 'en'): Promise<Concept[]> {
-  const params = new URLSearchParams({ lang })
-  return fetchJson<Concept[]>(`${BASE_URL}/getTheso?${params.toString()}`)
+export async function fetchThesaurus(lang = 'en', signal?: AbortSignal): Promise<Concept[]> {
+  return requestJson<Concept[]>(`/getTheso${buildQuery({ lang })}`, { signal })
+}
+
+type ConceptSearchHit = {
+  uri: string
+  label: string
+  type?: string
+  category?: ConceptCategory
+  collection?: string | null
 }
 
 export async function searchConcepts(
   input: string,
   lang = 'en',
   limit = 60,
-): Promise<
-  Array<{ uri: string; label: string; type?: string; category?: ConceptCategory; collection?: string | null }>
-> {
-  const params = new URLSearchParams({ input, lang, limit: limit.toString() })
-  return fetchJson<
-    Array<{ uri: string; label: string; type?: string; category?: ConceptCategory; collection?: string | null }>
-  >(`${BASE_URL}/searchConcepts?${params.toString()}`)
+  signal?: AbortSignal,
+): Promise<ConceptSearchHit[]> {
+  return requestJson<ConceptSearchHit[]>(`/searchConcepts${buildQuery({ input, lang, limit })}`, { signal })
 }
 
-export async function fetchCollections(lang = 'fr'): Promise<ThesaurusCollection[]> {
-  const params = new URLSearchParams({ lang })
-  return fetchJson<ThesaurusCollection[]>(`${BASE_URL}/getCollections?${params.toString()}`)
+export async function fetchCollections(lang = 'fr', signal?: AbortSignal): Promise<ThesaurusCollection[]> {
+  return requestJson<ThesaurusCollection[]>(`/getCollections${buildQuery({ lang })}`, { signal })
 }
 
-// --- Questions de Compétence (CQs) ---
+export async function fetchThesaurusAutocomplete(
+  q: string,
+  signal?: AbortSignal,
+): Promise<OpenThesoAutocompleteItem[]> {
+  return requestJson<OpenThesoAutocompleteItem[]>(`/thesaurus/autocomplete${buildQuery({ q })}`, { signal })
+}
+
+// --- Competency questions ---
 
 export async function fetchQCList(): Promise<CompetencyQuestion[]> {
-  return fetchJson<CompetencyQuestion[]>(`${BASE_URL}/qcList`)
+  return requestJson<CompetencyQuestion[]>('/qcList')
 }
 
-export async function fetchQC(id: number): Promise<QCResponse> {
-  return fetchJson<QCResponse>(`${BASE_URL}/getQC?id=${id}`)
+export async function fetchQC(id: number, signal?: AbortSignal): Promise<QCResponse> {
+  return requestJson<QCResponse>(`/getQC${buildQuery({ id })}`, { signal })
 }
 
-export async function fetchQCSpo(id: number): Promise<any> {
-  return fetchJson<any>(`${BASE_URL}/getQCspo?id=${id}`)
+export async function fetchQCSpo(id: number, signal?: AbortSignal): Promise<any> {
+  return requestJson<any>(`/getQCspo${buildQuery({ id })}`, { signal })
 }
 
 export type QCExportFormat = 'json' | 'csv'
 
 /** Exports the results of a competency question (GET route of the backend, `id` as parameter). */
 export async function downloadQC(id: number, format: QCExportFormat): Promise<Blob> {
-  const res = await fetch(`${BASE_URL}/download-qc-${format}?id=${id}`)
-  if (!res.ok) {
-    await throwApiError(res)
-  }
-  return res.blob()
+  return requestBlob(`/download-qc-${format}${buildQuery({ id })}`)
 }
 
-// --- Recherche personnalisée ---
+// --- Custom search and SPARQL playground ---
 
 export async function postCustomSearch(payload: CustomSearchParams): Promise<{ sparql: string; tree: SummaryNode[] }> {
-  return fetchJson<{ sparql: string; tree: SummaryNode[] }>(`${BASE_URL}/customSearch`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  return requestJson<{ sparql: string; tree: SummaryNode[] }>('/customSearch', { method: 'POST', body: payload })
 }
 
 export type CustomSearchExportFormat = 'json' | 'csv'
@@ -179,134 +165,156 @@ export async function downloadCustomSearch(
   payload: CustomSearchParams,
   format: CustomSearchExportFormat,
 ): Promise<Blob> {
-  const res = await fetch(`${BASE_URL}/download-custom-search-${format}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  if (!res.ok) {
-    await throwApiError(res)
+  return requestBlob(`/download-custom-search-${format}`, { method: 'POST', body: payload })
+}
+
+export async function executeSparqlQuery(query: string, signal?: AbortSignal): Promise<SparqlQueryResult> {
+  return requestJson<SparqlQueryResult>('/sparql/execute', { method: 'POST', body: { query }, signal })
+}
+
+// --- Accounts and session (RM-CPT-*) ---
+
+/**
+ * The logged-in account and its CSRF token, or `null` for a visitor (401). Any other failure
+ * is thrown: a server error is not a visitor (AGENTS.md rule 9).
+ */
+export async function fetchSession(signal?: AbortSignal): Promise<Session | null> {
+  try {
+    return await requestJson<Session>('/auth/me', { signal })
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return null
+    throw error
   }
-  return res.blob()
 }
 
-// --- Phase 4 : Thésaurus OpenTheso, Annotations W3C et SPARQL Playground ---
-
-export async function fetchThesaurusAutocomplete(q: string): Promise<OpenThesoAutocompleteItem[]> {
-  const params = new URLSearchParams({ q })
-  return fetchJson<OpenThesoAutocompleteItem[]>(`${BASE_URL}/thesaurus/autocomplete?${params.toString()}`)
+/** Opens a session. Errors: 401 `invalid_credentials`, 403 `account_pending` or `account_deactivated`, 429. */
+export async function login(credentials: { email: string; password: string }): Promise<Session> {
+  return requestJson<Session>('/auth/login', { method: 'POST', body: credentials })
 }
 
+/** Ends the session on the server (204). */
+export async function logout(): Promise<void> {
+  return requestJson<void>('/auth/logout', { method: 'POST' })
+}
+
+/** Changes the password of the logged-in account; its other sessions are revoked. 403 `invalid_credentials`: wrong current password. */
+export async function changePassword(input: { current_password: string; new_password: string }): Promise<void> {
+  return requestJson<void>('/auth/password', { method: 'POST', body: input })
+}
+
+/** Sets a new password with the token an administrator handed over. 400 `invalid_reset_token`, 422 `invalid_password`. */
+export async function resetPassword(input: { token: string; new_password: string }): Promise<void> {
+  return requestJson<void>('/auth/password-reset', { method: 'POST', body: input })
+}
+
+// --- Annotations (RM-CTB-*, RM-MOD-*, RM-ACC-03) ---
+
+/** Creates a pending annotation; the server sets the author and the status (RM-CTB-03, RM-CTB-04). */
 export async function createAnnotation(payload: CreateAnnotationInput): Promise<StagedAnnotation> {
-  return fetchJson<StagedAnnotation>(`${BASE_URL}/annotations`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  return requestJson<StagedAnnotation>('/annotations', { method: 'POST', body: payload })
 }
 
-export async function fetchAnnotations(paragraphUri?: string): Promise<StagedAnnotation[]> {
-  const url = paragraphUri
-    ? `${BASE_URL}/annotations?paragraph_uri=${encodeURIComponent(paragraphUri)}`
-    : `${BASE_URL}/annotations`
-  return fetchJson<StagedAnnotation[]>(url)
+/** A page of annotations of every status, newest first. */
+export async function fetchAnnotationPage(
+  params: AnnotationListParams = {},
+  signal?: AbortSignal,
+): Promise<Page<StagedAnnotation>> {
+  return requestJson<Page<StagedAnnotation>>(`/annotations${buildQuery({ ...params })}`, { signal })
 }
 
-export async function updateAnnotationStatus(id: number, status: string): Promise<StagedAnnotation> {
-  return fetchJson<StagedAnnotation>(`${BASE_URL}/annotations/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  })
+export async function fetchAnnotation(id: number, signal?: AbortSignal): Promise<StagedAnnotation> {
+  return requestJson<StagedAnnotation>(`/annotations/${id}`, { signal })
 }
 
-export async function fetchSectionAnnotations(sectionUri: string, lang = 'en'): Promise<SectionAnnotationsResponse> {
-  const params = new URLSearchParams({ section_uri: sectionUri, lang })
-  return fetchJson<SectionAnnotationsResponse>(`${BASE_URL}/annotations/section?${params.toString()}`)
+/** Edits the concept or the justification of a pending annotation (RM-CTB-05). 409 `version_conflict` if it changed. */
+export async function updateAnnotation(id: number, input: AnnotationUpdateInput): Promise<StagedAnnotation> {
+  return requestJson<StagedAnnotation>(`/annotations/${id}`, { method: 'PATCH', body: input })
 }
 
-export async function deleteAnnotation(id: number): Promise<{ message: string; id: number }> {
-  return fetchJson<{ message: string; id: number }>(`${BASE_URL}/annotations/${id}`, {
-    method: 'DELETE',
-  })
+/** Validates or rejects an annotation (RM-MOD-01 to RM-MOD-03). 409 `version_conflict` or `not_pending`. */
+export async function reviewAnnotation(id: number, input: ReviewInput): Promise<StagedAnnotation> {
+  return requestJson<StagedAnnotation>(`/annotations/${id}/review`, { method: 'POST', body: input })
 }
 
+export async function deleteAnnotation(id: number): Promise<void> {
+  return requestJson<void>(`/annotations/${id}`, { method: 'DELETE' })
+}
+
+/**
+ * Reference annotations (Corese) and staged ones of a section. Pending ones come only with
+ * `includePending` (RM-ACC-03); rejected ones never do (RM-ACC-04).
+ */
+export async function fetchSectionAnnotations(
+  sectionUri: string,
+  lang = 'en',
+  options: { includePending?: boolean; signal?: AbortSignal } = {},
+): Promise<SectionAnnotationsResponse> {
+  const query = buildQuery({ section_uri: sectionUri, lang, include_pending: options.includePending })
+  return requestJson<SectionAnnotationsResponse>(`/annotations/section${query}`, { signal: options.signal })
+}
+
+// --- Term proposals ---
+
+/** Creates a pending proposal. 409 `duplicate_proposal` when the same term already waits in this language. */
 export async function createThesaurusProposal(payload: CreateThesaurusProposalInput): Promise<ThesaurusProposal> {
-  return fetchJson<ThesaurusProposal>(`${BASE_URL}/thesaurus/proposals`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  return requestJson<ThesaurusProposal>('/thesaurus/proposals', { method: 'POST', body: payload })
 }
 
-export async function fetchThesaurusProposals(status?: string, q?: string): Promise<ThesaurusProposal[]> {
-  const params = new URLSearchParams()
-  if (status) params.append('status', status)
-  if (q) params.append('q', q)
-  const qs = params.toString()
-  return fetchJson<ThesaurusProposal[]>(`${BASE_URL}/thesaurus/proposals${qs ? `?${qs}` : ''}`)
+/** A page of term proposals of every status, newest first. */
+export async function fetchThesaurusProposalPage(
+  params: ProposalListParams = {},
+  signal?: AbortSignal,
+): Promise<Page<ThesaurusProposal>> {
+  return requestJson<Page<ThesaurusProposal>>(`/thesaurus/proposals${buildQuery({ ...params })}`, { signal })
 }
 
-export async function updateThesaurusProposalStatus(id: number, status: string): Promise<ThesaurusProposal> {
-  return fetchJson<ThesaurusProposal>(`${BASE_URL}/thesaurus/proposals/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  })
+export async function fetchThesaurusProposal(id: number, signal?: AbortSignal): Promise<ThesaurusProposal> {
+  return requestJson<ThesaurusProposal>(`/thesaurus/proposals/${id}`, { signal })
 }
 
-export async function deleteThesaurusProposal(id: number): Promise<{ success: boolean; deleted_id: number }> {
-  return fetchJson<{ success: boolean; deleted_id: number }>(`${BASE_URL}/thesaurus/proposals/${id}`, {
-    method: 'DELETE',
-  })
+/** Edits any field of a pending proposal (RM-CTB-05). 409 `version_conflict` if it changed. */
+export async function updateThesaurusProposal(id: number, input: ProposalUpdateInput): Promise<ThesaurusProposal> {
+  return requestJson<ThesaurusProposal>(`/thesaurus/proposals/${id}`, { method: 'PATCH', body: input })
 }
 
-export async function executeSparqlQuery(query: string): Promise<SparqlQueryResult> {
-  return fetchJson<SparqlQueryResult>(`${BASE_URL}/sparql/execute`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  })
+/** Validates or rejects a proposal (RM-MOD-01 to RM-MOD-03). 409 `version_conflict` or `not_pending`. */
+export async function reviewThesaurusProposal(id: number, input: ReviewInput): Promise<ThesaurusProposal> {
+  return requestJson<ThesaurusProposal>(`/thesaurus/proposals/${id}/review`, { method: 'POST', body: input })
 }
 
-// --- Système de Stockage et Gestion des Requêtes SPARQL ---
-
-export async function fetchSavedQueries(category?: string, search?: string): Promise<SavedSparqlQuery[]> {
-  const params = new URLSearchParams()
-  if (category) params.append('category', category)
-  if (search) params.append('search', search)
-  const qs = params.toString()
-  return fetchJson<SavedSparqlQuery[]>(`${BASE_URL}/queries${qs ? `?${qs}` : ''}`)
+export async function deleteThesaurusProposal(id: number): Promise<void> {
+  return requestJson<void>(`/thesaurus/proposals/${id}`, { method: 'DELETE' })
 }
 
-export async function fetchSavedQuery(id: number): Promise<SavedSparqlQuery> {
-  return fetchJson<SavedSparqlQuery>(`${BASE_URL}/queries/${id}`)
+// --- Saved SPARQL queries (RM-QC-06) ---
+
+/** A page of the query library, native questions first. */
+export async function fetchSavedQueryPage(
+  params: SavedQueryListParams = {},
+  signal?: AbortSignal,
+): Promise<Page<SavedSparqlQuery>> {
+  return requestJson<Page<SavedSparqlQuery>>(`/queries${buildQuery({ ...params })}`, { signal })
+}
+
+export async function fetchSavedQuery(id: number, signal?: AbortSignal): Promise<SavedSparqlQuery> {
+  return requestJson<SavedSparqlQuery>(`/queries/${id}`, { signal })
 }
 
 export async function createSavedQuery(payload: CreateSavedQueryInput): Promise<SavedSparqlQuery> {
-  return fetchJson<SavedSparqlQuery>(`${BASE_URL}/queries`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  return requestJson<SavedSparqlQuery>('/queries', { method: 'POST', body: payload })
 }
 
 export async function updateSavedQuery(id: number, payload: UpdateSavedQueryInput): Promise<SavedSparqlQuery> {
-  return fetchJson<SavedSparqlQuery>(`${BASE_URL}/queries/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  return requestJson<SavedSparqlQuery>(`/queries/${id}`, { method: 'PUT', body: payload })
 }
 
-export async function deleteSavedQuery(id: number): Promise<{ message: string; id: number }> {
-  return fetchJson<{ message: string; id: number }>(`${BASE_URL}/queries/${id}`, {
-    method: 'DELETE',
-  })
+/** Deletes a query (204). 403 `builtin_query` for a native question. */
+export async function deleteSavedQuery(id: number): Promise<void> {
+  return requestJson<void>(`/queries/${id}`, { method: 'DELETE' })
 }
 
-export async function executeSavedQueryById(id: number, useSpo = false): Promise<any> {
-  return fetchJson<any>(`${BASE_URL}/queries/${id}/execute?use_spo=${useSpo}`, {
+export async function executeSavedQueryById(id: number, useSpo = false): Promise<SavedQueryExecution> {
+  return requestJson<SavedQueryExecution>(`/queries/${id}/execute${buildQuery({ use_spo: useSpo })}`, {
     method: 'POST',
   })
 }

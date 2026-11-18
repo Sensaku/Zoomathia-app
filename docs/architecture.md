@@ -120,7 +120,6 @@ TEI-XML (texts), W3C Web Annotation (annotations), SKOS (thesaurus and proposals
 
 - Validated annotations stay in SQLite and never reach Corese.
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite table).
-- The contribution and saved-query routes require an account (P0-4b, done) but the current frontend does not send credentials, so it can no longer contribute: P0-4b ships together with the screens of P0-5a, and the frontend still compares the French status labels until then.
 - The native competency questions are seeded at startup from `app/core/qcs_data.py` and the `.rq` files, and stay read-only for everyone until RM-QC-01.
 - SPARQL queries are built with f-strings and sent with GET.
 - Concept categories are computed twice (backend and frontend) with diverging rules.

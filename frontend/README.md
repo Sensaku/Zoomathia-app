@@ -17,7 +17,7 @@ npm ci
 npm run dev
 ```
 
-L'application est disponible sur <http://localhost:5173>. Le serveur Vite transmet les appels `/api` au backend `http://127.0.0.1:3001`.
+L'application est disponible sur <http://localhost:5173>. Le serveur Vite transmet les appels `/api` au backend `http://127.0.0.1:3001` (ou à `API_PROXY_TARGET` si cette variable est définie). Le catalogue des composants est sur <http://localhost:5173/catalogue.html>.
 
 Pour cibler un autre backend, créer `frontend/.env.local` :
 
@@ -70,10 +70,10 @@ VITE_API_URL=https://example.org/api
 | `npm run lint`      | Oxlint (React, accessibilité `jsx-a11y`, règles typées)                                                                          |
 | `npm run format`    | formatage avec Oxfmt (`npm run format:check` pour vérifier sans modifier)                                                        |
 | `npm run test`      | tests unitaires et de composants (Vitest, Testing Library, MSW), sans réseau                                                     |
-| `npm run test:e2e`  | parcours Playwright avec axe, sur le build                                                                                       |
+| `npm run test:e2e`  | parcours Playwright avec axe, sur le build ; démarre son propre backend de test                                                  |
 | `npm run docs`      | référence TypeDoc générée dans `../docs/reference/frontend` (non versionnée)                                                     |
 
-Tests de bout en bout : installer une fois Chromium avec `npx playwright install chromium`, puis lancer `npm run build` avant chaque `npm run test:e2e` (le serveur de test sert le build sur le port 4173).
+Tests de bout en bout : installer une fois Chromium avec `npx playwright install chromium`, puis lancer `npm run build` avant chaque `npm run test:e2e`. Playwright sert le build sur le port 4173 et démarre son propre backend sur une base temporaire, avec un faux Corese (port 3101, `uv` requis) : voir [`e2e/fixtures/README.md`](e2e/fixtures/README.md).
 
 Les choix d'outillage et la procédure de mise à jour de Vite+ sont dans [`docs/decisions/0001-frontend-tooling.md`](../docs/decisions/0001-frontend-tooling.md).
 
@@ -81,11 +81,15 @@ Les choix d'outillage et la procédure de mise à jour de Vite+ sont dans [`docs
 
 ```text
 src/
-  api/          client HTTP du backend
-  components/   composants réutilisables
+  api/          client HTTP du backend (seul module qui l'appelle)
+  features/     fonctionnalités (structure cible) : comptes, contributions
+  shared/       composants du design system (ui/) et utilitaires (lib/)
+  catalogue/    page catalogue des composants (développement seulement)
+  components/   composants réutilisables (ancienne structure)
   i18n/         traductions françaises et anglaises
-  pages/        écrans de l'application
+  pages/        écrans de l'application (ancienne structure)
   types/        types TypeScript
+e2e/            parcours Playwright, aides et données de test
 packages/
   wimmics-venus/ bibliothèque de visualisation embarquée
 public/         images, icônes, polices et logos

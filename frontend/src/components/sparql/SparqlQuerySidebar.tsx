@@ -1,21 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import { SavedSparqlQuery } from '../../types'
 import { useI18n } from '../../i18n'
-import {
-  FolderOpen,
-  Search,
-  Sparkles,
-  History,
-  Trash2,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  BookOpen,
-  FileCode2,
-  Download,
-  X,
-  Tag,
-} from 'lucide-react'
+import { formatAuthor } from '../../features/contributions'
+import { fill } from '../../features/contributions/lib/fill'
+import { FolderOpen, Search, History, Trash2, Plus, ChevronLeft, ChevronRight, Download, X } from 'lucide-react'
 
 export interface HistoryItem {
   id: string
@@ -30,7 +18,8 @@ interface SparqlQuerySidebarProps {
   selectedQueryId: number | ''
   onSelectQuery: (query: SavedSparqlQuery) => void
   onNewQuery: () => void
-  onDeleteQuery: (id: number) => void
+  /** Asks to delete a query. The button shows only when the backend lists `delete` for it (RM-QC-06). */
+  onDeleteQuery: (query: SavedSparqlQuery) => void
   onApplyTemplate: (templateCode: string) => void
   isQueriesLoading?: boolean
   historyQueries: HistoryItem[]
@@ -54,7 +43,7 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
 }) => {
-  const { t, language } = useI18n()
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<'cq' | 'custom' | 'history'>('cq')
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -249,23 +238,25 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
               filteredOfficials.map((q) => {
                 const isSelected = selectedQueryId === q.id
                 return (
-                  <div
+                  <button
                     key={q.id}
+                    type="button"
                     onClick={() => onSelectQuery(q)}
-                    className={`cursor-pointer rounded-none border p-2.5 text-left transition-all ${
+                    aria-current={isSelected || undefined}
+                    className={`block w-full cursor-pointer rounded-none border p-2.5 text-left transition-all ${
                       isSelected
-                        ? 'border-[#9A6530] bg-[#faf4ee] shadow-xs'
-                        : 'border-[#f0eae0] bg-white hover:border-[#ded5c6] hover:bg-[#faf8f5]'
+                        ? 'border-accent bg-paper-sunken'
+                        : 'border-rule bg-paper hover:border-rule-strong hover:bg-paper-raised'
                     }`}
                   >
-                    <div className="mb-1 flex items-center justify-between gap-1">
-                      <span className="rounded-none bg-[#ebdccb] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#73471c] uppercase">
+                    <span className="mb-1 flex items-center justify-between gap-1">
+                      <span className="rounded-none bg-paper-sunken px-1.5 py-0.5 font-mono text-[10px] font-bold text-accent-strong uppercase">
                         QC {q.id}
                       </span>
-                      <span className="max-w-[120px] truncate text-[10px] text-[#8c8275]">{q.category}</span>
-                    </div>
-                    <h3 className="line-clamp-2 text-xs leading-snug font-medium text-[#2c2724]">{q.title}</h3>
-                  </div>
+                      <span className="max-w-[120px] truncate text-[10px] text-ink-subtle">{q.category}</span>
+                    </span>
+                    <span className="line-clamp-2 block text-xs leading-snug font-medium text-ink">{q.title}</span>
+                  </button>
                 )
               })
             )}
@@ -290,36 +281,46 @@ export const SparqlQuerySidebar: React.FC<SparqlQuerySidebarProps> = ({
             ) : (
               filteredCustoms.map((q) => {
                 const isSelected = selectedQueryId === q.id
+                const deleteLabel = fill(t.sparql.deleteTitle, { title: q.title })
                 return (
                   <div
                     key={q.id}
-                    className={`group relative cursor-pointer rounded-none border p-2.5 text-left transition-all ${
+                    className={`relative rounded-none border p-2.5 text-left transition-all ${
                       isSelected
-                        ? 'border-[#9A6530] bg-[#faf4ee] shadow-xs'
-                        : 'border-[#f0eae0] bg-white hover:border-[#ded5c6] hover:bg-[#faf8f5]'
+                        ? 'border-accent bg-paper-sunken'
+                        : 'border-rule bg-paper hover:border-rule-strong hover:bg-paper-raised'
                     }`}
                   >
-                    <div onClick={() => onSelectQuery(q)}>
-                      <div className="mb-1 flex items-center justify-between gap-1 pr-6">
-                        <span className="rounded-none border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] text-emerald-700">
-                          {t.sparql.customBadge}
-                        </span>
-                        <span className="max-w-[100px] truncate text-[10px] text-[#8c8275]">{q.author_name}</span>
-                      </div>
-                      <h3 className="line-clamp-2 pr-4 text-xs leading-snug font-medium text-[#2c2724]">{q.title}</h3>
-                    </div>
-
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onDeleteQuery(q.id)
-                      }}
-                      className="absolute top-2 right-2 rounded-none p-1 text-[#9e9486] opacity-80 transition-colors group-hover:opacity-100 hover:bg-red-50 hover:text-red-700"
-                      title={t.common.delete}
+                      onClick={() => onSelectQuery(q)}
+                      aria-current={isSelected || undefined}
+                      className="block w-full cursor-pointer text-left"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <span className="mb-1 flex items-center justify-between gap-1 pr-6">
+                        <span className="rounded-none border border-success bg-success-soft px-1.5 py-0.5 font-mono text-[10px] text-success">
+                          {t.sparql.customBadge}
+                        </span>
+                        <span className="max-w-[100px] truncate text-[10px] text-ink-subtle">
+                          {formatAuthor(q.author, q.author_label, t.contributions.line)}
+                        </span>
+                      </span>
+                      <span className="line-clamp-2 block pr-4 text-xs leading-snug font-medium text-ink">
+                        {q.title}
+                      </span>
                     </button>
+
+                    {q.allowed_actions.includes('delete') && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteQuery(q)}
+                        className="absolute top-2 right-2 rounded-none p-1 text-ink-muted hover:bg-danger-soft hover:text-danger focus-visible:outline-2 focus-visible:outline-accent"
+                        aria-label={deleteLabel}
+                        title={deleteLabel}
+                      >
+                        <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 )
               })

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import {
   fetchAuthors,
@@ -8,66 +8,32 @@ import {
   fetchParagraphs,
   fetchTranslation,
   fetchSectionAnnotations,
-  updateAnnotationStatus,
-  deleteAnnotation,
 } from '../api/client'
-import {
-  SummaryNode,
-  Paragraph,
-  Work,
-  StagedAnnotation,
-  AnnotationMap,
-  AnnotationScopeType,
-  AnnotationStatus,
-  TargetParagraphDetail,
-  ConceptCategory,
-} from '../types'
+import { SummaryNode, Paragraph, AnnotationScopeType, TargetParagraphDetail } from '../types'
 import { AnnotationModal } from '../components/AnnotationModal'
 import { AnnotationLegendModal } from '../components/AnnotationLegendModal'
-import {
-  ConceptCategoryIcon,
-  ConceptCategoryBadge,
-  getConceptCategoryInfo,
-  CATEGORY_STYLES,
-  CATEGORY_HOVER_STYLES,
-  CATEGORY_PINNED_STYLES,
-  CATEGORY_OVERLAP_STYLES,
-  CATEGORY_DELIMITER_LEFT,
-  CATEGORY_DELIMITER_RIGHT,
-  CATEGORY_ACTIVE_DELIMITER_LEFT,
-  CATEGORY_ACTIVE_DELIMITER_RIGHT,
-  CATEGORY_PARA_PINNED,
-  CATEGORY_PARA_HOVER,
-  CATEGORY_TAG_PINNED,
-  CATEGORY_TAG_HOVER,
-  CATEGORY_BADGE_PINNED,
-  CATEGORY_BADGE_HOVER,
-  CATEGORY_TOC_PINNED,
-  CATEGORY_TOC_HOVER,
-} from '../components/ConceptCategoryBadge'
+import { ConceptCategoryIcon, CATEGORY_TOC_PINNED, CATEGORY_TOC_HOVER } from '../components/ConceptCategoryBadge'
 import { ReadingParagraphCard, PinnedConceptBanner, useConceptInspection } from '../components/reading'
 import { useI18n } from '../i18n'
+import {
+  PendingSavedNotice,
+  PendingToggle,
+  useSavedNotice,
+  RejectedAnnotationList,
+  StagedAnnotationCard,
+  contributionKeys,
+  usePendingFilter,
+} from '../features/contributions'
 import {
   BookOpen,
   ChevronRight,
   ChevronDown,
   Sparkles,
-  CheckCircle2,
-  XCircle,
-  X,
-  Trash2,
   Download,
   Feather,
-  Tag,
   Search,
-  Filter,
-  Layers,
-  FileText,
   Loader2,
   ExternalLink,
-  PlusCircle,
-  Check,
-  AlignLeft,
   ListChecks,
   Highlighter,
   HelpCircle,
@@ -77,13 +43,15 @@ type StatusFilter = 'all' | 'pending' | 'validated' | 'rejected' | 'reference'
 
 export const CorpusAnnotation: React.FC = () => {
   const { t, language } = useI18n()
-  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { includePending, setIncludePending } = usePendingFilter()
 
   // Sélection d'œuvre et navigation
   const [selectedAuthor, setSelectedAuthor] = useState<string>('')
   const [selectedWorkUri, setSelectedWorkUri] = useState<string>('')
   const [activeSectionUri, setActiveSectionUri] = useState<string>('')
+  // A new annotation is pending, so hidden by default: tell its author (RM-ACC-03).
+  const savedNotice = useSavedNotice(activeSectionUri)
   const [activeParagraphUri, setActiveParagraphUri] = useState<string>('')
   const [tocFilter, setTocFilter] = useState<string>('')
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({})
@@ -112,12 +80,12 @@ export const CorpusAnnotation: React.FC = () => {
   const [modalScopeType, setModalScopeType] = useState<AnnotationScopeType>('word_sequence')
 
   // 1. Liste des auteurs et œuvres
-  const { data: allWorks = [], isLoading: isAllWorksLoading } = useQuery({
+  const { data: allWorks = [] } = useQuery({
     queryKey: ['allWorks'],
     queryFn: fetchWorks,
   })
 
-  const { data: authors = [], isLoading: isAuthorsLoading } = useQuery({
+  const { data: authors = [] } = useQuery({
     queryKey: ['authors'],
     queryFn: fetchAuthors,
   })
@@ -198,8 +166,8 @@ export const CorpusAnnotation: React.FC = () => {
     isLoading: isSectionDataLoading,
     refetch: refetchSectionData,
   } = useQuery({
-    queryKey: ['sectionAnnotations', activeSectionUri, language],
-    queryFn: () => fetchSectionAnnotations(activeSectionUri, language),
+    queryKey: contributionKeys.sectionAnnotations(activeSectionUri, language, includePending),
+    queryFn: ({ signal }) => fetchSectionAnnotations(activeSectionUri, language, { includePending, signal }),
     enabled: !!activeSectionUri,
   })
 
@@ -227,24 +195,6 @@ export const CorpusAnnotation: React.FC = () => {
       }
     }
   }
-
-  // Mutation de modération / validation du statut d'une annotation
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: AnnotationStatus }) => updateAnnotationStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sectionAnnotations'] })
-      queryClient.invalidateQueries({ queryKey: ['stagedAnnotations'] })
-    },
-  })
-
-  // Mutation de suppression d'une annotation
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteAnnotation(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sectionAnnotations'] })
-      queryClient.invalidateQueries({ queryKey: ['stagedAnnotations'] })
-    },
-  })
 
   // Gestion du repliement TOC
   const toggleNodeCollapse = (uri: string) => {
@@ -496,13 +446,17 @@ export const CorpusAnnotation: React.FC = () => {
     }
   }
 
+  // Rejected tab (RM-ACC-04): its list lives in RejectedAnnotationList, for one paragraph.
+  const isRejectedTab = statusFilter === 'rejected'
+  const needsParagraphForRejected = isRejectedTab && (sidebarScope === 'all_section' || !activeParagraphUri)
+
   // Filtrage des annotations affichées dans la colonne 3
   const filteredStagedAnnotations = useMemo(() => {
     return stagedAnnotations.filter((item) => {
       if (statusFilter === 'all') return true
-      if (statusFilter === 'pending') return item.status === 'En attente de validation'
-      if (statusFilter === 'validated') return item.status === 'Validé'
-      if (statusFilter === 'rejected') return item.status === 'Rejeté'
+      if (statusFilter === 'pending') return item.status === 'pending'
+      if (statusFilter === 'validated') return item.status === 'validated'
+      // Rejected ones never come with the section: they have their own query (RM-ACC-04).
       return false
     })
   }, [stagedAnnotations, statusFilter])
@@ -614,9 +568,10 @@ export const CorpusAnnotation: React.FC = () => {
 
   // Éléments effectivement affichés selon le scope et la pagination
   const displayedStaged = useMemo(() => {
+    if (isRejectedTab) return []
     if (sidebarScope === 'active_paragraph') return activeStagedAnnotations
     return searchedSectionStaged.slice(0, sectionPageSize)
-  }, [sidebarScope, activeStagedAnnotations, searchedSectionStaged, sectionPageSize])
+  }, [sidebarScope, isRejectedTab, activeStagedAnnotations, searchedSectionStaged, sectionPageSize])
 
   const displayedReference = useMemo(() => {
     if (sidebarScope === 'active_paragraph') {
@@ -662,9 +617,6 @@ export const CorpusAnnotation: React.FC = () => {
     setHoveredConcept,
     pinnedConcept,
     setPinnedConcept,
-    activeInspectionConcept,
-    activeInspectionParagraphUris,
-    activeInspectionLabel,
     activeInspectionCategory,
     pinnedConceptLabel,
     pinnedConceptCategory,
@@ -896,7 +848,11 @@ export const CorpusAnnotation: React.FC = () => {
                   setSelectedWorkUri(e.target.value)
                   setActiveSectionUri('')
                   setActiveParagraphUri('')
-                  setSearchParams({ uri: e.target.value })
+                  setSearchParams((previous) => {
+                    const next = new URLSearchParams(previous)
+                    next.set('uri', e.target.value)
+                    return next
+                  })
                 }}
                 className="w-full rounded-lg border border-[#cfc5b4] bg-[#faf9f6] p-1.5 text-xs font-medium text-[#2c2724] focus:ring-1 focus:ring-[#9A6530] focus:outline-none"
               >
@@ -1090,11 +1046,14 @@ export const CorpusAnnotation: React.FC = () => {
                 <Sparkles className="h-4 w-4 text-[#9A6530]" />
                 <span>{t.annotate.annotationsPanel}</span>
               </span>
-              <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-[#9A6530]">
-                {sidebarScope === 'active_paragraph'
-                  ? displayedStaged.length + displayedReference.length
-                  : totalSectionCount}
-              </span>
+              {/* The rejected list counts its own items, in its own component. */}
+              {!isRejectedTab && (
+                <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-[#9A6530]">
+                  {sidebarScope === 'active_paragraph'
+                    ? displayedStaged.length + displayedReference.length
+                    : totalSectionCount}
+                </span>
+              )}
             </div>
 
             {/* Bascule Portée : Paragraphe Actif vs Toute la section */}
@@ -1146,6 +1105,9 @@ export const CorpusAnnotation: React.FC = () => {
               </div>
             )}
 
+            <PendingToggle />
+            {savedNotice.visible && <PendingSavedNotice onDismiss={savedNotice.dismiss} />}
+
             {/* Onglets / Filtres par statut */}
             <div className="grid grid-cols-5 gap-1 rounded-none bg-[#f4ede2] p-1 text-center text-[11px] font-semibold">
               {(
@@ -1162,6 +1124,8 @@ export const CorpusAnnotation: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setStatusFilter(key)
+                    // RM-ACC-03: unreviewed items only come when the filter is on.
+                    if (key === 'pending') setIncludePending(true)
                     setSectionPageSize(30)
                   }}
                   className={`truncate rounded-none py-1 transition-all ${
@@ -1181,144 +1145,19 @@ export const CorpusAnnotation: React.FC = () => {
             {/* Section 1 : Propositions Staging (selon filtre et pagination) */}
             {statusFilter !== 'reference' && displayedStaged.length > 0 && (
               <div className="space-y-2.5">
-                {displayedStaged.map((item) => {
-                  const isPinned = pinnedConcept === item.concept_uri
-                  const isHovered = hoveredConcept === item.concept_uri
-                  const isPending = item.status === 'En attente de validation'
-                  const isValidated = item.status === 'Validé'
-                  const isRejected = item.status === 'Rejeté'
-
-                  return (
-                    <div
-                      key={item.id}
-                      onMouseEnter={() => setHoveredConcept(item.concept_uri)}
-                      onMouseLeave={() => setHoveredConcept(null)}
-                      onClick={() => setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))}
-                      title={isPinned ? t.annotate.unpinAnnotationTooltip : t.annotate.pinAnnotationTooltip}
-                      className={`cursor-pointer space-y-2 rounded-none border p-3 text-xs transition-colors ${
-                        isPinned
-                          ? 'border-amber-400 bg-amber-50/80 shadow-xs ring-2 ring-amber-500'
-                          : isHovered
-                            ? 'shadow-sm ring-2 ring-[#9A6530]'
-                            : ''
-                      } ${
-                        isValidated
-                          ? 'border-emerald-200 bg-emerald-50/60'
-                          : isRejected
-                            ? 'border-rose-200 bg-rose-50/50'
-                            : 'border-amber-200 bg-amber-50/50'
-                      }`}
-                    >
-                      {/* Concept & Badge Statut */}
-                      <div className="space-y-1.5">
-                        <div className="flex min-w-0 items-start space-x-1.5">
-                          <ConceptCategoryIcon
-                            label={item.concept_label}
-                            uri={item.concept_uri}
-                            className="h-4 w-4 shrink-0"
-                          />
-                          <strong className="min-w-0 flex-1 overflow-visible text-sm leading-snug font-semibold break-words whitespace-normal text-[#2c2724] capitalize">
-                            {item.concept_label}
-                          </strong>
-                          {isPinned && (
-                            <span className="shrink-0 text-xs" title="Annotation épinglée">
-                              📌
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex justify-end">
-                          <span
-                            className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
-                              isValidated
-                                ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
-                                : isRejected
-                                  ? 'border-rose-300 bg-rose-100 text-rose-800'
-                                  : 'border-amber-300 bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {item.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Granularité et extrait */}
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-1.5 text-[10px] text-[#736a5f]">
-                          <span className="rounded-none border border-[#ded5c6] bg-white/80 px-1.5 py-0.5 font-semibold uppercase">
-                            {item.scope_type}
-                          </span>
-                          <span>
-                            pos. {item.start_offset}-{item.end_offset}
-                          </span>
-                        </div>
-                        <p className="ancient-text line-clamp-2 text-xs text-[#3b2e21] italic">
-                          « {item.target_text} »
-                        </p>
-                      </div>
-
-                      {/* Zone de Justification de l'annotateur */}
-                      {item.justification && (
-                        <div className="space-y-0.5 rounded-none border border-[#e6dfd1] bg-white/90 p-2 text-[11px] text-[#595248]">
-                          <span className="flex items-center space-x-1 text-[10px] font-semibold text-[#9A6530] uppercase">
-                            <FileText className="h-3 w-3" />
-                            <span>{t.annotate.justificationTitle}</span>
-                          </span>
-                          <p className="italic">{item.justification}</p>
-                        </div>
-                      )}
-
-                      {/* Métadonnées & actions de modération */}
-                      <div className="flex items-center justify-between border-t border-black/5 pt-2 text-[11px]">
-                        <span className="text-[10px] text-[#8c8275]">{item.annotator_name}</span>
-
-                        <div className="flex items-center space-x-1">
-                          {/* Bouton Valider */}
-                          {item.status !== 'Validé' && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateStatusMutation.mutate({ id: item.id, status: 'Validé' })
-                              }}
-                              className="rounded-none p-1 text-emerald-700 transition-colors hover:bg-emerald-100"
-                              title={t.annotate.validateAction}
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </button>
-                          )}
-
-                          {/* Bouton Rejeter */}
-                          {item.status !== 'Rejeté' && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateStatusMutation.mutate({ id: item.id, status: 'Rejeté' })
-                              }}
-                              className="rounded-none p-1 text-rose-700 transition-colors hover:bg-rose-100"
-                              title={t.annotate.rejectAction}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          )}
-
-                          {/* Bouton Supprimer */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              deleteMutation.mutate(item.id)
-                            }}
-                            className="rounded-none p-1 text-[#8c8275] transition-colors hover:text-red-700"
-                            title={t.annotate.deleteAction}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                {displayedStaged.map((item) => (
+                  <StagedAnnotationCard
+                    key={item.id}
+                    annotation={item}
+                    canPin={item.status !== 'rejected'}
+                    isPinned={pinnedConcept === item.concept_uri}
+                    isHighlighted={hoveredConcept === item.concept_uri}
+                    onTogglePin={() =>
+                      setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))
+                    }
+                    onHoverChange={(hovered) => setHoveredConcept(hovered ? item.concept_uri : null)}
+                  />
+                ))}
               </div>
             )}
 
@@ -1401,8 +1240,15 @@ export const CorpusAnnotation: React.FC = () => {
               </div>
             )}
 
+            {needsParagraphForRejected && (
+              <p className="p-4 text-center text-xs text-[#736a5f] italic">{t.annotate.pickParagraphForRejected}</p>
+            )}
+            {isRejectedTab && !needsParagraphForRejected && (
+              <RejectedAnnotationList paragraphUri={activeParagraphUri} />
+            )}
+
             {/* État vide si aucune annotation */}
-            {displayedStaged.length === 0 && displayedReference.length === 0 && (
+            {!isRejectedTab && displayedStaged.length === 0 && displayedReference.length === 0 && (
               <p className="p-4 text-center text-xs text-[#8c8275] italic">
                 {sidebarScope === 'active_paragraph' ? t.annotate.noAnnotationsInPara : t.annotate.noAnnotationsFound}
               </p>
@@ -1423,7 +1269,10 @@ export const CorpusAnnotation: React.FC = () => {
         targetParagraphs={modalTargetParas}
         targetParagraphDetails={modalTargetParaDetails}
         initialScopeType={modalScopeType}
-        onSuccess={() => refetchSectionData()}
+        onSuccess={() => {
+          void refetchSectionData()
+          savedNotice.show()
+        }}
       />
 
       {/* 4. Modal d'aide & Légende des annotations */}

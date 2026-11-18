@@ -50,6 +50,8 @@ nav:
       - Directives de développement: development-guidelines.md
       - Design system: design-system.md
       - "Décision 0001 : outillage frontend": decisions/0001-frontend-tooling.md
+      - "Décision 0002 : catalogue et pile e2e": decisions/0002-catalogue-and-e2e-stack.md
+      - "Recette : fonctionnalité frontend": recipes/frontend-feature.md
   - Référence:
       - Backend (Python): reference/backend.md
       - Frontend (TypeScript): reference/frontend/index.md

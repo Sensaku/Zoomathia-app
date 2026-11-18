@@ -17,6 +17,7 @@ import {
   LucideIcon,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
+import { AccountMenu } from '../features/accounts'
 
 interface SubNavItem {
   to: string
@@ -307,6 +308,8 @@ export const Navbar: React.FC = () => {
                 EN
               </button>
             </div>
+
+            <AccountMenu />
           </div>
 
           {/* Boutons Mobile : Langue + Hamburger */}
@@ -410,6 +413,10 @@ export const Navbar: React.FC = () => {
               <Info className="h-4 w-4 text-[#d6cec0]" />
               <span>{t.nav.about}</span>
             </Link>
+          </div>
+
+          <div className="border-t border-chrome-line pt-1">
+            <AccountMenu variant="mobile" onNavigate={() => setMobileMenuOpen(false)} />
           </div>
         </div>
       )}

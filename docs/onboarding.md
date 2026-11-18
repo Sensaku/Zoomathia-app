@@ -37,7 +37,7 @@ uv run python -m app.accounts.cli create-admin --email you@example.org --name "Y
 uv run uvicorn app.main:app --reload --port 3001
 ```
 
-The `create-admin` command asks for the password twice and creates an active administrator in your local database (optional: only needed to try the accounts). The session cookie is `Secure`, so a browser sends it only over HTTPS: if it refuses the cookie on plain `http://localhost`, run the backend with `SESSION_COOKIE_SECURE=false` (local development only, never on a deployment). Registrations are closed unless `REGISTRATION_ENABLED=true`.
+The `create-admin` command asks for the password twice and creates an active administrator in your local database (optional: only needed to try the accounts, see "Sign in locally" below). Registrations are closed unless `REGISTRATION_ENABLED=true`.
 
 Frontend, from `frontend/`:
 
@@ -46,9 +46,18 @@ npm ci
 npm run dev
 ```
 
-Other frontend commands: `npm run lint`, `npm run format`, `npm run typecheck`, `npm run test`, `npm run build`, and `npm run test:e2e` (Playwright: run `npx playwright install chromium` once, then `npm run build` before each run). `npm run docs` generates the TypeScript reference that the documentation site includes.
+Other frontend commands: `npm run lint`, `npm run format`, `npm run typecheck`, `npm run test`, `npm run build`, and `npm run test:e2e`. For Playwright, run `npx playwright install chromium` once, then `npm run build` before each run. `test:e2e` starts its own backend on a temporary database (it needs `uv sync` in `backend-fastapi/`), so it never touches your local data. `npm run docs` generates the TypeScript reference that the documentation site includes.
 
-Open <http://localhost:5173>; the API documentation is at <http://localhost:3001/docs>.
+Open <http://localhost:5173>; the API documentation is at <http://localhost:3001/docs>. The component catalogue is at <http://localhost:5173/catalogue.html>.
+
+### Sign in locally
+
+1. Start the backend with `SESSION_COOKIE_SECURE=false`, so the browser accepts the session cookie over plain HTTP (local development only):
+   - bash: `SESSION_COOKIE_SECURE=false uv run uvicorn app.main:app --reload --port 3001`;
+   - PowerShell: `$env:SESSION_COOKIE_SECURE="false"`, then the usual `uvicorn` command.
+2. Create the accounts with `create-admin` (one command per account). To try peer review, create two: nobody reviews their own contribution (RM-MOD-01).
+3. Open <http://localhost:5173/login> and sign in.
+4. To try a password reset, issue a token as an admin with `POST /admin/users/{id}/password-reset` in the API documentation, then open `/reset-password#token=<token>`. The admin screens come with P0-5b.
 
 Before running the backend tests, read the warning in [AGENTS.md](https://github.com/Sensaku/Zoomathia-app/blob/main/AGENTS.md) ("Known pitfalls"): they must use a temporary database.
 
@@ -91,7 +100,7 @@ Step-by-step recipes for recurring tasks will live in `docs/recipes/`. Each one 
 | Recipe | Written with |
 |---|---|
 | Add an API endpoint | The first domain module |
-| Add a frontend feature or page | The first feature folder |
+| [Add a frontend feature or page](recipes/frontend-feature.md) | The first feature folders (P0-5a): written |
 | Implement a business rule | The P0 security work |
 | Write unit and integration tests | The test foundation |
 | Add a SPARQL query | The `.rq` loader |

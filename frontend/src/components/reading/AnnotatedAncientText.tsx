@@ -15,6 +15,7 @@ import {
   CATEGORY_ACTIVE_DELIMITER_RIGHT,
 } from '../ConceptCategoryBadge'
 import { Tag } from 'lucide-react'
+import { useI18n } from '../../i18n'
 
 export interface AnnotatedAncientTextProps {
   p: ReadingParagraph
@@ -40,6 +41,7 @@ export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = React.m
     onPinConcept,
     globalThemesTitle = 'Thèmes du passage',
   }) => {
+    const { t } = useI18n()
     // Clé sérialisée stable pour le filtre de concepts
     const filterKey = Array.isArray(filterConceptUri) ? filterConceptUri.join('||') : filterConceptUri || ''
 
@@ -114,14 +116,17 @@ export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = React.m
               : 0
           const isEndOfOverlap = isOverlap && (nextMatchingCount !== matching.length || isSpanEnd)
 
+          // RM-ACC-03: a staged span names its review status, such as "Non relu".
+          const statusSuffix = (s: ReadingSpan) =>
+            s.isStaged && s.status ? ` [${t.contributions.status[s.status]}]` : ''
           const baseTooltip = isOverlap
             ? `${matching.length} concepts superposés :\n${matching
                 .map((s) => {
                   const cInfo = getConceptCategoryInfo(s.category, s.collection, s.label, s.concept)
-                  return `• [${cInfo.label}] ${s.label}${s.isStaged ? ' [Staging]' : ''}`
+                  return `• [${cInfo.label}] ${s.label}${statusSuffix(s)}`
                 })
                 .join('\n')}`
-            : `[${catInfo.label}] ${primaryMatch.label}${primaryMatch.isStaged ? ' [Staging]' : ''}`
+            : `[${catInfo.label}] ${primaryMatch.label}${statusSuffix(primaryMatch)}`
 
           chunkData.push({
             bStart,
@@ -140,7 +145,7 @@ export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = React.m
       }
 
       return { specificSpans, globalThemes, chunkData }
-    }, [p, referenceMap, stagedList, filterKey])
+    }, [p, referenceMap, stagedList, filterKey, t])
 
     const renderGlobalThemes = () => {
       if (globalThemes.length === 0) return null

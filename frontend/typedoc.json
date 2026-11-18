@@ -2,7 +2,7 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["src"],
   "entryPointStrategy": "expand",
-  "exclude": ["**/*.test.ts", "**/*.test.tsx", "src/test/**", "src/main.tsx", "**/*.d.ts"],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "src/test/**", "src/main.tsx", "src/catalogue/**", "**/*.d.ts"],
   "plugin": ["typedoc-plugin-markdown"],
   "out": "../docs/reference/frontend",
   "readme": "none",

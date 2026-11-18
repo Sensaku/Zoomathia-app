@@ -32,8 +32,10 @@ Technical documents (English): `docs/architecture.md` (components, sources of tr
 | `backend-fastapi/migrations/` | Alembic revisions: the only owner of the database schema |
 | `backend-fastapi/data/files/` | TEI-XML corpus (do not modify) |
 | `backend-fastapi/data/queries/` | Competency question SPARQL files, to be migrated to the database (RM-QC-01) |
-| `frontend/src/api/client.ts` | The only module that calls the backend |
-| `frontend/src/pages/`, `frontend/src/components/` | React UI |
+| `frontend/src/api/` | The only code that calls the backend: `client.ts` (public functions), `http.ts` (request core: session cookie, CSRF, errors) |
+| `frontend/src/features/`, `frontend/src/shared/` | Target layout (since P0-5a): `features/accounts/` (session, sign-in, account), `features/contributions/` (statuses, reviews, edits), `shared/ui/` (design-system components, shown in `frontend/catalogue.html`) |
+| `frontend/src/pages/`, `frontend/src/components/` | React UI, legacy layout |
+| `frontend/e2e/`, `backend-fastapi/tests/e2e/` | Playwright journeys and their local stack: the backend on a temporary database, a fake Corese, fixtures in `frontend/e2e/fixtures/` |
 | `frontend/src/i18n/` | Typed FR/EN translations |
 | `frontend/packages/wimmics-venus/` | Vendored VENUS build (do not edit) |
 
@@ -67,7 +69,7 @@ npm run format               # Oxfmt (format:check in CI)
 npm run test                 # Vitest + Testing Library + MSW, no network
 npm run build
 npx playwright install chromium   # once
-npm run test:e2e             # Playwright with axe, against the build: run npm run build first
+npm run test:e2e             # Playwright with axe, against the build (npm run build first); starts its own backend (needs uv)
 npm run docs                 # TypeDoc reference into docs/reference/frontend (not committed)
 ```
 
@@ -146,13 +148,14 @@ The essentials (full rules in `docs/development-guidelines.md`):
 - The default SPARQL endpoint (`http://zoomathia.i3s.unice.fr/sparql`) is the **shared production** Corese. Unbounded queries (`SELECT *` without `LIMIT`, global `DESCRIBE`) can crash it (out of memory).
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite) until RM-QC-01. Keep them consistent if you must touch them.
 - Concept categories are computed twice, with diverging rules (backend `classify_concept`, frontend `getConceptCategoryInfo`), until RM-CON-01 and RM-CON-02.
-- Statuses are codes in the backend (`pending`, `validated`, `rejected`; migrations 0003 and 0004 converted the old French labels), but **the frontend still compares the French labels until P0-5**. Since P0-4b it can no longer contribute (no session, no CSRF token, new response shapes), so P0-4b ships together with P0-5a.
+- The CSRF token lives only in the React Query session cache (`features/accounts/session.ts`): never copy it to `localStorage` or a variable. Queries whose data carry `allowed_actions` use a root of `VIEWER_QUERY_ROOTS`, so they reload when the viewer changes.
+- The e2e stack answers SPARQL from recorded fixtures: a journey that opens a new page may need a rule in `frontend/e2e/fixtures/corese.json` (the fake Corese logs the queries it cannot answer). OpenTheso is not simulated.
 - Permissions live in `app/contributions/policy.py` and `app/queries/policy.py`, and the guarded SQL statements of the repositories repeat them. Change a rule in both: `test_the_sql_guards_agree_with_the_policy` catches a mismatch.
 - Annotation offsets in the free-text selection handlers use `indexOf` (first occurrence): known bug, see RM-ANN-01.
 - `vite-plus`, the `vite` alias (`npm:@voidzero-dev/vite-plus-core`) and the `vitest` pin appear in both `devDependencies` and `overrides` of `frontend/package.json`, with the same version. Upgrade them together (procedure in decision record 0001); a dependency bot must never bump one alone.
 
 ## Current priorities
 
-1. **Done:** the framing documents and guidelines (2026-11-15); the tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend on 2026-11-15, frontend on 2026-11-16, except the component catalogue tool, postponed to the start of P0-5a; the P0 security work from P0-1 to P0-4a (`docs/security.md`, "Known gaps").
-2. **Now:** P0-4b is done in the backend (2026-11-16): contributions and saved queries require an active account, with peer review and statuses as codes. It ships (push, deployment) together with P0-5a, the first slice of the screens.
+1. **Done:** the framing documents and guidelines (2026-11-15); the tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend on 2026-11-15, frontend on 2026-11-16, catalogue and e2e stack on 2026-11-18; the P0 security work from P0-1 to P0-4a (`docs/security.md`, "Known gaps").
+2. **Now:** P0-4b (backend: accounts required, peer review, statuses as codes; 2026-11-16) and P0-5a (first screens: session, sign-in, account, password reset, reviews driven by `allowed_actions`; 2026-11-18) ship together. Next slices: P0-5b (account administration), P0-5c ("Mes contributions"), P0-5d (registration and privacy notice).
 3. **Then:** competency questions in the database, publication of validated annotations to Corese, categories from TheZoo collections, versioned REST API, TEI ingestion and pre-annotation.

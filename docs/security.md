@@ -22,7 +22,7 @@
 | Server-side sessions stored in the database and revocable, identified by an `HttpOnly`, `Secure`, `SameSite` cookie, with CSRF protection | Decided, implemented (P0-4a); lifetimes (7 days idle, 30 days at most) decided 2026-11-16 |
 | Service-account tokens: random, stored hashed, limited to creating suggestions, revocable by an admin | Proposed. The account type is decided (RM-MOD-04); its implementation is deferred to the pre-annotation work (decided 2026-11-16) |
 
-The code lives in `app/accounts/` (P0-4a), `app/contributions/` and `app/queries/` (P0-4b), on the application database (SQLAlchemy 2 with the async engine; schema owned by Alembic in `migrations/`). Since P0-4b, every write of the contribution routes (annotations, term proposals) and of the saved-query routes needs an active account and the CSRF token (RM-CTB-01, RM-QC-06). The current frontend cannot do this, so P0-4b ships (push, deployment) together with the screens of P0-5a.
+The code lives in `app/accounts/` (P0-4a), `app/contributions/` and `app/queries/` (P0-4b), on the application database (SQLAlchemy 2 with the async engine; schema owned by Alembic in `migrations/`). Since P0-4b, every write of the contribution routes (annotations, term proposals) and of the saved-query routes needs an active account and the CSRF token (RM-CTB-01, RM-QC-06). The frontend sends both since P0-5a, which ships together with P0-4b.
 
 ### Accounts
 
@@ -52,6 +52,8 @@ Decided 2026-11-16.
 - Each session has a random synchronizer token, returned by `POST /auth/login` and `GET /auth/me`.
 - Every unsafe request (POST, PUT, PATCH, DELETE) authenticated by the cookie sends it in `X-CSRF-Token`, compared in constant time; otherwise `403 csrf_failed`. The check sits in the authentication dependency (`optional_auth`), so every route that requires a session has it.
 - The public routes (login, registration, password reset) have no session: they require `Content-Type: application/json` (`415 unsupported_media_type`), on top of `SameSite=Strict`.
+- In the frontend (P0-5a), the token lives only in the React Query cache of the session (`GET /auth/me`), never in `localStorage`. The request core (`src/api/http.ts`) sends it on unsafe requests; after a `403 csrf_failed`, it reloads the session and retries once, only if the same account is still signed in.
+- A `401 not_authenticated` on a write ends the session in the interface, which offers to sign in again. The return address (`/login?next=…`) only accepts relative paths of the same site.
 
 ### Passwords
 
@@ -79,6 +81,7 @@ Decided 2026-11-16.
 - The token is stored hashed, single-use (claimed by one atomic update) and valid **72 hours** (*proposed*). A new token cancels the unused ones of the account.
 - Using it revokes every session of the account and clears its throttle.
 - An unknown, used or expired token gives the same `400 invalid_reset_token`.
+- The admin passes on a link `/reset-password#token=…`: a fragment never reaches a server or a `Referer`. The page reads it once, then removes it from the address bar and from the router state; reloading the page loses it, so the user opens the link again.
 
 ### Errors and logs
 
@@ -242,9 +245,9 @@ Fixed so far (the sections above describe the protections):
 - CSV exports without the `csv` module and without formula neutralization (P0-2b);
 - a paragraph search by concept slowed down by a label pattern unrelated to the search (P0-2b);
 - integrity of contributions: Turtle injection, client-set status, editable native competency questions, unbounded inputs, `LIKE` and URL encoding (P0-3);
-- contribution endpoints without authentication (P0-4b, shipping with P0-5a).
+- contribution endpoints without authentication (P0-4b, with the screens of P0-5a).
 
-P0-4b (RM-CTB-01, RM-MOD-01, RM-QC-06) closes the P0 gap of the audit. Until it ships with P0-5a, the current frontend, which sends no credentials, cannot write.
+P0-4b (RM-CTB-01, RM-MOD-01, RM-QC-06) closes the P0 gap of the audit; it ships with the screens of P0-5a.
 
 Still open:
 

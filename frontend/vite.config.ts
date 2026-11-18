@@ -18,9 +18,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Forward API requests to the FastAPI backend (port 3001)
+      // Forward API requests to the FastAPI backend (port 3001; the e2e stack sets API_PROXY_TARGET)
       '/api': {
-        target: 'http://127.0.0.1:3001',
+        target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:3001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
@@ -85,16 +85,10 @@ export default defineConfig({
       {
         files: [
           'src/components/AnnotationLegendModal.tsx',
-          'src/components/AnnotationModal.tsx',
           'src/components/ConceptCriteriaCard.tsx',
           'src/components/Navbar.tsx',
           'src/components/reading/ReadingParagraphCard.tsx',
-          'src/components/sparql/SparqlQuerySidebar.tsx',
-          'src/pages/CorpusAnnotation.tsx',
           'src/pages/ExploreCorpus.tsx',
-          'src/pages/ExploreWork.tsx',
-          'src/pages/SparqlPlayground.tsx',
-          'src/pages/ThesaurusProposals.tsx',
         ],
         rules: { 'eslint/no-unused-vars': 'warn' },
       },
@@ -153,33 +147,25 @@ export default defineConfig({
         files: [
           'src/components/AnnotationModal.tsx',
           'src/components/Navbar.tsx',
-          'src/components/SaveQueryModal.tsx',
           'src/pages/CompetencyQuestions.tsx',
           'src/pages/CorpusAnnotation.tsx',
           'src/pages/ExploreCorpus.tsx',
           'src/pages/ExploreWork.tsx',
           'src/pages/SparqlPlayground.tsx',
-          'src/pages/ThesaurusProposals.tsx',
         ],
         rules: { 'react/set-state-in-effect': 'warn' },
       },
       {
         files: [
-          'src/components/AnnotationModal.tsx',
-          'src/components/SaveQueryModal.tsx',
           'src/components/common/SparqlHighlighter.tsx',
           'src/components/sparql/SparqlEditor.tsx',
           'src/components/visualization/VenusViewer.tsx',
           'src/pages/CompetencyQuestions.tsx',
-          'src/pages/CorpusAnnotation.tsx',
-          'src/pages/ExploreWork.tsx',
-          'src/pages/SparqlPlayground.tsx',
-          'src/pages/ThesaurusProposals.tsx',
         ],
         rules: { 'typescript/no-floating-promises': 'warn' },
       },
       {
-        files: ['src/components/reading/readingTypes.ts', 'src/types/index.ts'],
+        files: ['src/types/index.ts'],
         rules: { 'typescript/no-redundant-type-constituents': 'warn' },
       },
       {

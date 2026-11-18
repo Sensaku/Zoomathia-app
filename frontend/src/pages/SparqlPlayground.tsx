@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useLocation, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { executeSparqlQuery, fetchSavedQueries, deleteSavedQuery } from '../api/client'
+import { executeSparqlQuery, fetchSavedQueryPage, deleteSavedQuery } from '../api/client'
 import { getApiErrorMessage } from '../api/errors'
 import { SavedSparqlQuery } from '../types'
+import { SAVED_QUERIES_ROOT, contributionKeys } from '../features/contributions'
+import { fill } from '../features/contributions/lib/fill'
+import { Alert, ConfirmDialog } from '../shared/ui'
 import { VenusViewer } from '../components/visualization/VenusViewer'
 import { SaveQueryModal } from '../components/SaveQueryModal'
 import { SparqlEditor } from '../components/sparql/SparqlEditor'
@@ -15,7 +18,6 @@ import {
   Play,
   Table as TableIcon,
   Network,
-  Download,
   FileSpreadsheet,
   FileCode,
   AlertTriangle,
@@ -30,15 +32,15 @@ import {
   Copy,
   Clock,
   RotateCcw,
-  Sparkles,
   Info,
   ChevronLeft,
   ChevronRight,
-  FolderOpen,
   Plus,
 } from 'lucide-react'
 
 const LOCAL_STORAGE_HISTORY_KEY = 'zoomathia_sparql_history'
+/** Largest page the backend serves for the saved queries. */
+const SAVED_QUERIES_LIMIT = 500
 
 export const SparqlPlayground: React.FC = () => {
   const { t } = useI18n()
@@ -46,10 +48,11 @@ export const SparqlPlayground: React.FC = () => {
   const queryClient = useQueryClient()
 
   // 1. Récupération des requêtes sauvegardées
-  const { data: savedQueries = [], isLoading: isQueriesLoading } = useQuery({
-    queryKey: ['savedQueries'],
-    queryFn: () => fetchSavedQueries(),
+  const { data: savedPage, isLoading: isQueriesLoading } = useQuery({
+    queryKey: contributionKeys.savedQueryPage({ limit: SAVED_QUERIES_LIMIT }),
+    queryFn: ({ signal }) => fetchSavedQueryPage({ limit: SAVED_QUERIES_LIMIT }, signal),
   })
+  const savedQueries = useMemo(() => savedPage?.items ?? [], [savedPage])
 
   const [selectedQueryId, setSelectedQueryId] = useState<number | ''>('')
   const [queryTitle, setQueryTitle] = useState<string>('')
@@ -68,6 +71,9 @@ export const SparqlPlayground: React.FC = () => {
   }, [savedQueries, selectedQueryId])
 
   const isBuiltin = selectedQuery?.is_builtin ?? false
+  // The backend decides who may update a query (RM-QC-06); a native question is never updatable.
+  const canUpdate = selectedQuery?.allowed_actions.includes('edit') ?? false
+  const [queryToDelete, setQueryToDelete] = useState<SavedSparqlQuery | null>(null)
 
   // Historique local des requêtes exécutées
   const [historyQueries, setHistoryQueries] = useState<HistoryItem[]>(() => {
@@ -239,20 +245,21 @@ export const SparqlPlayground: React.FC = () => {
     sparqlMutation.mutate(trimmed)
   }
 
-  // Suppression d'une requête personnalisée
-  const handleDeleteQuery = async (id: number) => {
-    if (!window.confirm(t.sparql.deleteConfirm)) {
-      return
-    }
-    try {
-      await deleteSavedQuery(id)
-      queryClient.invalidateQueries({ queryKey: ['savedQueries'] })
+  // Suppression d'une requête personnalisée, après confirmation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteSavedQuery(id),
+    onSuccess: async (_data, id) => {
+      await queryClient.invalidateQueries({ queryKey: [SAVED_QUERIES_ROOT] })
       if (selectedQueryId === id) {
         handleNewQuery()
       }
-    } catch (err: any) {
-      setError(err?.message || 'Impossible de supprimer la requête.')
-    }
+      setQueryToDelete(null)
+    },
+  })
+
+  const askDeleteQuery = (query: SavedSparqlQuery) => {
+    deleteMutation.reset()
+    setQueryToDelete(query)
   }
 
   const queryResult = sparqlMutation.data
@@ -339,7 +346,7 @@ export const SparqlPlayground: React.FC = () => {
       columns.map((c) => (r[c]?.value || '').replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t'),
     )
     const text = [header, ...tsvLines].join('\n')
-    navigator.clipboard.writeText(text)
+    void navigator.clipboard.writeText(text)
     setCopiedTsv(true)
     setTimeout(() => setCopiedTsv(false), 2000)
   }
@@ -374,6 +381,16 @@ export const SparqlPlayground: React.FC = () => {
         </div>
       </div>
 
+      {/* The list is bounded by the page limit: say so when the server holds more (rule 10). */}
+      {savedPage && savedPage.total > savedQueries.length && (
+        <Alert tone="warning" className="mb-4">
+          {fill(t.sparql.savedQueriesPartial, {
+            shown: String(savedQueries.length),
+            total: String(savedPage.total),
+          })}
+        </Alert>
+      )}
+
       {/* Disposition en deux colonnes : Volet de bibliothèque + Atelier de travail */}
       <div className="flex flex-col items-start gap-5 lg:flex-row">
         {/* Volet latéral gauche : Bibliothèque de requêtes & modèles */}
@@ -382,7 +399,7 @@ export const SparqlPlayground: React.FC = () => {
           selectedQueryId={selectedQueryId}
           onSelectQuery={handleSelectQuery}
           onNewQuery={handleNewQuery}
-          onDeleteQuery={handleDeleteQuery}
+          onDeleteQuery={askDeleteQuery}
           onApplyTemplate={handleApplyTemplate}
           isQueriesLoading={isQueriesLoading}
           historyQueries={historyQueries}
@@ -411,7 +428,7 @@ export const SparqlPlayground: React.FC = () => {
                     {t.sparql.readOnlyBadge}
                   </span>
                 )}
-                {!isBuiltin && selectedQueryId !== '' && (
+                {canUpdate && (
                   <span className="rounded-none border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] text-emerald-700">
                     {t.sparql.customEditBadge}
                   </span>
@@ -514,7 +531,7 @@ export const SparqlPlayground: React.FC = () => {
                   className="inline-flex cursor-pointer items-center space-x-1.5 rounded-none border border-[#9A6530] px-4 py-2 text-xs font-semibold text-[#9A6530] transition-colors hover:bg-[#faf4ee] disabled:opacity-50"
                 >
                   <Bookmark className="h-3.5 w-3.5" />
-                  <span>{!isBuiltin && selectedQueryId !== '' ? t.sparql.updateQueryBtn : t.sparql.saveQueryBtn}</span>
+                  <span>{canUpdate ? t.sparql.updateQueryBtn : t.sparql.saveQueryBtn}</span>
                 </button>
 
                 <button
@@ -845,11 +862,21 @@ export const SparqlPlayground: React.FC = () => {
         initialTitle={queryTitle}
         initialDescription={queryDescription}
         queryId={selectedQueryId}
-        isBuiltin={isBuiltin}
-        onSuccess={(id) => {
-          setSelectedQueryId(id)
-          queryClient.invalidateQueries({ queryKey: ['savedQueries'] })
-        }}
+        canUpdate={canUpdate}
+        onSuccess={(id) => setSelectedQueryId(id)}
+      />
+
+      <ConfirmDialog
+        open={queryToDelete !== null}
+        title={fill(t.sparql.deleteTitle, { title: queryToDelete?.title ?? '' })}
+        message={t.sparql.deleteConfirm}
+        confirmLabel={t.common.delete}
+        cancelLabel={t.common.cancel}
+        tone="danger"
+        onConfirm={() => queryToDelete && deleteMutation.mutate(queryToDelete.id)}
+        onCancel={() => setQueryToDelete(null)}
+        isPending={deleteMutation.isPending}
+        error={deleteMutation.error ? getApiErrorMessage(deleteMutation.error, t) : undefined}
       />
     </div>
   )

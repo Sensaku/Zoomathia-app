@@ -1,0 +1,30 @@
+{
+  "admin": {
+    "email": "admin@e2e.test",
+    "displayName": "Octavia Verne",
+    "affiliation": "Institut fictif d'etudes anciennes",
+    "role": "admin",
+    "password": "KLqvyKdixmHVkfOAXoiv-0m_"
+  },
+  "alice": {
+    "email": "alice@e2e.test",
+    "displayName": "Alice Marchetti",
+    "affiliation": "Laboratoire fictif de philologie",
+    "role": "contributor",
+    "password": "cSp5S2uVrWdlA_euX43dx2Lg"
+  },
+  "bruno": {
+    "email": "bruno@e2e.test",
+    "displayName": "Bruno Delmas",
+    "affiliation": "Centre fictif de zoologie historique",
+    "role": "contributor",
+    "password": "yzN-hd-I5PqcYeHziqTpe6Do"
+  },
+  "carol": {
+    "email": "carol@e2e.test",
+    "displayName": "Carol Nakamura",
+    "affiliation": "Atelier fictif de lexicographie",
+    "role": "contributor",
+    "password": "KveElrbYZvWtWwnSEoovny9H"
+  }
+}

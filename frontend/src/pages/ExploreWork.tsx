@@ -4,28 +4,23 @@ import { useSearchParams } from 'react-router-dom'
 import {
   fetchAuthors,
   fetchWorks,
-  fetchWorksFromAuthor,
   fetchSummary,
   fetchParagraphs,
-  fetchConcepts,
   fetchTranslation,
-  fetchAnnotations,
   fetchSectionAnnotations,
-  deleteAnnotation,
   resolveUri,
 } from '../api/client'
-import {
-  SummaryNode,
-  Paragraph,
-  AnnotationMap,
-  StagedAnnotation,
-  Work,
-  ConceptCategory,
-  TargetParagraphDetail,
-  AnnotationScopeType,
-} from '../types'
+import { SummaryNode, Paragraph, TargetParagraphDetail, AnnotationScopeType } from '../types'
 import { AnnotationModal } from '../components/AnnotationModal'
 import { useI18n } from '../i18n'
+import {
+  PendingSavedNotice,
+  PendingToggle,
+  useSavedNotice,
+  StagedAnnotationCard,
+  contributionKeys,
+  usePendingFilter,
+} from '../features/contributions'
 import {
   BookOpen,
   ChevronRight,
@@ -34,38 +29,22 @@ import {
   ExternalLink,
   Loader2,
   Sparkles,
-  PlusCircle,
-  Trash2,
   Download,
-  Library,
   Feather,
-  Tag,
   User,
-  X,
-  Layers,
 } from 'lucide-react'
 import {
   ConceptCategoryIcon,
   ConceptCategoryBadge,
-  getConceptCategoryInfo,
-  CATEGORY_STYLES,
-  CATEGORY_HOVER_STYLES,
-  CATEGORY_PINNED_STYLES,
-  CATEGORY_OVERLAP_STYLES,
-  CATEGORY_DELIMITER_LEFT,
-  CATEGORY_DELIMITER_RIGHT,
-  CATEGORY_ACTIVE_DELIMITER_LEFT,
-  CATEGORY_ACTIVE_DELIMITER_RIGHT,
-  CATEGORY_BADGE_PINNED,
-  CATEGORY_BADGE_HOVER,
-  CATEGORY_PARA_PINNED,
-  CATEGORY_PARA_HOVER,
-  CATEGORY_TAG_PINNED,
-  CATEGORY_TAG_HOVER,
   CATEGORY_TOC_PINNED,
   CATEGORY_TOC_HOVER,
 } from '../components/ConceptCategoryBadge'
-import { ReadingParagraphCard, PinnedConceptBanner, useConceptInspection } from '../components/reading'
+import {
+  ReadingParagraphCard,
+  PinnedConceptBanner,
+  MultiParagraphLinks,
+  useConceptInspection,
+} from '../components/reading'
 
 /**
  * Recherche récursive du nœud de section le plus précis dans l'arborescence du sommaire
@@ -99,6 +78,7 @@ export const ExploreWork: React.FC = () => {
   const { t, language } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialUri = searchParams.get('uri')?.trim() || ''
+  const { includePending } = usePendingFilter()
 
   const [selectedAuthor, setSelectedAuthor] = useState<string>('')
   const [selectedWorkUri, setSelectedWorkUri] = useState<string>('')
@@ -234,6 +214,8 @@ export const ExploreWork: React.FC = () => {
     )
   }, [activeSectionUri, summary, activeParagraphUri])
   const targetSectionUri = inferredSectionUri
+  // A new annotation is pending, so hidden by default: tell its author (RM-ACC-03).
+  const savedNotice = useSavedNotice(targetSectionUri)
 
   // Déplier automatiquement le livre parent dans la table des matières si une section est active
   useEffect(() => {
@@ -290,13 +272,9 @@ export const ExploreWork: React.FC = () => {
   })
 
   // 7. Annotations groupées de la section (Corese + Staging)
-  const {
-    data: sectionData,
-    isLoading: isSectionDataLoading,
-    refetch: refetchSectionData,
-  } = useQuery({
-    queryKey: ['sectionAnnotations', targetSectionUri, language],
-    queryFn: () => fetchSectionAnnotations(targetSectionUri, language),
+  const { data: sectionData, refetch: refetchSectionData } = useQuery({
+    queryKey: contributionKeys.sectionAnnotations(targetSectionUri, language, includePending),
+    queryFn: ({ signal }) => fetchSectionAnnotations(targetSectionUri, language, { includePending, signal }),
     enabled: !!targetSectionUri,
   })
 
@@ -333,9 +311,6 @@ export const ExploreWork: React.FC = () => {
     setHoveredConcept,
     pinnedConcept,
     setPinnedConcept,
-    activeInspectionConcept,
-    activeInspectionParagraphUris,
-    activeInspectionLabel,
     activeInspectionCategory,
     pinnedConceptLabel,
     pinnedConceptCategory,
@@ -363,7 +338,12 @@ export const ExploreWork: React.FC = () => {
     setActiveSectionUri('')
     setActiveParagraphUri('')
     setSelectedSnippet(null)
-    setSearchParams({ uri })
+    // Functional form: keeps the other parameters, such as pending=1 (RM-ACC-03).
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      next.set('uri', uri)
+      return next
+    })
     const targetW = allWorks.find((w) => w.uri === uri)
     if (targetW?.author) {
       setSelectedAuthor(targetW.author)
@@ -383,7 +363,11 @@ export const ExploreWork: React.FC = () => {
       } else {
         appliedUriRef.current = null
         setSelectedWorkUri('')
-        setSearchParams({})
+        setSearchParams((previous) => {
+          const next = new URLSearchParams(previous)
+          next.delete('uri')
+          return next
+        })
       }
     }
   }
@@ -1021,6 +1005,9 @@ export const ExploreWork: React.FC = () => {
                 </a>
               </div>
 
+              <PendingToggle />
+              {savedNotice.visible && <PendingSavedNotice onDismiss={savedNotice.dismiss} />}
+
               {!activeParagraphUri ? (
                 <p className="p-3 text-center text-xs leading-relaxed text-[#8c8275] italic">
                   {t.work.selectParaPrompt}
@@ -1040,125 +1027,25 @@ export const ExploreWork: React.FC = () => {
                         </span>
                       </h4>
 
-                      {activeStagedAnnotations.map((item) => {
-                        const isPinned = pinnedConcept === item.concept_uri
-                        const isHovered = hoveredConcept === item.concept_uri
-                        const isMulti =
-                          item.scope_type === 'multi_paragraph' ||
-                          (item.target_paragraphs && item.target_paragraphs.length > 1)
-
-                        return (
-                          <div
-                            key={item.id}
-                            onMouseEnter={() => setHoveredConcept(item.concept_uri)}
-                            onMouseLeave={() => setHoveredConcept(null)}
-                            onClick={() =>
-                              setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))
-                            }
-                            className={`cursor-pointer space-y-2 rounded-none border p-3 text-xs transition-colors ${
-                              isPinned
-                                ? 'border-emerald-600 bg-emerald-100/90 shadow-sm ring-2 ring-emerald-600'
-                                : isHovered
-                                  ? 'border-emerald-500 bg-emerald-100/90 shadow-sm ring-1 ring-emerald-500'
-                                  : 'border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/40'
-                            }`}
-                          >
-                            <div className="space-y-1.5">
-                              <div className="flex min-w-0 items-start space-x-1.5">
-                                <ConceptCategoryIcon
-                                  label={item.concept_label}
-                                  uri={item.concept_uri}
-                                  className="h-3.5 w-3.5 shrink-0"
-                                />
-                                <strong className="min-w-0 flex-1 overflow-visible text-sm leading-snug font-semibold break-words whitespace-normal text-emerald-950 capitalize">
-                                  {item.concept_label}
-                                </strong>
-                                {isPinned && (
-                                  <span className="shrink-0 text-xs" title="Annotation épinglée">
-                                    📌
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center justify-end space-x-1.5">
-                                <ConceptCategoryBadge label={item.concept_label} uri={item.concept_uri} />
-                                <button
-                                  type="button"
-                                  onClick={async (e) => {
-                                    e.stopPropagation()
-                                    await deleteAnnotation(item.id)
-                                    refetchStaged()
-                                  }}
-                                  className="rounded-none p-1 text-emerald-700 transition-colors hover:text-red-600"
-                                  title={t.work.deleteStagingTooltip}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Badge Multi-paragraphes */}
-                            {isMulti && (
-                              <div className="flex w-fit items-center space-x-1 rounded-full border border-emerald-300 bg-emerald-100/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                                <Layers className="h-3 w-3 shrink-0 text-emerald-700" />
-                                <span>Multi-paragraphes ({item.target_paragraphs?.length || 'étendues'} §)</span>
-                              </div>
-                            )}
-
-                            <div className="text-[11px] text-emerald-900 italic">
-                              {t.work.extract} « {item.target_text} »{' '}
-                              {isMulti
-                                ? `(${item.target_paragraphs?.length || 2} paragraphes)`
-                                : `(pos. ${item.start_offset}-${item.end_offset})`}
-                            </div>
-
-                            {/* Liens vers les paragraphes couverts */}
-                            {item.target_paragraphs && item.target_paragraphs.length > 1 && (
-                              <div className="flex flex-wrap items-center gap-1 pt-1 text-[10px]">
-                                <span className="font-medium text-emerald-800">Paragraphes :</span>
-                                {item.target_paragraphs.map((pUri) => {
-                                  const pIdx = paragraphs.findIndex((p) => p.uri === pUri)
-                                  const pNum = pIdx !== -1 ? paragraphs[pIdx].id || pIdx + 1 : '§'
-                                  const isThisPara = pUri === activeParagraphUri
-                                  return (
-                                    <button
-                                      key={pUri}
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleFocusParagraph(pUri)
-                                      }}
-                                      className={`rounded-none border px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
-                                        isThisPara
-                                          ? 'border-emerald-800 bg-emerald-700 font-bold text-white'
-                                          : 'border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100'
-                                      }`}
-                                      title={`Aller au paragraphe § ${pNum}`}
-                                    >
-                                      § {pNum}
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            )}
-
-                            <div className="flex items-center justify-between border-t border-emerald-200/60 pt-1.5 text-[10px] text-emerald-700">
-                              <span>
-                                {t.work.annotator} {item.annotator_name}
-                              </span>
-                              <a
-                                href={item.concept_uri}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center space-x-0.5 hover:underline"
-                              >
-                                <span>{t.work.viewOnTheZoo}</span>
-                                <ExternalLink className="h-2.5 w-2.5" />
-                              </a>
-                            </div>
-                          </div>
-                        )
-                      })}
+                      {activeStagedAnnotations.map((item) => (
+                        <StagedAnnotationCard
+                          key={item.id}
+                          annotation={item}
+                          isPinned={pinnedConcept === item.concept_uri}
+                          isHighlighted={hoveredConcept === item.concept_uri}
+                          onTogglePin={() =>
+                            setPinnedConcept((prev) => (prev === item.concept_uri ? null : item.concept_uri))
+                          }
+                          onHoverChange={(hovered) => setHoveredConcept(hovered ? item.concept_uri : null)}
+                        >
+                          <MultiParagraphLinks
+                            annotation={item}
+                            paragraphs={paragraphs}
+                            activeParagraphUri={activeParagraphUri}
+                            onFocusParagraph={handleFocusParagraph}
+                          />
+                        </StagedAnnotationCard>
+                      ))}
                     </div>
                   ) : stagedAnnotations.length > 0 ? (
                     <div className="rounded-none border border-dashed border-emerald-300 bg-emerald-50/60 p-2.5 text-center text-xs text-emerald-800">
@@ -1272,7 +1159,10 @@ export const ExploreWork: React.FC = () => {
         targetParagraphDetails={modalTargetParaDetails.length > 0 ? modalTargetParaDetails : undefined}
         endParagraphUri={modalEndParaUri}
         initialScopeType={modalScopeType}
-        onSuccess={() => refetchStaged()}
+        onSuccess={() => {
+          void refetchStaged()
+          savedNotice.show()
+        }}
       />
     </div>
   )

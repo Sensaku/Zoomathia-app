@@ -1,0 +1,480 @@
+[
+  {
+    "name": "authors",
+    "contains": ["SELECT DISTINCT ?name WHERE", "zoo:editor ?editor"],
+    "result": {
+      "head": {
+        "vars": ["name"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "name": {
+              "type": "literal",
+              "value": "Fictus"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "all works",
+    "contains": ["SELECT ?oeuvre ?title ?author (SAMPLE(?file) AS ?file)"],
+    "result": {
+      "head": {
+        "vars": ["oeuvre", "title", "author", "file"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "oeuvre": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus"
+            },
+            "title": {
+              "type": "literal",
+              "value": "De animalibus"
+            },
+            "author": {
+              "type": "literal",
+              "value": "Fictus"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "works of an author",
+    "contains": ["SELECT ?oeuvre ?title (SAMPLE(?file) AS ?file)"],
+    "result": {
+      "head": {
+        "vars": ["oeuvre", "title", "file"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "oeuvre": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus"
+            },
+            "title": {
+              "type": "literal",
+              "value": "De animalibus"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "work by uri",
+    "contains": ["SELECT DISTINCT ?work ?author ?title"],
+    "result": {
+      "head": {
+        "vars": ["work", "author", "title"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "work": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus"
+            },
+            "author": {
+              "type": "literal",
+              "value": "Fictus"
+            },
+            "title": {
+              "type": "literal",
+              "value": "De animalibus"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "no translation",
+    "contains": ["SELECT ?file WHERE"],
+    "result": {
+      "head": {
+        "vars": ["file"]
+      },
+      "results": {
+        "bindings": []
+      }
+    }
+  },
+  {
+    "name": "summary of the work",
+    "contains": ["SELECT DISTINCT ?parent ?current ?type", "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus>"],
+    "result": {
+      "head": {
+        "vars": ["parent", "current", "type", "id", "title"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "parent": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1"
+            },
+            "current": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1"
+            },
+            "type": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/zoo#Livre"
+            },
+            "id": {
+              "type": "literal",
+              "value": "1"
+            },
+            "title": {
+              "type": "literal",
+              "value": "Liber primus"
+            }
+          },
+          {
+            "parent": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1"
+            },
+            "current": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1"
+            },
+            "type": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/zoo#Chapitre"
+            },
+            "id": {
+              "type": "literal",
+              "value": "1"
+            },
+            "title": {
+              "type": "literal",
+              "value": "De bestiis silvarum"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "paragraphs of the chapter",
+    "contains": [
+      "SELECT DISTINCT (xsd:integer(?id_p) as ?id) ?title ?uri ?text",
+      "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1>"
+    ],
+    "result": {
+      "head": {
+        "vars": ["id", "title", "uri", "text"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "id": {
+              "type": "literal",
+              "value": "1"
+            },
+            "title": {
+              "type": "literal",
+              "value": "De bestiis silvarum"
+            },
+            "uri": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/1"
+            },
+            "text": {
+              "type": "literal",
+              "value": "In silva magna leo habitat et ceteras bestias vincit."
+            }
+          },
+          {
+            "id": {
+              "type": "literal",
+              "value": "2"
+            },
+            "title": {
+              "type": "literal",
+              "value": "De bestiis silvarum"
+            },
+            "uri": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/2"
+            },
+            "text": {
+              "type": "literal",
+              "value": "Lupus noctu errat et ovium greges observat."
+            }
+          },
+          {
+            "id": {
+              "type": "literal",
+              "value": "3"
+            },
+            "title": {
+              "type": "literal",
+              "value": "De bestiis silvarum"
+            },
+            "uri": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/3"
+            },
+            "text": {
+              "type": "literal",
+              "value": "Aquila alte volat atque oculis acutissimis praedam cernit."
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "resolve the work",
+    "contains": ["SELECT ?type ?work ?section", "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus>"],
+    "result": {
+      "head": {
+        "vars": ["type", "work", "section"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "type": {
+              "type": "literal",
+              "value": "work"
+            },
+            "work": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "resolve the chapter",
+    "contains": ["SELECT ?type ?work ?section", "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1>"],
+    "result": {
+      "head": {
+        "vars": ["type", "work", "section"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "type": {
+              "type": "literal",
+              "value": "section"
+            },
+            "work": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus"
+            },
+            "section": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "resolve paragraph 1",
+    "contains": ["SELECT ?type ?work ?section", "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/1>"],
+    "result": {
+      "head": {
+        "vars": ["type", "work", "section"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "type": {
+              "type": "literal",
+              "value": "paragraph"
+            },
+            "work": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus"
+            },
+            "section": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "resolve paragraph 2",
+    "contains": ["SELECT ?type ?work ?section", "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/2>"],
+    "result": {
+      "head": {
+        "vars": ["type", "work", "section"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "type": {
+              "type": "literal",
+              "value": "paragraph"
+            },
+            "work": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus"
+            },
+            "section": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "resolve paragraph 3",
+    "contains": ["SELECT ?type ?work ?section", "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/3>"],
+    "result": {
+      "head": {
+        "vars": ["type", "work", "section"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "type": {
+              "type": "literal",
+              "value": "paragraph"
+            },
+            "work": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus"
+            },
+            "section": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "annotations of the chapter (paragraphs 2 and 3 have none: see the README)",
+    "contains": [
+      "SELECT DISTINCT ?paragraph ?annotation ?annotation_type ?concept ?label",
+      "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1>"
+    ],
+    "result": {
+      "head": {
+        "vars": [
+          "paragraph",
+          "annotation",
+          "annotation_type",
+          "concept",
+          "label",
+          "start",
+          "end",
+          "exact",
+          "coll",
+          "collLabel"
+        ]
+      },
+      "results": {
+        "bindings": [
+          {
+            "paragraph": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/1"
+            },
+            "annotation": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/1/annotation/1"
+            },
+            "annotation_type": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/zoo#Annotation"
+            },
+            "concept": {
+              "type": "uri",
+              "value": "https://opentheso.huma-num.fr/?idc=1000001&idt=th310"
+            },
+            "label": {
+              "type": "literal",
+              "value": "lion"
+            },
+            "start": {
+              "type": "literal",
+              "value": "15"
+            },
+            "end": {
+              "type": "literal",
+              "value": "18"
+            },
+            "exact": {
+              "type": "literal",
+              "value": "leo"
+            },
+            "coll": {
+              "type": "uri",
+              "value": "https://opentheso.huma-num.fr/?idc=1000000&idt=th310"
+            },
+            "collLabel": {
+              "type": "literal",
+              "value": "Mammals"
+            }
+          },
+          {
+            "paragraph": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/2"
+            }
+          },
+          {
+            "paragraph": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "paragraphs of the chapter (annotation fallback)",
+    "contains": ["SELECT DISTINCT ?uri WHERE", "<http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1>"],
+    "result": {
+      "head": {
+        "vars": ["uri"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "uri": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/1"
+            }
+          },
+          {
+            "uri": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/2"
+            }
+          },
+          {
+            "uri": {
+              "type": "uri",
+              "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/3"
+            }
+          }
+        ]
+      }
+    }
+  }
+]

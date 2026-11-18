@@ -31,11 +31,15 @@ The current palette, formalized. Contrast ratios are measured against the page b
 | `paper-raised` | `#faf9f6` | Panels | — |
 | `paper-sunken` | `#f4ede2`, `#f0eae0` | Selected rows, side panels | — |
 | `rule` | `#ded5c6` | Decorative separators only | 1.4:1 |
-| `rule-strong` | *to define* | Input and control borders | ≥ 3:1 required |
+| `rule-strong` | `#857b6e` (*Proposed*) | Input and control borders | 4.0:1 (3.6:1 on `paper-sunken`) |
+| `success`, `success-soft` | `#2f6b3e`, `#eaf3ec` (*Proposed*) | Validated status, success messages | 6.2:1 |
+| `danger`, `danger-soft` | `#a1312b`, `#f9eceb` (*Proposed*) | Rejected status, errors, destructive buttons | 6.8:1 (white text on it: 7.0:1) |
+| `warning`, `warning-soft` | `#7c5a12`, `#f8f0dc` (*Proposed*) | Status "non relu", warnings | 6.1:1 |
 
 - Body text reaches at least **4.5:1**; large text, icons, control borders and focus indicators at least **3:1**.
-- **Known gaps to fix:** `#8c8275` is used about 100 times as a text colour (3.65:1, below AA). The current input borders (`#ded5c6`, `#cfc5b4`, 1.4:1 and 1.65:1) are below the 3:1 required for control boundaries: `rule-strong` must be darker.
+- **Known gaps to fix:** `#8c8275` is used about 100 times as a text colour (3.65:1, below AA). The legacy input borders (`#ded5c6`, `#cfc5b4`, 1.4:1 and 1.65:1) are below the 3:1 required for control boundaries; new controls use `rule-strong`.
 - White text on `accent` reaches 4.9:1: acceptable for buttons.
+- **Navbar** (dark bar, *Proposed* tokens, contrast on `chrome`): `chrome` `#1f1d1a`, `chrome-raised` `#2c2723`, `chrome-line` `#453e37` (decorative), `on-chrome` `#f4efe6` (14.7:1), `on-chrome-muted` `#a89e90` (6.4:1), `focus-on-chrome` `#e0b77d` (9.0:1, focus ring).
 
 ### Annotation categories
 
@@ -71,7 +75,7 @@ Current colours: animal (amber), behaviour (indigo), anatomy (rose), place (teal
 - **Desktop layout:** three columns (table of contents, text, annotations panel). The side panels can be collapsed to give the text the full width.
 - **Table of contents for long reading:** it shows the current position as the reader scrolls, jumps to any book, chapter or paragraph, and the URL always contains the passage, so a reload or a shared link reopens the same place.
 - **Text first:** annotations are discreet by default (category underline); details appear on hover, focus or click. The pinned-concept banner stays the way to follow one concept through a text.
-- **Contributions awaiting review are hidden by default** and appear, marked "non relu", when the reader enables the corresponding filter (RM-ACC-03).
+- **Contributions awaiting review are hidden by default** and appear, marked "non relu", when the reader enables the corresponding filter (RM-ACC-03). The reader and the annotation studio share one switch, "Afficher les contributions non relues" (`pending=1` in the URL). Rejected annotations never appear in the text: the studio lists them per paragraph, with their reason (RM-ACC-04).
 - The reader already offers a text size control (A, A+, A++). *Proposed:* add line spacing, and a choice between original and translation side by side or one at a time.
 
 ## Responsive design and zoom
@@ -89,7 +93,13 @@ A print stylesheet prints the passage with its citation (author, work, reference
 
 - Every data view designs its **loading** state (skeletons shaped like the content, not spinners over text), its **empty** state (why it is empty and what to do) and its **error** state (plain-language message and a retry action).
 - Actions give immediate feedback; destructive actions ask for confirmation.
-- **Contribution status** (validated, awaiting review, AI suggestion, retracted) is shown with a label and an icon, plus the author and the date.
+- **Contribution status** (validated, awaiting review, AI suggestion, retracted) is shown with a label and an icon, plus the author and the date. Since P0-5a: "Non relu" (clock), "Validé" (check), "Rejeté" (cross).
+- **Contributor line:** the author as "name (affiliation)", or the typed name of a historical contribution, marked as prior to accounts; the reviewer and the review date; the public reason of a rejection.
+- **Actions** come only from `allowed_actions`. Validating and deleting ask for confirmation; rejecting asks for a reason and warns that it will be public. Each button's accessible name includes its subject, for example "Valider : lion".
+- **Conflicts:** when the contribution changed or was reviewed meanwhile (409), the dialog says so and only offers "Fermer"; closing it reloads the list, so nothing is decided on content the user has not read.
+- **Forms:** required fields marked " *"; on a failed submit, an error summary takes the focus and links to each field; each invalid field has its message (`aria-invalid`, `aria-describedby`); server errors are translated from their code.
+- **Visitors** see an invitation to sign in instead of a contribution form.
+- **Lists:** term proposals open on the validated tab; the pending and rejected tabs list the others, rejections with their reason (RM-ACC-03, RM-ACC-04).
 
 ## Public visibility
 
@@ -107,7 +117,9 @@ A print stylesheet prints the passage with its citation (author, work, reference
 
 - With no separate mockups, the **component catalogue is the visual reference**: every shared component (`src/shared/ui/`) is shown with its variants and states (default, hover, focus, disabled, loading, error).
 - A new screen is assembled from catalogue components first. A new shared component enters the catalogue in the same change.
-- **Tool: postponed to the start of P0-5a** (owner decision, 2026-11-16), under the dependency policy. Storybook 10.6 and 11.0 beta declare an optional peer `vite-plus` `^0.1`, `^0.2` or `^0.3`, which conflicts with Vite+ 1.6 under npm; Ladle has had no release since 2025-11-04 and ships its own Vite 6. Choose again when P0-5a starts.
+- **Shared components** (`src/shared/ui/`, P0-5a): `Button` (primary, secondary, danger, ghost; loading state), `TextField`, `TextAreaField`, `CheckboxField`, `Alert` (icon and text per tone), `ErrorSummary`, `Dialog` (focus kept inside, Escape closes, focus returns to the opener, a click outside does not close it) and `ConfirmDialog` (focus starts on "cancel").
+- **Feature components:** `StatusBadge`, `ContributorLine`, `ContributionActions`, `RejectDialog`, `PendingToggle`, `ConceptPicker` (TheZoo search from 2 typed characters), the edit dialogs and cards of annotations and proposals (`src/features/contributions/`); `AccountMenu` (disclosure button), `SessionExpiredNotice`, `SignInPrompt` (`src/features/accounts/`).
+- **Tool:** an in-house page, `frontend/catalogue.html`: run `npm run dev` and open `/catalogue.html`. No dependency, absent from the production build, checked by a Vitest test with axe ([decision record 0002](decisions/0002-catalogue-and-e2e-stack.md)).
 
 ## Checklist for a visual change
 

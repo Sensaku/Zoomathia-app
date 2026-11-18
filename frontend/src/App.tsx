@@ -14,6 +14,14 @@ import { About } from './pages/About'
 import { ArrowUp } from 'lucide-react'
 import { I18nProvider } from './i18n'
 import { isFinalApiError } from './api/errors'
+import { connectSession } from './api/client'
+import {
+  AccountPage,
+  LoginPage,
+  ResetPasswordPage,
+  SessionExpiredNotice,
+  createSessionBridge,
+} from './features/accounts'
 
 // Configuration de React Query pour le cache et l'élimination des requêtes redondantes
 const queryClient = new QueryClient({
@@ -26,6 +34,9 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// The API client reads the CSRF token and reports an ended session through the query cache.
+connectSession(createSessionBridge(queryClient))
 
 const AppContent: React.FC = () => {
   const location = useLocation()
@@ -60,6 +71,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#fcfbf9] text-[#2c2724]">
       <Navbar />
+      <SessionExpiredNotice />
 
       <main
         id="main-content-scroll"
@@ -77,6 +89,9 @@ const AppContent: React.FC = () => {
           <Route path="/sparql" element={<SparqlPlayground />} />
           <Route path="/thesaurus-proposals" element={<ThesaurusProposals />} />
           <Route path="/about" element={<About />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Redirections de compatibilité avec les anciennes URLs */}
           <Route path="/ExploreAWork" element={<ExploreWork />} />

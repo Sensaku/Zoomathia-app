@@ -145,7 +145,7 @@ Chaque agent IA ou pipeline dispose d'un compte de service avec un jeton d'API. 
 
 Une contribution validée peut ensuite être **retirée** (RM-PUB-04) : elle quitte le graphe, son historique reste consultable.
 
-*Décidé (2026-11-16, technique) :* les statuts sont stockés sous forme de codes et traduits dans l'interface. Les codes `pending`, `validated` et `rejected` sont en service ; `suggested` et `retracted` arrivent avec leurs fonctionnalités (pré-annotation, RM-PUB-04). La migration des anciens libellés français (« En attente de validation », « En attente de révision », « Validé », « Rejeté ») est faite côté serveur ; l'interface actuelle les compare encore comme libellés jusqu'aux écrans des comptes (P0-5).
+*Décidé (2026-11-16, technique) :* les statuts sont stockés sous forme de codes et traduits dans l'interface. Les codes `pending`, `validated` et `rejected` sont en service ; `suggested` et `retracted` arrivent avec leurs fonctionnalités (pré-annotation, RM-PUB-04). La migration des anciens libellés français (« En attente de validation », « En attente de révision », « Validé », « Rejeté ») est faite côté serveur ; depuis P0-5a, l'interface reçoit les codes et les affiche par des libellés traduits.
 
 ---
 
