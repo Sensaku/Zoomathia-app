@@ -1,10 +1,11 @@
 import React from 'react'
 import { PawPrint, Activity, HeartPulse, MapPin, User, Sparkles, LucideIcon } from 'lucide-react'
-import { ConceptCategory } from '../types'
+import { useI18n, type Language } from '../i18n'
+import { ConceptCategory, ConceptCollection } from '../types'
 
-export interface ConceptCategoryInfo {
+/** Icon and classes of a concept category. The label comes from i18n (`conceptCategories`). */
+export interface ConceptCategoryStyle {
   category: ConceptCategory
-  label: string
   icon: LucideIcon
   colorClass: string
   bgClass: string
@@ -12,233 +13,15 @@ export interface ConceptCategoryInfo {
   textClass: string
 }
 
-// Identifiants des concepts racines et taxons clés TheZoo (Domestique, Sauvage, Ni domestique ni sauvage...)
-const ROOT_ANIMAL_IDS = new Set([
-  '4988',
-  '106004',
-  '107676',
-  '105539',
-  '105555',
-  '105540',
-  '105541',
-  '107008',
-  '106789',
-  '107912',
-  '105781',
-  '105782',
-  '106935',
-  '106749',
-  '106753',
-  '108745',
-  '106933',
-  '107467',
-  '107292',
-  '107286',
-  '108048',
-  '108187',
-  '108313',
-  '108179',
-  '108175',
-  '108177',
-  '107264',
-  '107948',
-  '107515',
-  '107743',
-  '107284',
-  '108169',
-  '108303',
-  '108221',
-  '108223',
-  '107473',
-  '5037',
-  '105780',
-  '4996',
-  '15094',
-  'pcrt3jcrAaRENB',
-  'pcrt4v7jKE3TVw',
-  'pcrt0wSiSXpLTf',
-  'pcrth4ik1YqDS1',
-  '106951',
-  '105804',
-  '106949',
-  '106492',
-  '106516',
-  '106512',
-  '5071',
-  '105993',
-  '105994',
-  '105996',
-  'pcrtDtJwUVaZ0I',
-  'pcrtLywf8Y5k0n',
-  '106552',
-  '106554',
-  'pcrtamWjqMqPWT',
-  'pcrtOl4a3UUtiu',
-  'pcrtDoQWOTMlW7',
-  'pcrt6i8AcPBoY2',
-  '106482',
-  '106484',
-  'pcrtnpPag9iONJ',
-  '107580',
-  '107578',
-  '107582',
-  '107914',
-  'pcrtEOlJwpiHmn',
-  'pcrt1eSDN7pc4r',
-  'pcrtoWmR7YcVct',
-  '105904',
-  'pcrtRpEmyMyoAU',
-  '106536',
-  'pcrtVibtZJlA99',
-  '105918',
-  '106647',
-  'pcrtva7NUywIgB',
-  '105879',
-  'pcrt8q2AHnsLUr',
-  'pcrt5TAeZsO7W4',
-  '106524',
-  'pcrtlYnu8y5j62',
-  '106620',
-  'pcrtRmvjGjzyOO',
-  '106269',
-  '105880',
-  '106622',
-  '106626',
-  '105898',
-  'pcrtZtKktLIqkU',
-  '107709',
-  '105867',
-  '105882',
-  '106624',
-])
-
-export function getConceptCategoryInfo(
-  category?: ConceptCategory,
-  collection?: string | null,
-  fallbackLabel?: string,
-  conceptUri?: string,
-): ConceptCategoryInfo {
-  let cat: ConceptCategory = category || 'general'
-
-  // 1. Détection par identifiant URI de racine animale (Domestique, Sauvage, Ni domestique ni sauvage...)
-  if (cat === 'general' && conceptUri) {
-    const uriLower = conceptUri.toLowerCase()
-    for (const rid of ROOT_ANIMAL_IDS) {
-      if (uriLower.includes(`idc=${rid.toLowerCase()}`)) {
-        cat = 'animal'
-        break
-      }
-    }
-  }
-
-  // 2. Détection par libellé pour les concepts racines (DOMESTIQUE, SAUVAGE, animal domestique...)
-  if (cat === 'general' && fallbackLabel) {
-    const lbl = fallbackLabel.trim().toLowerCase()
-    const exactRootAnimals = [
-      'domestique',
-      'domestic',
-      'domesticus',
-      'domestico',
-      'sauvage',
-      'wild',
-      'ferus',
-      'salvaje',
-      'selvatico',
-      'ni domestique ni sauvage',
-      'animal domestique',
-      'animal sauvage',
-      'animal',
-      'animaux',
-      'faune',
-      'bête',
-      'bestiole',
-      'fauve',
-      'eumetazoa',
-      'parazoa',
-    ]
-    if (exactRootAnimals.includes(lbl)) {
-      cat = 'animal'
-    } else if (
-      lbl.startsWith('animal ') ||
-      lbl.startsWith('animaux ') ||
-      lbl.startsWith('faune ') ||
-      lbl.startsWith('bête ') ||
-      lbl.startsWith('bestiole ') ||
-      lbl.startsWith('oiseau ') ||
-      lbl.startsWith('poisson ') ||
-      lbl.startsWith('reptile ') ||
-      lbl.startsWith('insecte ') ||
-      lbl.startsWith('squale ')
-    ) {
-      cat = 'animal'
-    } else if (
-      (lbl.endsWith(' sauvage') || lbl.endsWith(' domestique')) &&
-      !['rosier', 'figuier', 'olivier', 'laitue', 'vigne', 'pommier', 'poirier'].some((p) => lbl.includes(p))
-    ) {
-      cat = 'animal'
-    } else if (
-      [
-        'éthologie',
-        'ethology',
-        'comportement',
-        'prédation',
-        'intelligence',
-        'parasitisme',
-        'hygiène',
-        'courage',
-        'sagesse',
-      ].includes(lbl)
-    ) {
-      cat = 'behavior'
-    }
-  }
-
-  // 3. Fallback heuristique si collection fournie
-  if (cat === 'general' && collection) {
-    const colLower = collection.toLowerCase()
-    if (
-      colLower.includes('zoonym') ||
-      colLower.includes('archéotaxon') ||
-      colLower.includes('archeotaxon') ||
-      colLower.includes('ancient class') ||
-      colLower.includes('mt_7') ||
-      colLower.includes('mt_10')
-    ) {
-      cat = 'animal'
-    } else if (
-      colLower.includes('éthologie') ||
-      colLower.includes('ethologie') ||
-      colLower.includes('ethology') ||
-      colLower.includes('comportement') ||
-      colLower.includes('mt_13')
-    ) {
-      cat = 'behavior'
-    } else if (
-      colLower.includes('anatomie') ||
-      colLower.includes('anatomy') ||
-      colLower.includes('physiologie') ||
-      colLower.includes('mt_8') ||
-      colLower.includes('mt_11')
-    ) {
-      cat = 'anatomy'
-    } else if (colLower.includes('lieu') || colLower.includes('place') || colLower.includes('mt_4')) {
-      cat = 'place'
-    } else if (
-      colLower.includes('anthroponyme') ||
-      colLower.includes('peuple') ||
-      colLower.includes('people') ||
-      colLower.includes('mt_1') ||
-      colLower.includes('mt_5')
-    ) {
-      cat = 'person'
-    }
-  }
-
-  switch (cat) {
+/**
+ * The icon and the classes of a category (RM-CON-02). The category is computed by the backend and
+ * only displayed here: a missing one reads as `general`, and nothing is guessed from a label or an IRI.
+ */
+export function categoryStyle(category?: ConceptCategory): ConceptCategoryStyle {
+  switch (category) {
     case 'animal':
       return {
         category: 'animal',
-        label: 'Animal',
         icon: PawPrint,
         colorClass: 'text-amber-600',
         bgClass: 'bg-amber-50',
@@ -248,7 +31,6 @@ export function getConceptCategoryInfo(
     case 'behavior':
       return {
         category: 'behavior',
-        label: 'Comportement',
         icon: Activity,
         colorClass: 'text-indigo-600',
         bgClass: 'bg-indigo-50',
@@ -258,7 +40,6 @@ export function getConceptCategoryInfo(
     case 'anatomy':
       return {
         category: 'anatomy',
-        label: 'Anatomie',
         icon: HeartPulse,
         colorClass: 'text-rose-600',
         bgClass: 'bg-rose-50',
@@ -268,7 +49,6 @@ export function getConceptCategoryInfo(
     case 'place':
       return {
         category: 'place',
-        label: 'Lieu',
         icon: MapPin,
         colorClass: 'text-teal-600',
         bgClass: 'bg-teal-50',
@@ -278,7 +58,6 @@ export function getConceptCategoryInfo(
     case 'person':
       return {
         category: 'person',
-        label: 'Personne',
         icon: User,
         colorClass: 'text-sky-600',
         bgClass: 'bg-sky-50',
@@ -288,7 +67,6 @@ export function getConceptCategoryInfo(
     default:
       return {
         category: 'general',
-        label: 'Concept',
         icon: Sparkles,
         colorClass: 'text-[#9A6530]',
         bgClass: 'bg-[#faf6f0]',
@@ -298,47 +76,54 @@ export function getConceptCategoryInfo(
   }
 }
 
+/** The SKOS label of a collection in the interface language, else in the other language, else its IRI. */
+export function collectionLabel(collection: ConceptCollection, language: Language): string {
+  const other: Language = language === 'fr' ? 'en' : 'fr'
+  return collection.labels[language] || collection.labels[other] || collection.iri
+}
+
+/** The labels of the collections joined for a tooltip, or an empty string without collection. */
+export function collectionLabels(collections: ConceptCollection[] | undefined, language: Language): string {
+  return (collections ?? []).map((c) => collectionLabel(c, language)).join(', ')
+}
+
 interface ConceptCategoryIconProps {
   category?: ConceptCategory
-  collection?: string | null
-  label?: string
-  uri?: string
   className?: string
 }
 
-export const ConceptCategoryIcon: React.FC<ConceptCategoryIconProps> = ({
-  category,
-  collection,
-  label,
-  uri,
-  className = 'w-3.5 h-3.5',
-}) => {
-  const info = getConceptCategoryInfo(category, collection, label, uri)
-  const IconComponent = info.icon
-  return <IconComponent className={`${className} ${info.colorClass}`} />
+/** The icon of a category, coloured for it. */
+export const ConceptCategoryIcon: React.FC<ConceptCategoryIconProps> = ({ category, className = 'w-3.5 h-3.5' }) => {
+  const style = categoryStyle(category)
+  const IconComponent = style.icon
+  return <IconComponent className={`${className} ${style.colorClass}`} />
 }
 
 interface ConceptCategoryBadgeProps {
   category?: ConceptCategory
-  collection?: string | null
-  label?: string
-  uri?: string
+  /** The TheZoo collections of the concept: they fill the title of the badge. */
+  collections?: ConceptCollection[]
   showLabel?: boolean
   size?: 'sm' | 'md'
   className?: string
 }
 
+/**
+ * The category of a concept: icon, colour and a label translated by the app. The title names the
+ * collections of the concept in the interface language (RM-CON-02), or the category when it has none.
+ */
 export const ConceptCategoryBadge: React.FC<ConceptCategoryBadgeProps> = ({
   category,
-  collection,
-  label,
-  uri,
+  collections,
   showLabel = true,
   size = 'md',
   className = '',
 }) => {
-  const info = getConceptCategoryInfo(category, collection, label, uri)
-  const IconComponent = info.icon
+  const { t, language } = useI18n()
+  const style = categoryStyle(category)
+  const IconComponent = style.icon
+  const label = t.conceptCategories[style.category]
+  const list = collectionLabels(collections, language)
 
   const sizeClasses = size === 'sm' ? 'text-[11px] px-1.5 py-0.5 space-x-1' : 'text-xs px-2 py-0.5 space-x-1.5'
 
@@ -346,11 +131,12 @@ export const ConceptCategoryBadge: React.FC<ConceptCategoryBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-md border leading-none font-medium ${sizeClasses} ${info.bgClass} ${info.borderClass} ${info.textClass} ${className}`}
-      title={collection ? `Collection : ${collection}` : info.label}
+      className={`inline-flex shrink-0 items-center justify-center rounded-md border leading-none font-medium ${sizeClasses} ${style.bgClass} ${style.borderClass} ${style.textClass} ${className}`}
+      title={list ? t.conceptCategories.collectionsTitle.replace('{list}', () => list) : label}
     >
       <IconComponent className={`${iconSizeClass} shrink-0`} />
-      {showLabel && <span>{info.label}</span>}
+      {showLabel && <span>{label}</span>}
+      {list && <span className="sr-only">{t.conceptCategories.collectionsTitle.replace('{list}', () => list)}</span>}
     </span>
   )
 }

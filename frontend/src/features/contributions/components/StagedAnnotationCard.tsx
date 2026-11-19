@@ -1,6 +1,6 @@
 import { ExternalLink, Pin } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { ConceptCategoryIcon } from '../../../components/ConceptCategoryBadge'
+import { ConceptCategoryBadge, ConceptCategoryIcon } from '../../../components/ConceptCategoryBadge'
 import { useI18n } from '../../../i18n/I18nContext'
 import type { StagedAnnotation } from '../../../types'
 import { fill } from '../lib/fill'
@@ -76,22 +76,25 @@ export function StagedAnnotationCard({
             onFocus={() => onHoverChange?.(true)}
             onBlur={() => onHoverChange?.(false)}
           >
-            <ConceptCategoryIcon label={concept} uri={annotation.concept_uri} className="mt-0.5 h-4 w-4 shrink-0" />
+            <ConceptCategoryIcon category={annotation.category} className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{concept}</span>
             {isPinned && <Pin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong" />}
           </button>
         ) : (
           <p className="flex min-w-0 items-start gap-1.5 font-semibold break-words">
-            <ConceptCategoryIcon label={concept} uri={annotation.concept_uri} className="mt-0.5 h-4 w-4 shrink-0" />
+            <ConceptCategoryIcon category={annotation.category} className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{concept}</span>
           </p>
         )}
         <StatusBadge status={annotation.status} />
       </div>
 
-      <p className="text-xs text-ink-muted">
-        {scopeLabels[annotation.scope_type]} · {position}
-      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <ConceptCategoryBadge category={annotation.category} collections={annotation.collections} size="sm" />
+        <p className="text-xs text-ink-muted">
+          {scopeLabels[annotation.scope_type]} · {position}
+        </p>
+      </div>
       <p className="ancient-text line-clamp-3 text-ink italic">« {annotation.target_text} »</p>
       {children}
 

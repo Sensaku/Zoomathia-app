@@ -24,6 +24,8 @@ _TMP_DIR = Path(tempfile.mkdtemp(prefix="zoomathia-tests-"))
 atexit.register(shutil.rmtree, _TMP_DIR, ignore_errors=True)
 _SHARED_DB = _TMP_DIR / "staging.db"
 os.environ["STAGING_DB_PATH"] = str(_SHARED_DB)
+# No startup of the application may send the warm-up of the TheZoo collections to Corese.
+os.environ["THESAURUS_PRELOAD"] = "false"
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
@@ -42,6 +44,10 @@ from app.queries.service import seed_builtin_queries  # noqa: E402
 from app.services.sparql_client import sparql_client  # noqa: E402
 from app.shared import limits  # noqa: E402
 from app.shared.sparql_guard import clear_prepared_queries  # noqa: E402
+from app.thesaurus.collections import (  # noqa: E402
+    get_thesaurus_collections,
+    thesaurus_collections,
+)
 from tests.support.accounts import (  # noqa: E402
     PASSWORD,
     FakeClock,
@@ -51,6 +57,7 @@ from tests.support.accounts import (  # noqa: E402
     csrf,
     sign_in,
 )
+from tests.support.thesaurus import DEFAULT_COLLECTION_INDEX  # noqa: E402
 
 _ENDPOINT = httpx.URL(settings.SPARQL_ENDPOINT)
 
@@ -122,6 +129,12 @@ class FakeCorese:
         self._factory = None
         self._turns = []
 
+    def returns_document(self, document: dict[str, Any]) -> None:
+        """Answer every following query with this JSON document as is (even a malformed one)."""
+        self._response = httpx.Response(200, json=document)
+        self._factory = None
+        self._turns = []
+
     def returns_in_turn(self, *results: tuple[list[str], list[dict[str, str]]]) -> None:
         """Answer the following queries one result after the other; the last one repeats."""
         self._turns = [httpx.Response(200, json=sparql_json(*result)) for result in results]
@@ -158,6 +171,10 @@ class FakeCorese:
     def raises(self, error: Exception) -> None:
         """Fail every following query with this transport error."""
         self._error = error
+
+    def recovers(self) -> None:
+        """Stop failing the queries: the next ones are answered again."""
+        self._error = None
 
     def _handle(self, request: httpx.Request) -> httpx.Response | Awaitable[httpx.Response]:
         query = _extract_query(request)
@@ -225,6 +242,20 @@ def fresh_prepared_queries() -> Iterator[None]:
     clear_prepared_queries()
     yield
     clear_prepared_queries()
+
+
+@pytest.fixture(autouse=True)
+def in_memory_collection_index() -> Iterator[None]:
+    """Give the API an in-memory index of the TheZoo collections instead of a Corese query.
+
+    The tests of the loader itself (`tests/thesaurus/`) use their own `ThesaurusCollections`
+    and the `corese` fake; a test of the real dependency removes this override.
+    """
+    thesaurus_collections.clear()
+    app.dependency_overrides[get_thesaurus_collections] = lambda: DEFAULT_COLLECTION_INDEX
+    yield
+    app.dependency_overrides.pop(get_thesaurus_collections, None)
+    thesaurus_collections.clear()
 
 
 _template_database: Path | None = None

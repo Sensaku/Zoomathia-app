@@ -38,12 +38,27 @@ export interface AnnotationOffset {
 
 export type ConceptCategory = 'animal' | 'behavior' | 'anatomy' | 'place' | 'person' | 'general'
 
+/**
+ * A TheZoo (OpenTheso) collection a concept belongs to (RM-CON-02). Labels come from the SKOS
+ * data, by language; a language can be missing.
+ */
+export interface ConceptCollection {
+  iri: string
+  labels: { fr?: string; en?: string }
+}
+
+/** A category and the collections that give it, as listed by `GET /thesaurus/categories`. */
+export interface CategoryCollections {
+  category: ConceptCategory
+  collections: ConceptCollection[]
+}
+
 export interface AnnotationItem {
   concept: string
   label: string
   type: string
   category?: ConceptCategory
-  collection?: string | null
+  collections?: ConceptCollection[]
   offset: AnnotationOffset[]
 }
 
@@ -77,7 +92,7 @@ export interface Concept {
   value: string
   type?: string
   category?: ConceptCategory
-  collection?: string | null
+  collections?: ConceptCollection[]
 }
 
 export interface CompetencyQuestion {
@@ -111,7 +126,7 @@ export interface ConceptCriterion {
   label?: string
   type?: string
   category?: ConceptCategory
-  collection?: string | null
+  collections?: ConceptCollection[]
   include_subconcepts: boolean
   polarity: 'include' | 'exclude'
 }
@@ -206,6 +221,9 @@ export interface StagedAnnotation {
   concept_uri: string
   concept_label: string
   concept_type: string
+  /** Computed by the server from the TheZoo collections of the concept (RM-CON-01, RM-CON-02). */
+  category: ConceptCategory
+  collections: ConceptCollection[]
   justification: string | null
   scope_type: AnnotationScopeType
   end_paragraph_uri: string | null

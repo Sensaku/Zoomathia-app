@@ -1,7 +1,7 @@
-import { getConceptCategoryInfo } from '../../../components/ConceptCategoryBadge'
+import { collectionLabels } from '../../../components/ConceptCategoryBadge'
 import type { ReadingSpan } from '../../../components/reading'
-import type { TranslationDictionary } from '../../../i18n/types'
-import type { ContributionStatus } from '../../../types'
+import type { Language, TranslationDictionary } from '../../../i18n/types'
+import type { ConceptCategory, ContributionStatus } from '../../../types'
 
 /** A slice of a paragraph between two annotation boundaries, with the spans that cover it. */
 export interface TextChunk {
@@ -15,7 +15,8 @@ export interface TextChunk {
   /** The last chunk of an overlap: it carries the count of superposed concepts. */
   isEndOfOverlap: boolean
   primaryMatch: ReadingSpan | null
-  catInfo: ReturnType<typeof getConceptCategoryInfo> | null
+  /** The category of the primary span, `null` for plain text. */
+  category: ConceptCategory | null
   /** The tooltip without the pin hint; empty for plain text. */
   baseTooltip: string
   /** The status shown by the contribution marker, `null` when no staged span covers the chunk. */
@@ -29,7 +30,7 @@ const PLAIN: Omit<TextChunk, 'start' | 'end' | 'text'> = {
   endingSpans: [],
   isEndOfOverlap: false,
   primaryMatch: null,
-  catInfo: null,
+  category: null,
   baseTooltip: '',
   stagedStatus: null,
 }
@@ -42,14 +43,18 @@ function stagedStatusOf(matching: ReadingSpan[]): ContributionStatus | null {
   return staged[0].status ?? 'pending'
 }
 
-/** RM-ACC-03: a staged span names its review status, such as "Non relu". */
-function tooltipOf(matching: ReadingSpan[], catLabel: string, t: TranslationDictionary): string {
-  const statusSuffix = (s: ReadingSpan) => (s.isStaged && s.status ? ` [${t.contributions.status[s.status]}]` : '')
-  if (matching.length === 1) return `[${catLabel}] ${matching[0].label}${statusSuffix(matching[0])}`
-  const lines = matching.map((s) => {
-    const info = getConceptCategoryInfo(s.category, s.collection, s.label, s.concept)
-    return `• [${info.label}] ${s.label}${statusSuffix(s)}`
-  })
+/** `[<category>] <label> · <collections>`, then the review status of a staged span (RM-ACC-03). */
+function lineOf(s: ReadingSpan, t: TranslationDictionary, language: Language): string {
+  const category = t.conceptCategories[s.category ?? 'general']
+  const collections = collectionLabels(s.collections, language)
+  const status = s.isStaged && s.status ? ` [${t.contributions.status[s.status]}]` : ''
+  return `[${category}] ${s.label}${collections ? ` · ${collections}` : ''}${status}`
+}
+
+/** One line for a lone concept, a counted list for superposed ones (RM-ACC-03 names the review status). */
+function tooltipOf(matching: ReadingSpan[], t: TranslationDictionary, language: Language): string {
+  if (matching.length === 1) return lineOf(matching[0], t, language)
+  const lines = matching.map((s) => `• ${lineOf(s, t, language)}`)
   return `${t.work.overlappingConcepts.replace('{count}', String(matching.length))}\n${lines.join('\n')}`
 }
 
@@ -57,7 +62,12 @@ function tooltipOf(matching: ReadingSpan[], catLabel: string, t: TranslationDict
  * Cuts a paragraph at every span boundary. The chunks follow the text in order and their texts
  * join back to `text` exactly (RM-ANN-01: the offsets of a free selection are read from this text).
  */
-export function buildTextChunks(text: string, spans: ReadingSpan[], t: TranslationDictionary): TextChunk[] {
+export function buildTextChunks(
+  text: string,
+  spans: ReadingSpan[],
+  t: TranslationDictionary,
+  language: Language,
+): TextChunk[] {
   if (spans.length === 0) return []
 
   const boundarySet = new Set<number>([0, text.length])
@@ -84,12 +94,6 @@ export function buildTextChunks(text: string, spans: ReadingSpan[], t: Translati
     const nextMatchingCount =
       i < boundaries.length - 2 ? spans.filter((s) => s.start <= end && s.end >= boundaries[i + 2]).length : 0
     const primaryMatch = matching[0]
-    const catInfo = getConceptCategoryInfo(
-      primaryMatch.category,
-      primaryMatch.collection,
-      primaryMatch.label,
-      primaryMatch.concept,
-    )
     chunks.push({
       start,
       end,
@@ -99,8 +103,8 @@ export function buildTextChunks(text: string, spans: ReadingSpan[], t: Translati
       endingSpans,
       isEndOfOverlap: matching.length > 1 && (nextMatchingCount !== matching.length || endingSpans.length > 0),
       primaryMatch,
-      catInfo,
-      baseTooltip: tooltipOf(matching, catInfo.label, t),
+      category: primaryMatch.category ?? 'general',
+      baseTooltip: tooltipOf(matching, t, language),
       stagedStatus: stagedStatusOf(matching),
     })
   }

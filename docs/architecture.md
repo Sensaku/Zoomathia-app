@@ -105,7 +105,7 @@ TEI-XML (texts), W3C Web Annotation (annotations), SKOS (thesaurus and proposals
 
 | Topic | Decision | Status |
 |---|---|---|
-| Concept categories | Computed once in the backend from TheZoo collections (RM-CON-01, RM-CON-02). | Decided |
+| Concept categories | Computed once in the backend from TheZoo collections (RM-CON-01, RM-CON-02): one table in `app/thesaurus/categories.py`, an index of the collections (two bounded queries) preloaded at startup, cached for 30 minutes and refreshed in the background (it keeps serving the old one if Corese fails), and `GET /thesaurus/categories` to publish the table. Every concept and annotation carries `category` and `collections`. | Decided, done (2026-11-19) |
 | Frontend stack | React, React Router and Tailwind CSS, mandatory. | Decided |
 | Named graphs | One graph per origin: corpus, thesaurus, legacy annotations, validated contributions. | Proposed |
 | Application database | SQLite in WAL mode first, PostgreSQL later (see "Performance and concurrency"); SQLAlchemy 2 with its async engine (`aiosqlite`, approved 2026-11-16) and Alembic migrations. Alembic owns the schema and is applied before the API starts: the container runs `alembic upgrade head` first, and the application refuses to start on a database that is not at the latest revision. | Decided |
@@ -122,7 +122,6 @@ TEI-XML (texts), W3C Web Annotation (annotations), SKOS (thesaurus and proposals
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite table).
 - The native competency questions are seeded at startup from `app/core/qcs_data.py` and the `.rq` files, and stay read-only for everyone until RM-QC-01.
 - SPARQL queries are built with f-strings and sent with GET.
-- Concept categories are computed twice (backend and frontend) with diverging rules.
 - Legacy RPC routes are still the only API.
 - The footer says "licence ouverte" instead of CC BY 4.0.
 - The preproduction of the redesign runs over plain HTTP: HTTPS is required before local accounts are enabled.

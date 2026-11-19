@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     # Registrations stay closed until the privacy notice exists (docs/security.md, "Personal data").
     REGISTRATION_ENABLED: bool = False
 
+    # Load the index of the TheZoo collections in the background at startup (RM-CON-02). The
+    # tests switch it off: nothing may reach Corese from a startup there.
+    THESAURUS_PRELOAD: bool = True
+
     @property
     def DATABASE_URL(self) -> str:  # noqa: N802 - named like the other settings
         """URL of the application database for the async engine (aiosqlite)."""

@@ -67,7 +67,7 @@ export function PinnedConceptBanner({
               <span
                 className={`inline-flex flex-wrap items-center gap-x-1 rounded-none px-2 py-0.5 text-xs font-bold break-words whitespace-normal ${chip}`}
               >
-                <ConceptCategoryIcon uri={pinnedConcept} category={pinnedConceptCategory} className="h-3.5 w-3.5" />
+                <ConceptCategoryIcon category={pinnedConceptCategory} className="h-3.5 w-3.5" />
                 <span className="capitalize">{pinnedConceptLabel || t.annotate.conceptFallback}</span>
               </span>
             </p>

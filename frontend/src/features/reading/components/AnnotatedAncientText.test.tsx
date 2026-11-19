@@ -19,6 +19,8 @@ const staged = (status: StagedAnnotation['status']): StagedAnnotation => ({
   concept_uri: LION,
   concept_label: 'lion',
   concept_type: 'concept',
+  category: 'animal',
+  collections: [{ iri: 'https://opentheso.huma-num.fr/?idg=MT_7&idt=th310', labels: { fr: 'Zoonyme', en: 'Zoonyms' } }],
   scope_type: 'word',
   target_paragraphs: [],
   end_paragraph_uri: null,

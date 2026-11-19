@@ -6,8 +6,19 @@ from pydantic import BaseModel
 from app.services.sparql_client import sparql_client
 from app.shared.limits import HeavySlot, check_criteria_count, limit_heavy_queries
 from app.shared.sparql import sparql_iri, sparql_lang, sparql_literal
+from app.thesaurus.collections import CollectionIndex, get_thesaurus_collections
 
 router = APIRouter(tags=["Concepts & Thesaurus"])
+
+
+def valid_paragraph_uri(
+    uri: str = Query(..., description="URI du paragraphe"),
+    lang: str = Query("en", description="Code langue (ex: en, fr, lat)"),
+) -> str:
+    """The paragraph IRI and the language, checked (400) before the index dependency (Corese)."""
+    sparql_iri(uri)
+    sparql_lang(lang)
+    return uri
 
 
 class ConceptInput(BaseModel):
@@ -20,231 +31,13 @@ class ParagraphWithConceptRequest(BaseModel):
     concepts: list[ConceptInput]
 
 
-ROOT_ANIMAL_IDS = {
-    "4988",
-    "106004",
-    "107676",
-    "105539",
-    "105555",
-    "105540",
-    "105541",
-    "107008",
-    "106789",
-    "107912",
-    "105781",
-    "105782",
-    "106935",
-    "106749",
-    "106753",
-    "108745",
-    "106933",
-    "107467",
-    "107292",
-    "107286",
-    "108048",
-    "108187",
-    "108313",
-    "108179",
-    "108175",
-    "108177",
-    "107264",
-    "107948",
-    "107515",
-    "107743",
-    "107284",
-    "108169",
-    "108303",
-    "108221",
-    "108223",
-    "107473",
-    "5037",
-    "105780",
-    "4996",
-    "15094",
-    # Descendants directs de DOMESTIQUE et SAUVAGE
-    "pcrt3jcrAaRENB",
-    "pcrt4v7jKE3TVw",
-    "pcrt0wSiSXpLTf",
-    "pcrth4ik1YqDS1",
-    "106951",
-    "105804",
-    "106949",
-    "106492",
-    "106516",
-    "106512",
-    "5071",
-    "105993",
-    "105994",
-    "105996",
-    "pcrtDtJwUVaZ0I",
-    "pcrtLywf8Y5k0n",
-    "106552",
-    "106554",
-    "pcrtamWjqMqPWT",
-    "pcrtOl4a3UUtiu",
-    "pcrtDoQWOTMlW7",
-    "pcrt6i8AcPBoY2",
-    "106482",
-    "106484",
-    "pcrtnpPag9iONJ",
-    "107580",
-    "107578",
-    "107582",
-    "107914",
-    "pcrtEOlJwpiHmn",
-    "pcrt1eSDN7pc4r",
-    "pcrtoWmR7YcVct",
-    "105904",
-    "pcrtRpEmyMyoAU",
-    "106536",
-    "pcrtVibtZJlA99",
-    "105918",
-    "106647",
-    "pcrtva7NUywIgB",
-    "105879",
-    "pcrt8q2AHnsLUr",
-    "pcrt5TAeZsO7W4",
-    "106524",
-    "pcrtlYnu8y5j62",
-    "106620",
-    "pcrtRmvjGjzyOO",
-    "106269",
-    "105880",
-    "106622",
-    "106626",
-    "105898",
-    "pcrtZtKktLIqkU",
-    "107709",
-    "105867",
-    "105882",
-    "106624",
-}
-
-
-def classify_concept(
-    coll_label: str | None = None,
-    coll_uri: str | None = None,
-    concept_label: str | None = None,
-    concept_uri: str | None = None,
-) -> str:
-    """Détermine la catégorie taxonomique/thématique principale d'un concept TheZoo."""
-    lbl = (concept_label or "").strip().lower()
-    c_uri = (concept_uri or "").lower()
-    coll_str = f"{coll_label or ''} {coll_uri or ''}".lower()
-
-    # 1. Vérification par identifiant URI de racine animale ou taxon TheZoo (Domestique, Sauvage, etc.)
-    if concept_uri and any(f"idc={rid}" in c_uri for rid in ROOT_ANIMAL_IDS):
-        return "animal"
-
-    # 2. Vérification par libellé pour les concepts racines et dérivés animaux (Domestique, Sauvage, Animal, etc.)
-    exact_root_animals = {
-        "domestique",
-        "domestic",
-        "domesticus",
-        "domestico",
-        "sauvage",
-        "wild",
-        "ferus",
-        "salvaje",
-        "selvatico",
-        "ni domestique ni sauvage",
-        "animal domestique",
-        "animal sauvage",
-        "animal",
-        "animaux",
-        "faune",
-        "bête",
-        "bestiole",
-        "fauve",
-        "eumetazoa",
-        "parazoa",
-    }
-    if lbl in exact_root_animals:
-        return "animal"
-
-    if any(
-        lbl.startswith(prefix)
-        for prefix in [
-            "animal ",
-            "animaux ",
-            "faune ",
-            "bête ",
-            "bestiole ",
-            "oiseau ",
-            "poisson ",
-            "reptile ",
-            "insecte ",
-            "squale ",
-        ]
-    ):
-        return "animal"
-
-    # Animaux qualifiés de sauvage ou domestique (ex: "cheval sauvage", "âne sauvage", "taureau sauvage", "abeille sauvage")
-    if (lbl.endswith(" sauvage") or lbl.endswith(" domestique")) and not any(
-        plant in lbl
-        for plant in ["rosier", "figuier", "olivier", "laitue", "vigne", "pommier", "poirier"]
-    ):
-        return "animal"
-
-    # 3. Vérification par Collection TheZoo : MT_7 (Zoonyme), MT_10 (Archéotaxon)
-    if any(
-        k in coll_str
-        for k in ["zoonym", "archéotaxon", "archeotaxon", "ancient class", "idg=mt_7", "idg=mt_10"]
-    ):
-        return "animal"
-
-    # 4. Comportements : Éthologie (MT_13) ou libellés éthologiques
-    if any(
-        k in coll_str
-        for k in ["éthologie", "ethologie", "ethology", "comportement", "behavior", "idg=mt_13"]
-    ):
-        return "behavior"
-    if lbl in {
-        "éthologie",
-        "ethology",
-        "comportement",
-        "prédation",
-        "intelligence",
-        "parasitisme",
-        "monogamie",
-        "accouplement",
-        "hygiène",
-        "courage",
-        "sagesse",
-    }:
-        return "behavior"
-
-    # 5. Anatomie / Physiologie : MT_8, MT_11
-    if any(
-        k in coll_str
-        for k in ["anatomie", "anatomy", "physiologie", "physiology", "idg=mt_8", "idg=mt_11"]
-    ):
-        return "anatomy"
-    if any(
-        lbl.startswith(p)
-        for p in ["organe", "nageoire", "aile", "patte", "queue", "museau", "crâne"]
-    ):
-        return "anatomy"
-
-    # 6. Lieux / Géographie : MT_4
-    if any(k in coll_str for k in ["lieu", "place", "géographie", "geography", "idg=mt_4"]):
-        return "place"
-
-    # 7. Personnes / Peuples : MT_1, MT_5
-    if any(
-        k in coll_str
-        for k in ["anthroponyme", "anthroponym", "peuple", "people", "idg=mt_1", "idg=mt_5"]
-    ):
-        return "person"
-
-    return "general"
-
-
 @router.get("/getConcepts")
 async def get_concepts(
-    uri: str = Query(..., description="URI du paragraphe"),
+    uri: str = Depends(valid_paragraph_uri),
     lang: str = Query("en", description="Code langue (ex: en, fr, lat)"),
+    thesaurus: CollectionIndex = Depends(get_thesaurus_collections),
 ) -> dict[str, Any]:
+    """Concepts annotated in a paragraph, with their category and collections (RM-CON-02)."""
     paragraph_iri = sparql_iri(uri)
     lang_tag = sparql_lang(lang)
     sparql = f"""
@@ -252,7 +45,7 @@ async def get_concepts(
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     prefix oa: <http://www.w3.org/ns/oa#>
     prefix skos: <http://www.w3.org/2004/02/skos/core#> 
-    SELECT DISTINCT ?annotation ?annotation_type ?concept ?label ?start ?end ?exact ?coll ?collLabel WHERE {{
+    SELECT DISTINCT ?annotation ?annotation_type ?concept ?label ?start ?end ?exact WHERE {{
       {paragraph_iri} zoo:hasAnnotation ?annotation.
       ?annotation a ?annotation_type;
         oa:hasBody ?concept;
@@ -266,11 +59,6 @@ async def get_concepts(
       OPTIONAL {{
         ?concept skos:prefLabel ?labellang.
         FILTER(lang(?labellang) = "{lang_tag}")
-      }}
-      OPTIONAL {{
-        ?coll skos:member ?concept;
-              skos:prefLabel ?collLabel.
-        FILTER(lang(?collLabel) = "fr" || lang(?collLabel) = "en")
       }}
       OPTIONAL {{
         ?selector oa:start ?start_t;
@@ -289,24 +77,18 @@ async def get_concepts(
         label = elt.get("label", {}).get("value")
         if not label:
             continue
-        coll_lbl = elt.get("collLabel", {}).get("value")
-        coll_uri = elt.get("coll", {}).get("value")
         concept_val = elt.get("concept", {}).get("value")
-        cat = classify_concept(coll_lbl, coll_uri, label, concept_val)
 
         if label not in annotations:
+            category, collections = thesaurus.classify(concept_val or "")
             annotations[label] = {
                 "concept": concept_val,
                 "label": label,
                 "type": elt.get("annotation_type", {}).get("value"),
-                "category": cat,
-                "collection": coll_lbl,
+                "category": category,
+                "collections": [collection.model_dump() for collection in collections],
                 "offset": [],
             }
-        else:
-            if annotations[label].get("category") == "general" and cat != "general":
-                annotations[label]["category"] = cat
-                annotations[label]["collection"] = coll_lbl
 
         start = elt.get("start", {}).get("value", 0)
         end = elt.get("end", {}).get("value", 0)
@@ -325,21 +107,18 @@ async def search_concepts(
     input: str = Query(..., min_length=1, description="Terme recherché"),
     lang: str = Query("en", description="Langue"),
     limit: int = Query(60, ge=1, le=300, description="Nombre max de résultats"),
+    thesaurus: CollectionIndex = Depends(get_thesaurus_collections),
 ) -> list[dict[str, Any]]:
+    """Concepts whose label contains the input, with their category and collections."""
     input_literal = sparql_literal(input)
     lang_tag = sparql_lang(lang)
     sparql = f"""
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-    SELECT DISTINCT ?concept ?label ?type ?coll ?collLabel WHERE {{
+    SELECT DISTINCT ?concept ?label ?type WHERE {{
       ?concept a ?type;
                skos:prefLabel ?label.
       FILTER(lang(?label) = "{lang_tag}")
       FILTER(CONTAINS(LCASE(STR(?label)), LCASE({input_literal})))
-      OPTIONAL {{
-        ?coll skos:member ?concept;
-              skos:prefLabel ?collLabel.
-        FILTER(lang(?collLabel) = "fr" || lang(?collLabel) = "en")
-      }}
     }} ORDER BY ?label LIMIT {limit}
     """
     res = await sparql_client.query(sparql)
@@ -350,24 +129,18 @@ async def search_concepts(
             uri = b["concept"]["value"]
             lbl = b["label"]["value"]
             c_type = b.get("type", {}).get("value", "")
-            coll_lbl = b.get("collLabel", {}).get("value")
-            coll_uri = b.get("coll", {}).get("value")
-            cat = classify_concept(coll_lbl, coll_uri, lbl, uri)
 
             if uri not in seen:
+                category, collections = thesaurus.classify(uri)
                 item = {
                     "uri": uri,
                     "label": lbl,
                     "type": c_type.split("#")[-1] if "#" in c_type else c_type,
-                    "category": cat,
-                    "collection": coll_lbl,
+                    "category": category,
+                    "collections": [collection.model_dump() for collection in collections],
                 }
                 seen[uri] = item
                 response.append(item)
-            else:
-                if seen[uri].get("category") == "general" and cat != "general":
-                    seen[uri]["category"] = cat
-                    seen[uri]["collection"] = coll_lbl
     return response
 
 

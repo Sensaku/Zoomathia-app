@@ -42,13 +42,13 @@ export const AnnotatedAncientText: React.FC<AnnotatedAncientTextProps> = React.m
     onHoverConcept,
     onPinConcept,
   }) => {
-    const { t } = useI18n()
+    const { t, language } = useI18n()
 
     // Heavy step: it runs only when the paragraph, its annotations or the filter change, never on hover.
     const { specificSpans, globalThemes, chunks } = useMemo(() => {
       const { specificSpans, globalThemes } = resolveParagraphSpans(p, referenceMap, stagedList, filterConceptUri)
-      return { specificSpans, globalThemes, chunks: buildTextChunks(p.text, specificSpans, t) }
-    }, [p, referenceMap, stagedList, filterConceptUri, t])
+      return { specificSpans, globalThemes, chunks: buildTextChunks(p.text, specificSpans, t, language) }
+    }, [p, referenceMap, stagedList, filterConceptUri, t, language])
 
     const themes = (
       <PassageThemes

@@ -41,6 +41,10 @@ const sectionAnnotations: SectionAnnotationsResponse = {
         concept: 'http://thezoo/lion',
         label: 'LION',
         type: 'http://www.w3.org/ns/oa#Annotation',
+        category: 'animal',
+        collections: [
+          { iri: 'https://opentheso.huma-num.fr/?idg=MT_7&idt=th310', labels: { fr: 'Zoonyme', en: 'Zoonyms' } },
+        ],
         offset: [{ start: 3, end: 7 }],
       },
     },
@@ -257,6 +261,14 @@ describe('ExploreWork', () => {
     expect(screen.queryByText('Aucun paragraphe trouvé pour cette section.')).not.toBeInTheDocument()
     expect(screen.queryByText('Aucun paragraphe')).not.toBeInTheDocument()
     expect(screen.getByText('Paragraphes indisponibles.')).toBeInTheDocument()
+  })
+
+  it('RM-CON-02: a reference annotation shows the category and the collection sent by the server', async () => {
+    mockReader()
+    setup(`/explore-work?uri=${encodeURIComponent(P1)}`)
+
+    await screen.findByRole('button', { name: 'lion' })
+    expect(screen.getByText('Animal').closest('span[title]')).toHaveAttribute('title', 'Collections TheZoo : Zoonyme')
   })
 
   it('following a reference annotation is a toggle that exposes aria-pressed', async () => {

@@ -610,7 +610,7 @@ async def test_the_match_mode_is_and_or_or(client: httpx.AsyncClient, corese: Fa
 async def test_the_fields_the_search_page_sends_are_accepted(
     client: httpx.AsyncClient, corese: FakeCorese
 ) -> None:
-    # What ExploreCorpus.tsx sends: the criteria carry the extra `category` and `collection`.
+    # What ExploreCorpus.tsx sends: the criteria carry the extra `category` and `collections`.
     body = {
         "author": ["Aelian"],
         "work": [],
@@ -621,7 +621,12 @@ async def test_the_fields_the_search_page_sends_are_accepted(
                 "label": "canis",
                 "type": "http://www.w3.org/2004/02/skos/core#Concept",
                 "category": "animal",
-                "collection": None,
+                "collections": [
+                    {
+                        "iri": "https://opentheso.huma-num.fr/?idg=MT_7&idt=th310",
+                        "labels": {"fr": "Zoonyme", "en": "Zoonyms"},
+                    }
+                ],
                 "include_subconcepts": False,
                 "polarity": "include",
             }

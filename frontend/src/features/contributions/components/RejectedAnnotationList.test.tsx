@@ -18,6 +18,8 @@ const rejected: StagedAnnotation = {
   concept_uri: 'http://thezoo/lion',
   concept_label: 'Lion',
   concept_type: 'concept',
+  category: 'animal',
+  collections: [{ iri: 'https://opentheso.huma-num.fr/?idg=MT_7&idt=th310', labels: { fr: 'Zoonyme', en: 'Zoonyms' } }],
   justification: null,
   scope_type: 'word_sequence',
   end_paragraph_uri: null,

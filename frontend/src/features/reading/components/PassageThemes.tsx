@@ -56,13 +56,7 @@ export function PassageThemes({
             className={`inline-flex cursor-pointer items-center space-x-1.5 rounded-none border px-3 py-1 text-xs font-semibold shadow-2xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:text-sm ${themeClass(isPinned, isHovered)}`}
             title={`${sp.label} (${sp.concept})`}
           >
-            <ConceptCategoryIcon
-              label={sp.label}
-              uri={sp.concept}
-              category={sp.category}
-              collection={sp.collection}
-              className="h-3.5 w-3.5 shrink-0"
-            />
+            <ConceptCategoryIcon category={sp.category} className="h-3.5 w-3.5 shrink-0" />
             <span>{sp.label}</span>
             {isPinned && <Pin aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}
           </button>

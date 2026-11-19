@@ -1,4 +1,4 @@
-import { ConceptCategory, ContributionStatus } from '../../types'
+import { ConceptCategory, ConceptCollection, ContributionStatus } from '../../types'
 
 export interface ReadingParagraph {
   uri: string
@@ -13,7 +13,7 @@ export interface ReadingSpan {
   label: string
   concept: string
   category?: ConceptCategory
-  collection?: string | null
+  collections?: ConceptCollection[]
   isStaged: boolean
   status?: ContributionStatus
   id?: number

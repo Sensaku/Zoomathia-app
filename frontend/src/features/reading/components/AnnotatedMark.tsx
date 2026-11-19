@@ -8,7 +8,6 @@ import {
   CATEGORY_OVERLAP_STYLES,
   CATEGORY_PINNED_STYLES,
   CATEGORY_STYLES,
-  getConceptCategoryInfo,
 } from '../../../components/ConceptCategoryBadge'
 import type { ReadingSpan } from '../../../components/reading'
 import { useI18n } from '../../../i18n'
@@ -20,10 +19,11 @@ import type { TextChunk } from '../lib/textChunks'
  * stay, transparent), so dimming never moves the text. The underline is a text decoration, which
  * takes no space and does not clash with the delimiter borders.
  */
-const DIMMED = 'bg-transparent text-ink underline decoration-dotted decoration-ink-faint underline-offset-4'
+export const DIMMED = 'bg-transparent text-ink underline decoration-dotted decoration-ink-faint underline-offset-4'
 
+/** The category computed by the backend (RM-CON-02): a missing one reads as `general`. */
 function categoryOf(s: ReadingSpan) {
-  return getConceptCategoryInfo(s.category, s.collection, s.label, s.concept).category
+  return s.category ?? 'general'
 }
 
 /** The vertical marker of the edge of a span: darker when its concept is the inspected one. */
@@ -53,7 +53,7 @@ function highlightClass(chunk: TextChunk, hovered?: ReadingSpan, pinned?: Readin
   const doubled = isOverlap ? ' border-double' : ''
   if (hovered) return (CATEGORY_HOVER_STYLES[categoryOf(hovered)] || CATEGORY_HOVER_STYLES.general) + doubled
   if (pinned) return (CATEGORY_PINNED_STYLES[categoryOf(pinned)] || CATEGORY_PINNED_STYLES.general) + doubled
-  const cat = chunk.catInfo?.category ?? 'general'
+  const cat = chunk.category ?? 'general'
   if (isOverlap) return CATEGORY_OVERLAP_STYLES[cat] || CATEGORY_OVERLAP_STYLES.general
   return CATEGORY_STYLES[cat] || CATEGORY_STYLES.general
 }

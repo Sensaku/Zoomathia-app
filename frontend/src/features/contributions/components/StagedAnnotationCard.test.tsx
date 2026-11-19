@@ -15,6 +15,8 @@ const annotation: StagedAnnotation = {
   concept_uri: 'http://thezoo/lion',
   concept_label: 'Lion',
   concept_type: 'concept',
+  category: 'animal',
+  collections: [{ iri: 'https://opentheso.huma-num.fr/?idg=MT_7&idt=th310', labels: { fr: 'Zoonyme', en: 'Zoonyms' } }],
   justification: 'Texte clair',
   scope_type: 'word_sequence',
   end_paragraph_uri: null,
@@ -52,6 +54,14 @@ describe('StagedAnnotationCard', () => {
     expect(screen.getByText('Texte clair')).toBeInTheDocument()
     expect(screen.getByText(/Par Ada Lovelace \(I3S\)/)).toBeInTheDocument()
     await expectNoAxeViolations(container)
+  })
+
+  it('RM-CON-02: a pending annotation shows the category and the collections computed by the server', () => {
+    setup({ category: 'behavior', collections: [{ iri: 'urn:mt13', labels: { fr: 'Éthologie', en: 'Ethology' } }] })
+    expect(screen.getByText('Comportement').closest('span[title]')).toHaveAttribute(
+      'title',
+      'Collections TheZoo : Éthologie',
+    )
   })
 
   it('RM-ACC-04: a rejected annotation shows the reviewer and the public reason', () => {

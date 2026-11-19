@@ -16,22 +16,33 @@ from app.accounts.viewer import viewer_of
 from app.contributions.router import get_annotation_service
 from app.contributions.schemas import annotation_out
 from app.contributions.service import AnnotationService
-from app.routers.concepts import classify_concept
 from app.services.sparql_client import sparql_client
 from app.shared.sparql import sparql_iri, sparql_lang
+from app.thesaurus.collections import CollectionIndex, get_thesaurus_collections
 
 router = APIRouter(prefix="/annotations", tags=["annotations"])
 
 
+def valid_section_uri(
+    section_uri: str = Query(..., description="URI de la section / chapitre"),
+    lang: str = Query("en", description="Code langue pour les labels"),
+) -> str:
+    """The section IRI and the language, checked (400) before the index dependency (Corese)."""
+    sparql_iri(section_uri)
+    sparql_lang(lang)
+    return section_uri
+
+
 @router.get("/section")
 async def get_section_annotations(
-    section_uri: str = Query(..., description="URI de la section / chapitre"),
+    section_uri: str = Depends(valid_section_uri),
     lang: str = Query("en", description="Code langue pour les labels"),
     include_pending: bool = Query(
         False, description="Also return the annotations that no peer has reviewed yet"
     ),
     context: AuthContext | None = Depends(optional_auth),
     service: AnnotationService = Depends(get_annotation_service),
+    thesaurus: CollectionIndex = Depends(get_thesaurus_collections),
 ) -> dict[str, Any]:
     """
     Récupère en un appel groupé toutes les annotations de référence Corese d'une section
@@ -50,7 +61,7 @@ async def get_section_annotations(
     prefix zoo: <http://ns.inria.fr/zoomathia/zoo#> 
     prefix oa: <http://www.w3.org/ns/oa#>
     prefix skos: <http://www.w3.org/2004/02/skos/core#> 
-    SELECT DISTINCT ?paragraph ?annotation ?annotation_type ?concept ?label ?start ?end ?exact ?coll ?collLabel WHERE {{
+    SELECT DISTINCT ?paragraph ?annotation ?annotation_type ?concept ?label ?start ?end ?exact WHERE {{
       ?paragraph a zoo:Paragraph;
                  zoo:isPartOf {section_iri};
                  zoo:hasAnnotation ?annotation.
@@ -66,11 +77,6 @@ async def get_section_annotations(
       OPTIONAL {{
         ?concept skos:prefLabel ?labellang.
         FILTER(lang(?labellang) = "{lang_tag}")
-      }}
-      OPTIONAL {{
-        ?coll skos:member ?concept;
-              skos:prefLabel ?collLabel.
-        FILTER(lang(?collLabel) = "fr" || lang(?collLabel) = "en")
       }}
       OPTIONAL {{
         ?selector oa:start ?start_t;
@@ -101,27 +107,18 @@ async def get_section_annotations(
         if para_uri not in reference_annotations:
             reference_annotations[para_uri] = {}
 
-        coll_lbl = elt.get("collLabel", {}).get("value")
-        coll_uri = elt.get("coll", {}).get("value")
         concept_val = elt.get("concept", {}).get("value")
-        cat = classify_concept(coll_lbl, coll_uri, label, concept_val)
 
         if label not in reference_annotations[para_uri]:
+            category, collections = thesaurus.classify(concept_val or "")
             reference_annotations[para_uri][label] = {
                 "concept": concept_val,
                 "label": label,
                 "type": elt.get("annotation_type", {}).get("value"),
-                "category": cat,
-                "collection": coll_lbl,
+                "category": category,
+                "collections": [collection.model_dump() for collection in collections],
                 "offset": [],
             }
-        else:
-            if (
-                reference_annotations[para_uri][label].get("category") == "general"
-                and cat != "general"
-            ):
-                reference_annotations[para_uri][label]["category"] = cat
-                reference_annotations[para_uri][label]["collection"] = coll_lbl
 
         start = elt.get("start", {}).get("value", 0)
         end = elt.get("end", {}).get("value", 0)
@@ -155,5 +152,7 @@ async def get_section_annotations(
         "section_uri": section_uri,
         "paragraph_count": len(section_paras_set),
         "reference_annotations": reference_annotations,
-        "staged_annotations": [annotation_out(s, viewer).model_dump(mode="json") for s in staged],
+        "staged_annotations": [
+            annotation_out(s, viewer, thesaurus).model_dump(mode="json") for s in staged
+        ],
     }

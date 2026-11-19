@@ -682,5 +682,36 @@ export interface TranslationDictionary {
     pendingNotice: {
       message: string
     }
+  } /** Concept categories (RM-CON-01), shown in badges and tooltips. `collectionsTitle` uses `{list}`. */
+  conceptCategories: {
+    animal: string
+    behavior: string
+    anatomy: string
+    place: string
+    person: string
+    general: string
+    collectionsTitle: string
+  }
+  annotationLegend: {
+    intro: string
+    categoriesTitle: string
+    categoriesHelp: string
+    generalCollections: string
+    loading: string
+    overlapsTitle: string
+    sampleText: string
+    overlapLabel: string
+    overlapText: string
+    edgesLabel: string
+    edgesText: string
+    statesTitle: string
+    hoverLabel: string
+    hoverText: string
+    pinnedLabel: string
+    pinnedText: string
+    dimmedLabel: string
+    dimmedText: string
+    pendingText: string
+    validatedText: string
   }
 }

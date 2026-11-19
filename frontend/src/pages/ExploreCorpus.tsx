@@ -35,13 +35,20 @@ import {
   X,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
-import { ConceptCriterion, CollectionCriterion, AnnotationMap, Paragraph, ConceptCategory } from '../types'
+import {
+  ConceptCriterion,
+  CollectionCriterion,
+  AnnotationMap,
+  Paragraph,
+  ConceptCategory,
+  ConceptCollection,
+} from '../types'
 import { MultiSelectCombobox, ComboboxOption } from '../components/MultiSelectCombobox'
 import { ConceptCriteriaCard, CollectionCriteriaCard } from '../components/ConceptCriteriaCard'
 import {
   ConceptCategoryIcon,
   ConceptCategoryBadge,
-  getConceptCategoryInfo,
+  collectionLabels,
   CATEGORY_TOC_HOVER,
   CATEGORY_TOC_PINNED,
 } from '../components/ConceptCategoryBadge'
@@ -168,7 +175,7 @@ export const ExploreCorpus: React.FC = () => {
     label: string
     type?: string
     category?: ConceptCategory
-    collection?: string | null
+    collections?: ConceptCollection[]
   }) => {
     if (conceptCriteria.some((item) => item.uri === c.uri)) return
     setConceptCriteria((prev) => [
@@ -178,7 +185,7 @@ export const ExploreCorpus: React.FC = () => {
         label: c.label,
         type: c.type,
         category: c.category,
-        collection: c.collection,
+        collections: c.collections,
         include_subconcepts: false,
         polarity: 'include',
       },
@@ -506,24 +513,13 @@ export const ExploreCorpus: React.FC = () => {
                             }`}
                           >
                             <div className="flex min-w-0 items-center space-x-3 pr-2">
-                              <ConceptCategoryIcon
-                                category={item.category}
-                                collection={item.collection}
-                                label={item.label}
-                                uri={item.uri}
-                                className="h-4.5 w-4.5 shrink-0"
-                              />
+                              <ConceptCategoryIcon category={item.category} className="h-4.5 w-4.5 shrink-0" />
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center space-x-2 gap-y-1">
                                   <span className="block text-sm font-semibold break-words whitespace-normal">
                                     {item.label}
                                   </span>
-                                  <ConceptCategoryBadge
-                                    category={item.category}
-                                    collection={item.collection}
-                                    label={item.label}
-                                    uri={item.uri}
-                                  />
+                                  <ConceptCategoryBadge category={item.category} collections={item.collections} />
                                 </div>
                                 <span className="mt-0.5 block truncate font-mono text-xs text-[#736a5f]">
                                   {item.uri}
@@ -1199,13 +1195,7 @@ export const ExploreCorpus: React.FC = () => {
                           <div className="flex items-start justify-between gap-1.5">
                             <div className="flex min-w-0 flex-1 items-start space-x-2.5">
                               <div className="mt-0.5 shrink-0">
-                                <ConceptCategoryIcon
-                                  category={item.category}
-                                  collection={item.collection}
-                                  label={item.label}
-                                  uri={item.concept}
-                                  className="h-4.5 w-4.5"
-                                />
+                                <ConceptCategoryIcon category={item.category} className="h-4.5 w-4.5" />
                               </div>
                               <div className="group/label relative min-w-0 flex-1">
                                 <span
@@ -1230,9 +1220,11 @@ export const ExploreCorpus: React.FC = () => {
                                     <p className="text-sm leading-snug font-bold break-words text-white">
                                       {item.label}
                                     </p>
-                                    {item.collection && (
-                                      <p className="text-[11px] text-[#cfc5b4]">
-                                        Collection : <span className="font-medium text-white">{item.collection}</span>
+                                    {item.collections && item.collections.length > 0 && (
+                                      <p className="text-[11px] font-medium text-white">
+                                        {t.conceptCategories.collectionsTitle.replace('{list}', () =>
+                                          collectionLabels(item.collections, language),
+                                        )}
                                       </p>
                                     )}
                                     <div className="flex items-center justify-between border-t border-white/10 pt-1 text-[10px] text-[#9c9183]">
@@ -1249,9 +1241,7 @@ export const ExploreCorpus: React.FC = () => {
                                 <div className="mt-1 flex flex-wrap gap-1">
                                   <ConceptCategoryBadge
                                     category={item.category}
-                                    collection={item.collection}
-                                    label={item.label}
-                                    uri={item.concept}
+                                    collections={item.collections}
                                     size="sm"
                                   />
                                 </div>

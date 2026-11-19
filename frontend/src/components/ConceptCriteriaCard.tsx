@@ -36,13 +36,7 @@ export const ConceptCriteriaCard: React.FC<ConceptCriteriaCardProps> = ({ criter
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start space-x-2.5">
           <div className="mt-0.5 shrink-0">
-            <ConceptCategoryIcon
-              category={criterion.category}
-              collection={criterion.collection}
-              label={criterion.label}
-              uri={criterion.uri}
-              className="h-4 w-4"
-            />
+            <ConceptCategoryIcon category={criterion.category} className="h-4 w-4" />
           </div>
           <div className="min-w-0 space-y-0.5">
             <div className="flex flex-wrap items-center space-x-2 gap-y-1">
@@ -53,12 +47,7 @@ export const ConceptCriteriaCard: React.FC<ConceptCriteriaCardProps> = ({ criter
               >
                 {criterion.label || criterion.uri}
               </span>
-              <ConceptCategoryBadge
-                category={criterion.category}
-                collection={criterion.collection}
-                label={criterion.label}
-                uri={criterion.uri}
-              />
+              <ConceptCategoryBadge category={criterion.category} collections={criterion.collections} />
             </div>
             <span className="block truncate font-mono text-xs text-[#736a5f]">{criterion.uri}</span>
           </div>

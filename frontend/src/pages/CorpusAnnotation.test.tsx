@@ -47,6 +47,10 @@ const sectionAnnotations: SectionAnnotationsResponse = {
         concept: 'http://thezoo/lion',
         label: 'LION',
         type: 'http://www.w3.org/ns/oa#Annotation',
+        category: 'animal',
+        collections: [
+          { iri: 'https://opentheso.huma-num.fr/?idg=MT_7&idt=th310', labels: { fr: 'Zoonyme', en: 'Zoonyms' } },
+        ],
         offset: [{ start: 3, end: 7 }],
       },
     },

@@ -17,11 +17,11 @@ import {
   AnnotationMap,
   AnnotationScopeType,
   ConceptCategory,
+  ConceptCollection,
   StagedAnnotation,
   TargetParagraphDetail,
 } from '../types'
-import { AnnotationLegendModal } from '../components/AnnotationLegendModal'
-import { CATEGORY_TOC_PINNED, CATEGORY_TOC_HOVER } from '../components/ConceptCategoryBadge'
+import { ConceptCategoryBadge, CATEGORY_TOC_PINNED, CATEGORY_TOC_HOVER } from '../components/ConceptCategoryBadge'
 import { useConceptInspection } from '../components/reading'
 import { useI18n } from '../i18n'
 import {
@@ -36,6 +36,7 @@ import {
 } from '../features/contributions'
 import { fill } from '../features/contributions/lib/fill'
 import {
+  AnnotationLegendDialog,
   LoadError,
   PinnedConceptBanner,
   ReadingParagraphCard,
@@ -584,7 +585,7 @@ export const CorpusAnnotation: React.FC = () => {
       label: item.label,
       concept: item.concept,
       category: item.category,
-      collection: item.collection,
+      collections: item.collections,
       type: item.type,
       occurrences: item.offset?.length || 1,
     }))
@@ -597,7 +598,7 @@ export const CorpusAnnotation: React.FC = () => {
       label: string
       concept: string
       category?: ConceptCategory
-      collection?: string | null
+      collections?: ConceptCollection[]
       type: string
       occurrences: number
     }> = []
@@ -609,7 +610,7 @@ export const CorpusAnnotation: React.FC = () => {
           label: item.label,
           concept: item.concept,
           category: item.category,
-          collection: item.collection,
+          collections: item.collections,
           type: item.type,
           occurrences: item.offset?.length || 1,
         })
@@ -1273,13 +1274,13 @@ export const CorpusAnnotation: React.FC = () => {
                     label={item.label}
                     conceptUri={item.concept}
                     category={item.category}
-                    collection={item.collection}
                     occurrences={item.occurrences}
                     isPinned={pinnedConcept === item.concept}
                     isHighlighted={hoveredConcept === item.concept}
                     onTogglePin={() => setPinnedConcept((prev) => (prev === item.concept ? null : item.concept))}
                     onHoverChange={(hovered) => setHoveredConcept(hovered ? item.concept : null)}
                   >
+                    <ConceptCategoryBadge category={item.category} collections={item.collections} />
                     <span className="inline-flex items-center justify-center rounded-full border border-rule-strong bg-paper-sunken px-2 py-0.5 text-center text-[10px] leading-none font-bold text-ink-muted">
                       {t.annotate.statusReference}
                     </span>
@@ -1337,7 +1338,7 @@ export const CorpusAnnotation: React.FC = () => {
       />
 
       {/* 4. Modal d'aide & Légende des annotations */}
-      <AnnotationLegendModal isOpen={isLegendOpen} onClose={() => setIsLegendOpen(false)} />
+      <AnnotationLegendDialog open={isLegendOpen} onClose={() => setIsLegendOpen(false)} />
     </div>
   )
 }

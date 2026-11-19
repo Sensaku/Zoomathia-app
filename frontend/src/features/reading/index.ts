@@ -1,5 +1,6 @@
 /** Reading feature: the work reader, its paragraphs and the display of annotations. */
 
+export { AnnotationLegendDialog, type AnnotationLegendDialogProps } from './components/AnnotationLegendDialog'
 export { LoadError, type LoadErrorProps } from './components/LoadError'
 export { ReferenceAnnotationCard, type ReferenceAnnotationCardProps } from './components/ReferenceAnnotationCard'
 export { PinnedConceptBanner, type PinnedConceptBannerProps } from './components/PinnedConceptBanner'

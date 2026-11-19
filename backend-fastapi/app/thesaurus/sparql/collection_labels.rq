@@ -1,0 +1,11 @@
+# The French and English labels of the TheZoo collections (RM-CON-02).
+# Expected cost: one pass over the collections, about 28 rows (14 collections, 2 languages).
+# Kept apart from the members query: a collection with no fr or en label must still keep its
+# members, and the labels must not multiply the member rows. No placeholder.
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT DISTINCT ?collection ?collectionLabel ?labelLanguage WHERE {
+  ?collection a skos:Collection ;
+              skos:prefLabel ?collectionLabel .
+  FILTER(lang(?collectionLabel) = "fr" || lang(?collectionLabel) = "en")
+  BIND(lang(?collectionLabel) AS ?labelLanguage)
+} LIMIT 1000

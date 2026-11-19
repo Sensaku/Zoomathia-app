@@ -240,21 +240,26 @@ La catégorie d'un concept (animal, comportement, anatomie, lieu, personne, gén
 
 **RM-CON-02 — Calcul unique côté backend.** *Décidé (découle de RM-CON-01).*
 Le backend calcule la catégorie et la renvoie avec chaque concept et chaque annotation, y compris en attente. Le frontend l'affiche sans la recalculer.
+*Décidé (2026-11-19) :* chaque concept et chaque annotation portent aussi leurs collections TheZoo (IRI, libellés en français et en anglais). L'API publie la table de correspondance (catégorie → IRI des collections), pour qu'un agent puisse suivre les données SKOS. L'interface affiche la catégorie (icône, couleur, libellé traduit) et nomme la ou les collections dans la langue de l'interface.
 
 **RM-CON-03 — Priorité entre catégories.** *Proposé.*
 Un concept présent dans plusieurs collections prend la première catégorie dans cet ordre : animal, comportement, anatomie, lieu, personne. Sans collection reconnue, il est « général ».
 
-Table de correspondance proposée (reprise des commentaires du code actuel), à valider avec les gestionnaires de TheZoo :
+Table de correspondance, appliquée depuis le 2026-11-19, à confirmer avec les gestionnaires de TheZoo (*Proposé*) :
 
 | Collection TheZoo | Catégorie |
 |---|---|
 | Zoonyme (MT_7), Archéotaxon (MT_10) | animal |
 | Éthologie (MT_13) | comportement |
 | Anatomie (MT_8), Physiologie (MT_11) | anatomie |
-| Lieux (MT_4) | lieu |
-| Anthroponymes (MT_1), Peuples (MT_5) | personne |
+| Lieu (MT_4) | lieu |
+| Anthroponyme (MT_1), Peuple (MT_5) | personne |
+| Sujet (MT_6), Période (MT_3), Information zoologique (MT_17), Environnement (MT_23), Relation homme-animal (MT_25), Description générale (MT_15) | général |
 
-*Point de vigilance :* certains concepts aujourd'hui classés « animal » par identifiant (racines « Domestique », « Sauvage »…) n'appartiennent peut-être à aucune de ces collections. Mesurer la couverture avant de supprimer les heuristiques.
+*Couverture mesurée le 2026-11-19 (2 354 concepts annotés, 103 256 annotations) :* 97,8 % des annotations gardent leur catégorie, et les heuristiques sont supprimées. Les écarts :
+- 77 concepts (2 120 annotations) étaient classés « personne » par erreur (l'ancien code trouvait « MT_1 » dans MT_15 et MT_17) ; ils passent en « général » ;
+- 14 concepts de « Relation homme-animal » (74 annotations, par exemple « animal de guerre ») passent d'« animal » à « général » ;
+- 6 concepts sans collection (539 annotations) sont « général ».
 
 ---
 

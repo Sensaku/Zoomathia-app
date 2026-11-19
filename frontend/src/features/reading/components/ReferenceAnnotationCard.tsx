@@ -11,7 +11,6 @@ export interface ReferenceAnnotationCardProps {
   /** IRI of the concept in TheZoo. */
   conceptUri: string
   category?: ConceptCategory
-  collection?: string | null
   /** Number of places of the paragraph where the concept is annotated. */
   occurrences: number
   /** True when the user follows this concept (the toggle is pressed). */
@@ -34,7 +33,6 @@ export function ReferenceAnnotationCard({
   label,
   conceptUri,
   category,
-  collection,
   occurrences,
   isPinned,
   isHighlighted = false,
@@ -60,13 +58,7 @@ export function ReferenceAnnotationCard({
         onFocus={() => onHoverChange?.(true)}
         onBlur={() => onHoverChange?.(false)}
       >
-        <ConceptCategoryIcon
-          category={category}
-          collection={collection}
-          label={label}
-          uri={conceptUri}
-          className="mt-0.5 h-4 w-4 shrink-0"
-        />
+        <ConceptCategoryIcon category={category} className="mt-0.5 h-4 w-4 shrink-0" />
         <span className="min-w-0 flex-1 capitalize">{label.toLowerCase()}</span>
         {isPinned && <Pin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-accent-strong" />}
       </button>

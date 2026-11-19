@@ -1081,19 +1081,13 @@ export const ExploreWork: React.FC = () => {
                           label={item.label}
                           conceptUri={item.concept}
                           category={item.category}
-                          collection={item.collection}
                           occurrences={item.offset.length}
                           isPinned={pinnedConcept === item.concept}
                           isHighlighted={hoveredConcept === item.concept}
                           onTogglePin={() => setPinnedConcept((prev) => (prev === item.concept ? null : item.concept))}
                           onHoverChange={(hovered) => setHoveredConcept(hovered ? item.concept : null)}
                         >
-                          <ConceptCategoryBadge
-                            category={item.category}
-                            collection={item.collection}
-                            label={item.label}
-                            uri={item.concept}
-                          />
+                          <ConceptCategoryBadge category={item.category} collections={item.collections} />
                           <span className="inline-flex items-center justify-center rounded-none border border-rule-strong bg-white px-1.5 py-0.5 text-center font-mono text-[10px] leading-none text-ink-muted uppercase">
                             {item.type.split('#').pop()}
                           </span>

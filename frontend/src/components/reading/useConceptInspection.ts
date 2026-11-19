@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ConceptCategory, StagedAnnotation } from '../../types'
 import { ReadingParagraph, ConceptInspectionState } from './readingTypes'
-import { getConceptCategoryInfo } from '../ConceptCategoryBadge'
 
 export interface UseConceptInspectionOptions {
   referenceAnnotations?: Record<string, Record<string, any>>
@@ -39,8 +38,7 @@ export function useConceptInspection({
         set.add(pUri)
 
         if (!metaMap.has(item.concept)) {
-          const catInfo = getConceptCategoryInfo(item.category, item.collection, item.label, item.concept)
-          metaMap.set(item.concept, { label: item.label, category: catInfo.category })
+          metaMap.set(item.concept, { label: item.label, category: item.category ?? 'general' })
         }
       }
     }
@@ -62,13 +60,7 @@ export function useConceptInspection({
       for (const tUri of touchesParas) set.add(tUri)
 
       if (!metaMap.has(s.concept_uri)) {
-        const catInfo = getConceptCategoryInfo(
-          (s as any).category,
-          (s as any).collection,
-          s.concept_label,
-          s.concept_uri,
-        )
-        metaMap.set(s.concept_uri, { label: s.concept_label, category: catInfo.category })
+        metaMap.set(s.concept_uri, { label: s.concept_label, category: s.category })
       }
     }
 

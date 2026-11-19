@@ -28,6 +28,7 @@ Technical documents (English): `docs/architecture.md` (components, sources of tr
 | `backend-fastapi/app/accounts/` | Accounts domain (target layout): users, roles, sessions, CSRF, administration, `cli.py` for the first admin. Shared with the other domains: `viewer.py` (the acting account, router helpers) and `PublicIdentity` in `schemas.py` |
 | `backend-fastapi/app/contributions/` | Contributions domain (target layout): annotations and term proposals; `policy.py` (permissions, single source of `allowed_actions`), repository with guarded writes, service, router |
 | `backend-fastapi/app/queries/` | Saved SPARQL queries domain (target layout): same layers, plus the seeding of the native competency questions at startup |
+| `backend-fastapi/app/thesaurus/` | Thesaurus domain (target layout): the category table (`categories.py`, the only copy), the cached index of the TheZoo collections (`collections.py`, its queries in `sparql/`), and `GET /thesaurus/categories` |
 | `backend-fastapi/app/core/database.py` | Async SQLAlchemy engine, `Base`, `get_db`; `clock.py` and `migrations.py` beside it |
 | `backend-fastapi/migrations/` | Alembic revisions: the only owner of the database schema |
 | `backend-fastapi/data/files/` | TEI-XML corpus (do not modify) |
@@ -147,7 +148,7 @@ The essentials (full rules in `docs/development-guidelines.md`):
 - The gaps found by the 2026-11-15 audit are tests in `tests/test_known_gaps.py`. An open gap has a strict `xfail` marker (none since P0-3); when a fix makes it pass, remove the marker, so the test guards against regressions.
 - The default SPARQL endpoint (`http://zoomathia.i3s.unice.fr/sparql`) is the **shared production** Corese. Unbounded queries (`SELECT *` without `LIMIT`, global `DESCRIBE`) can crash it (out of memory).
 - Competency questions exist in three copies (`app/core/qcs_data.py`, `data/queries/*.rq`, SQLite) until RM-QC-01. Keep them consistent if you must touch them.
-- Concept categories are computed twice, with diverging rules (backend `classify_concept`, frontend `getConceptCategoryInfo`), until RM-CON-01 and RM-CON-02.
+- The contribution routes need the TheZoo collection index (Corese): it is preloaded at startup and cached (`THESAURUS_PRELOAD`, off in tests). If the server starts during a Corese outage, they answer 502 until it loads.
 - The CSRF token lives only in the React Query session cache (`features/accounts/session.ts`): never copy it to `localStorage` or a variable. Queries whose data carry `allowed_actions` use a root of `VIEWER_QUERY_ROOTS`, so they reload when the viewer changes.
 - The e2e stack answers SPARQL from recorded fixtures: a journey that opens a new page may need a rule in `frontend/e2e/fixtures/corese.json` (the fake Corese logs the queries it cannot answer). OpenTheso is not simulated.
 - Permissions live in `app/contributions/policy.py` and `app/queries/policy.py`, and the guarded SQL statements of the repositories repeat them. Change a rule in both: `test_the_sql_guards_agree_with_the_policy` catches a mismatch.
@@ -158,4 +159,4 @@ The essentials (full rules in `docs/development-guidelines.md`):
 
 1. **Done:** the framing documents and guidelines (2026-11-15); the tooling and test foundation (`docs/development-guidelines.md`, "Adoption"): backend on 2026-11-15, frontend on 2026-11-16, catalogue and e2e stack on 2026-11-18; the P0 security work from P0-1 to P0-4a (`docs/security.md`, "Known gaps").
 2. **Now:** P0-4b (backend: accounts required, peer review, statuses as codes; 2026-11-16) and P0-5a (first screens: session, sign-in, account, password reset, reviews driven by `allowed_actions`; 2026-11-18) ship together. Next slices: P0-5b (account administration), P0-5c ("Mes contributions"), P0-5d (registration and privacy notice).
-3. **Then:** competency questions in the database, publication of validated annotations to Corese, categories from TheZoo collections, versioned REST API, TEI ingestion and pre-annotation.
+3. **Then:** competency questions in the database, publication of validated annotations to Corese, versioned REST API, TEI ingestion and pre-annotation.

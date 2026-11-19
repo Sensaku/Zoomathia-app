@@ -42,6 +42,7 @@ from app.core.database import get_db
 from app.services.rdf_export import annotations_to_turtle, proposals_to_turtle
 from app.shared.sparql import MAX_IRI_LENGTH
 from app.shared.validation import MAX_LABEL_LENGTH
+from app.thesaurus.collections import CollectionIndex, get_thesaurus_collections
 
 annotations_router = APIRouter(prefix="/annotations", tags=["Annotations"])
 proposals_router = APIRouter(prefix="/thesaurus/proposals", tags=["Thesaurus proposals"])
@@ -74,10 +75,11 @@ async def create_annotation(
     body: CreateAnnotationRequest,
     context: AuthContext = Depends(require_user),
     service: AnnotationService = Depends(get_annotation_service),
+    thesaurus: CollectionIndex = Depends(get_thesaurus_collections),
 ) -> AnnotationOut:
     """Store a new annotation (RM-CTB-01): authored by the account, always pending."""
     viewer = acting(context)
-    return annotation_out(await service.create(viewer, body), viewer)
+    return annotation_out(await service.create(viewer, body), viewer, thesaurus)
 
 
 @annotations_router.get("", response_model=AnnotationPage)
@@ -91,12 +93,15 @@ async def list_annotations(
     ),
     context: AuthContext | None = Depends(optional_auth),
     service: AnnotationService = Depends(get_annotation_service),
+    thesaurus: CollectionIndex = Depends(get_thesaurus_collections),
 ) -> AnnotationPage:
     """A page of annotations of every status, rejections included (RM-ACC-03), newest first."""
     check_mine(mine, context)
     viewer = viewer_of(context)
     rows, total = await service.page(viewer, paragraph_uri, status, mine, limit, offset)
-    return AnnotationPage(items=[annotation_out(row, viewer) for row in rows], total=total)
+    return AnnotationPage(
+        items=[annotation_out(row, viewer, thesaurus) for row in rows], total=total
+    )
 
 
 @annotations_router.get("/export-ttl")
@@ -125,9 +130,10 @@ async def get_annotation(
     annotation_id: int,
     context: AuthContext | None = Depends(optional_auth),
     service: AnnotationService = Depends(get_annotation_service),
+    thesaurus: CollectionIndex = Depends(get_thesaurus_collections),
 ) -> AnnotationOut:
     """One annotation, with what the viewer may do with it."""
-    return annotation_out(await service.workflow.get(annotation_id), viewer_of(context))
+    return annotation_out(await service.workflow.get(annotation_id), viewer_of(context), thesaurus)
 
 
 @annotations_router.patch("/{annotation_id:int}", response_model=AnnotationOut)
@@ -136,10 +142,11 @@ async def update_annotation(
     body: AnnotationUpdate,
     context: AuthContext = Depends(require_user),
     service: AnnotationService = Depends(get_annotation_service),
+    thesaurus: CollectionIndex = Depends(get_thesaurus_collections),
 ) -> AnnotationOut:
     """Change the concept or the justification of a pending annotation (RM-CTB-05)."""
     viewer = acting(context)
-    return annotation_out(await service.edit(viewer, annotation_id, body), viewer)
+    return annotation_out(await service.edit(viewer, annotation_id, body), viewer, thesaurus)
 
 
 @annotations_router.post("/{annotation_id:int}/review", response_model=AnnotationOut)
@@ -148,10 +155,12 @@ async def review_annotation(
     body: ReviewRequest,
     context: AuthContext = Depends(require_user),
     service: AnnotationService = Depends(get_annotation_service),
+    thesaurus: CollectionIndex = Depends(get_thesaurus_collections),
 ) -> AnnotationOut:
     """Validate or reject another contributor's annotation (RM-MOD-01 to RM-MOD-03)."""
     viewer = acting(context)
-    return annotation_out(await service.workflow.review(viewer, annotation_id, body), viewer)
+    reviewed = await service.workflow.review(viewer, annotation_id, body)
+    return annotation_out(reviewed, viewer, thesaurus)
 
 
 @annotations_router.delete("/{annotation_id:int}", status_code=204)

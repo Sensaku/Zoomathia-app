@@ -373,18 +373,7 @@
     ],
     "result": {
       "head": {
-        "vars": [
-          "paragraph",
-          "annotation",
-          "annotation_type",
-          "concept",
-          "label",
-          "start",
-          "end",
-          "exact",
-          "coll",
-          "collLabel"
-        ]
+        "vars": ["paragraph", "annotation", "annotation_type", "concept", "label", "start", "end", "exact"]
       },
       "results": {
         "bindings": [
@@ -420,14 +409,6 @@
             "exact": {
               "type": "literal",
               "value": "leo"
-            },
-            "coll": {
-              "type": "uri",
-              "value": "https://opentheso.huma-num.fr/?idc=1000000&idt=th310"
-            },
-            "collLabel": {
-              "type": "literal",
-              "value": "Mammals"
             }
           },
           {
@@ -471,6 +452,70 @@
             "uri": {
               "type": "uri",
               "value": "http://ns.inria.fr/zoomathia/Fictus/de_animalibus/1/1/text/3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "members of the TheZoo collections (Zoonyme holds the fixture concept lion)",
+    "contains": ["?collection ?member WHERE", "skos:Collection"],
+    "result": {
+      "head": {
+        "vars": ["collection", "member"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "collection": {
+              "type": "uri",
+              "value": "https://opentheso.huma-num.fr/?idg=MT_7&idt=th310"
+            },
+            "member": {
+              "type": "uri",
+              "value": "https://opentheso.huma-num.fr/?idc=1000001&idt=th310"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "labels of the TheZoo collections",
+    "contains": ["?collection ?collectionLabel ?labelLanguage WHERE"],
+    "result": {
+      "head": {
+        "vars": ["collection", "collectionLabel", "labelLanguage"]
+      },
+      "results": {
+        "bindings": [
+          {
+            "collection": {
+              "type": "uri",
+              "value": "https://opentheso.huma-num.fr/?idg=MT_7&idt=th310"
+            },
+            "collectionLabel": {
+              "type": "literal",
+              "value": "Zoonyme"
+            },
+            "labelLanguage": {
+              "type": "literal",
+              "value": "fr"
+            }
+          },
+          {
+            "collection": {
+              "type": "uri",
+              "value": "https://opentheso.huma-num.fr/?idg=MT_7&idt=th310"
+            },
+            "collectionLabel": {
+              "type": "literal",
+              "value": "Zoonyms"
+            },
+            "labelLanguage": {
+              "type": "literal",
+              "value": "en"
             }
           }
         ]

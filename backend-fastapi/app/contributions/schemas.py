@@ -46,6 +46,9 @@ from app.shared.validation import (
     TheZooConceptIri,
     validate_text,
 )
+from app.thesaurus.categories import Category
+from app.thesaurus.collections import CollectionIndex
+from app.thesaurus.schemas import ConceptCollectionOut
 
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
@@ -165,6 +168,8 @@ class AnnotationOut(BaseModel):
     concept_uri: str
     concept_label: str
     concept_type: str
+    category: Category
+    collections: list[ConceptCollectionOut]
     justification: str | None
     scope_type: str
     end_paragraph_uri: str | None
@@ -188,8 +193,15 @@ class AnnotationPage(BaseModel):
     total: int
 
 
-def annotation_out(annotation: Annotation, viewer: Viewer | None) -> AnnotationOut:
-    """The response for `annotation`, as seen by `viewer` (None for an anonymous visitor)."""
+def annotation_out(
+    annotation: Annotation, viewer: Viewer | None, thesaurus: CollectionIndex
+) -> AnnotationOut:
+    """The response for `annotation`, as seen by `viewer` (None for an anonymous visitor).
+
+    The category and the collections of the concept come from `thesaurus` (RM-CON-02), for
+    every status, pending included.
+    """
+    category, collections = thesaurus.classify(annotation.concept_uri)
     return AnnotationOut(
         id=annotation.id,
         paragraph_uri=annotation.paragraph_uri,
@@ -199,6 +211,8 @@ def annotation_out(annotation: Annotation, viewer: Viewer | None) -> AnnotationO
         concept_uri=annotation.concept_uri,
         concept_label=annotation.concept_label,
         concept_type=annotation.concept_type,
+        category=category,
+        collections=collections,
         justification=annotation.justification,
         scope_type=annotation.scope_type,
         end_paragraph_uri=annotation.end_paragraph_uri,

@@ -1,0 +1,11 @@
+# Which concept belongs to which TheZoo collection (RM-CON-01).
+# Expected cost: one pass over the skos:member triples of the collections, about 6,700 rows
+# (measured on Corese on 2026-11-19), a few hundred KB. No placeholder: same query for everyone.
+# LIMIT is a safety net far above the real size. A full page means a truncated index, so the
+# loader refuses it (it never serves a partial index). Keep it equal to MEMBERS_LIMIT in
+# app/thesaurus/collections.py.
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT DISTINCT ?collection ?member WHERE {
+  ?collection a skos:Collection ;
+              skos:member ?member .
+} LIMIT 50000

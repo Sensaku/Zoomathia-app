@@ -33,7 +33,9 @@ import {
   CreateSavedQueryInput,
   UpdateSavedQueryInput,
   ThesaurusCollection,
+  CategoryCollections,
   ConceptCategory,
+  ConceptCollection,
   SectionAnnotationsResponse,
   Page,
   Session,
@@ -105,7 +107,7 @@ type ConceptSearchHit = {
   label: string
   type?: string
   category?: ConceptCategory
-  collection?: string | null
+  collections?: ConceptCollection[]
 }
 
 export async function searchConcepts(
@@ -119,6 +121,11 @@ export async function searchConcepts(
 
 export async function fetchCollections(lang = 'fr', signal?: AbortSignal): Promise<ThesaurusCollection[]> {
   return requestJson<ThesaurusCollection[]>(`/getCollections${buildQuery({ lang })}`, { signal })
+}
+
+/** The concept categories with their TheZoo collections, in priority order (RM-CON-01, RM-CON-02). */
+export async function getConceptCategories(signal?: AbortSignal): Promise<CategoryCollections[]> {
+  return requestJson<CategoryCollections[]>('/thesaurus/categories', { signal })
 }
 
 export async function fetchThesaurusAutocomplete(

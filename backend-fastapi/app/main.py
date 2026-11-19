@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.accounts.router import router as accounts_router
 from app.contributions.router import annotations_router, proposals_router
+from app.core.clock import utcnow
 from app.core.config import settings
 from app.core.database import Database
 from app.core.migrations import ensure_database_is_current
@@ -24,6 +25,8 @@ from app.routers import (
 )
 from app.services.sparql_client import sparql_client
 from app.shared.errors import register_error_handlers
+from app.thesaurus.collections import thesaurus_collections
+from app.thesaurus.router import router as thesaurus_categories_router
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +48,12 @@ async def lifespan(app: FastAPI):
     try:
         await ensure_database_is_current(database)
         await seed_builtin_queries(database)
+        if settings.THESAURUS_PRELOAD:
+            # In the background: a Corese outage must never block or fail the startup.
+            thesaurus_collections.preload(utcnow)
         yield
     finally:
+        thesaurus_collections.clear()
         await database.dispose()
         await sparql_client.close()
 
@@ -85,6 +92,7 @@ app.include_router(competency_questions.router)
 app.include_router(search.router)
 app.include_router(export.router)
 app.include_router(thesaurus.router)
+app.include_router(thesaurus_categories_router)
 app.include_router(annotations.router)
 app.include_router(annotations_router)
 app.include_router(proposals_router)
