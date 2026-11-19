@@ -22,3 +22,17 @@ export function StatusBadge({ status }: { status: ContributionStatus }) {
     </span>
   )
 }
+
+/**
+ * The status icon alone, in a small bordered chip with the colours of {@link StatusBadge}. It is
+ * decorative (`aria-hidden`, no text): the place that shows it names the status elsewhere, for
+ * example in a tooltip, and its text flow stays free of extra letters.
+ */
+export function StatusIcon({ status, className = '' }: { status: ContributionStatus; className?: string }) {
+  const { icon: Icon, classes } = STYLES[status]
+  return (
+    <span aria-hidden="true" className={`inline-flex items-center border p-px align-middle ${classes} ${className}`}>
+      <Icon className="h-3 w-3" />
+    </span>
+  )
+}

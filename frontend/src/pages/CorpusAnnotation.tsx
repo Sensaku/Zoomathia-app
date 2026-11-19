@@ -22,7 +22,7 @@ import {
 } from '../types'
 import { AnnotationLegendModal } from '../components/AnnotationLegendModal'
 import { CATEGORY_TOC_PINNED, CATEGORY_TOC_HOVER } from '../components/ConceptCategoryBadge'
-import { ReadingParagraphCard, PinnedConceptBanner, useConceptInspection } from '../components/reading'
+import { useConceptInspection } from '../components/reading'
 import { useI18n } from '../i18n'
 import {
   PendingSavedNotice,
@@ -35,7 +35,13 @@ import {
   AnnotationCreateDialog,
 } from '../features/contributions'
 import { fill } from '../features/contributions/lib/fill'
-import { LoadError, ReferenceAnnotationCard, TextSizeToggle } from '../features/reading'
+import {
+  LoadError,
+  PinnedConceptBanner,
+  ReadingParagraphCard,
+  ReferenceAnnotationCard,
+  TextSizeToggle,
+} from '../features/reading'
 import {
   BookOpen,
   ChevronRight,
@@ -1107,7 +1113,6 @@ export const CorpusAnnotation: React.FC = () => {
                   <ReadingParagraphCard
                     key={p.uri || idx}
                     p={p}
-                    idx={idx}
                     isCurrentPara={activeParagraphUri === p.uri}
                     referenceMap={referenceAnnotations[p.uri]}
                     stagedList={stagedAnnotations}
@@ -1116,12 +1121,8 @@ export const CorpusAnnotation: React.FC = () => {
                     showTranslation={showTranslation}
                     translationP={translationParagraphs[idx]}
                     annotationCount={paragraphAnnotCounts[p.uri] || 0}
-                    onClick={() => setActiveParagraphUri(p.uri)}
+                    onActivate={() => setActiveParagraphUri(p.uri)}
                     onTextSelection={handleFreeTextSelection}
-                    translationTagText={t.work.translationTag}
-                    associatedTagText={t.annotate.associatedPassage}
-                    pinnedTagText={t.annotate.pinnedPassage}
-                    activeParagraphText={t.work.activeParagraph}
                   />
                 ))}
               </div>

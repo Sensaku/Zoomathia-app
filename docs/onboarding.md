@@ -72,7 +72,7 @@ The current layout is described in [AGENTS.md](https://github.com/Sensaku/Zoomat
 | `backend-fastapi/app/main.py` | How the API is assembled |
 | `backend-fastapi/app/services/sparql_client.py` | How the backend talks to Corese |
 | `frontend/src/api/client.ts` | Every call from the frontend to the backend |
-| `frontend/src/components/reading/` | The reading view, recently cleaned up |
+| `frontend/src/features/reading/` | The reading view: paragraphs, annotated text, pinned-concept banner |
 
 With code-review-graph, `get_architecture_overview_tool` gives a map of the code, and `generate_wiki_tool` writes a local wiki in `.code-review-graph/wiki/`.
 

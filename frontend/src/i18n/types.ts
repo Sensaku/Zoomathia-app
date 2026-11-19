@@ -118,6 +118,8 @@ export interface TranslationDictionary {
     annotatePassage: string
     annotatingSnippet: string
     globalThemes: string
+    annotateSelectionTitle: string
+    overlappingConcepts: string
     translationTag: string
     annotationsTitle: string
     conceptsCount: string
@@ -465,11 +467,14 @@ export interface TranslationDictionary {
     paragraphsListTitle: string
     searchParagraphsPlaceholder: string
     filterParagraphsHelp: string
-    associatedPassage: string
     pinnedPassage: string
+    pinnedPassageOf: string
     pinAnnotationTooltip: string
     unpinAnnotationTooltip: string
     pinnedAnnotationBanner: string
+    coveredPassages: string
+    pinnedParagraphCount: string
+    conceptFallback: string
     spansAcrossParagraphs: string
     pickParagraphForRejected: string
     exportRdf: string

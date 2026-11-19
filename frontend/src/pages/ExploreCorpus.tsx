@@ -45,7 +45,8 @@ import {
   CATEGORY_TOC_HOVER,
   CATEGORY_TOC_PINNED,
 } from '../components/ConceptCategoryBadge'
-import { ReadingParagraphCard, PinnedConceptBanner, useConceptInspection } from '../components/reading'
+import { useConceptInspection } from '../components/reading'
+import { PinnedConceptBanner, ReadingParagraphCard } from '../features/reading'
 
 export const ExploreCorpus: React.FC = () => {
   const { t, language } = useI18n()
@@ -1125,14 +1126,12 @@ export const ExploreCorpus: React.FC = () => {
                       <ReadingParagraphCard
                         key={p.uri || idx}
                         p={p}
-                        idx={idx}
                         isCurrentPara={activeParagraphUri === p.uri}
                         referenceMap={referenceAnnotations[p.uri]}
                         stagedList={stagedAnnotations}
                         inspectionState={inspectionState}
                         textSize={textSize}
-                        onClick={() => setActiveParagraphUri(p.uri)}
-                        activeParagraphText={t.work.activeParagraph}
+                        onActivate={() => setActiveParagraphUri(p.uri)}
                       />
                     ))
                   )}

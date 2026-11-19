@@ -9,7 +9,7 @@
 2. **Keep and formalize the current identity**, "ink and parchment": warm neutrals, a bronze accent, a classical display font, square corners. It continues the visual heritage of the previous application (the Nile mosaic of Palestrina, the bronze accent).
 3. **Accessible by design** (RGAA): low vision, browser zoom, keyboard use, colour-vision deficiencies.
 4. **A calm interface.** Annotations and tools appear when needed and never compete with the text.
-5. **One source for every visual value:** design tokens. No hex literal in components (about 870 today, migrated progressively).
+5. **One source for every visual value:** design tokens. No hex literal in components (about 820 today, migrated progressively).
 
 ## Design tokens
 
@@ -74,7 +74,7 @@ Current colours: animal (amber), behaviour (indigo), anatomy (rose), place (teal
 
 - **Desktop layout:** three columns (table of contents, text, annotations panel). The side panels can be collapsed to give the text the full width.
 - **Table of contents for long reading:** it shows the current position as the reader scrolls, jumps to any book, chapter or paragraph, and the URL always contains the passage, so a reload or a shared link reopens the same place.
-- **Text first:** annotations are discreet by default (category underline); details appear on hover, focus or click. The pinned-concept banner stays the way to follow one concept through a text.
+- **Text first:** annotations are discreet by default (category underline); details appear on hover, focus or click. The pinned-concept banner stays the way to follow one concept through a text. The pointer shortcuts (click a paragraph, hover or click a highlighted word) have keyboard equivalents: the table of contents, the toggles of the annotation panel and the passage theme buttons.
 - **Contributions awaiting review are hidden by default** and appear, marked "non relu", when the reader enables the corresponding filter (RM-ACC-03). The reader and the annotation studio share one switch, "Afficher les contributions non relues" (`pending=1` in the URL). Rejected annotations never appear in the text: the studio lists them per paragraph, with their reason (RM-ACC-04).
 - The reader already offers a text size control (A, A+, A++). *Proposed:* add line spacing, and a choice between original and translation side by side or one at a time.
 
@@ -118,7 +118,7 @@ A print stylesheet prints the passage with its citation (author, work, reference
 - With no separate mockups, the **component catalogue is the visual reference**: every shared component (`src/shared/ui/`) is shown with its variants and states (default, hover, focus, disabled, loading, error).
 - A new screen is assembled from catalogue components first. A new shared component enters the catalogue in the same change.
 - **Shared components** (`src/shared/ui/`, P0-5a): `Button` (primary, secondary, danger, ghost; loading state), `TextField`, `TextAreaField`, `CheckboxField`, `Alert` (icon and text per tone), `ErrorSummary`, `Dialog` (focus kept inside, Escape closes, focus returns to the opener, a click outside does not close it) and `ConfirmDialog` (focus starts on "cancel").
-- **Feature components:** `StatusBadge`, `ContributorLine`, `ContributionActions`, `RejectDialog`, `PendingToggle`, `ConceptPicker` (TheZoo search from 2 typed characters), the creation and edit dialogs and the cards of annotations and proposals (`src/features/contributions/`); `ReferenceAnnotationCard` (a Corese annotation, followed with a toggle button), `LoadError` (a failed load and its retry) and `TextSizeToggle` (the A, A+, A++ buttons) (`src/features/reading/`); `AccountMenu` (disclosure button), `SessionExpiredNotice`, `SignInPrompt` (`src/features/accounts/`).
+- **Feature components:** `StatusBadge`, `ContributorLine`, `ContributionActions`, `RejectDialog`, `PendingToggle`, `ConceptPicker` (TheZoo search from 2 typed characters), the creation and edit dialogs and the cards of annotations and proposals (`src/features/contributions/`); `ReadingParagraphCard` (a paragraph: a click makes it active, the table of contents does it with the keyboard), `PinnedConceptBanner` (the followed concept and its paragraphs, a region), `ReferenceAnnotationCard` (a Corese annotation, followed with a toggle button), `LoadError` (a failed load and its retry) and `TextSizeToggle` (the A, A+, A++ buttons) (`src/features/reading/`); `AccountMenu` (disclosure button), `SessionExpiredNotice`, `SignInPrompt` (`src/features/accounts/`).
 - **Tool:** an in-house page, `frontend/catalogue.html`: run `npm run dev` and open `/catalogue.html`. No dependency, absent from the production build, checked by a Vitest test with axe ([decision record 0002](decisions/0002-catalogue-and-e2e-stack.md)).
 
 ## Checklist for a visual change

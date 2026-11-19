@@ -464,24 +464,6 @@ export const CATEGORY_TAG_HOVER: Record<string, string> = {
   general: 'bg-stone-100 text-stone-950 border border-stone-300',
 }
 
-export const CATEGORY_BADGE_PINNED: Record<string, string> = {
-  animal: 'bg-amber-600 text-white border border-amber-700',
-  behavior: 'bg-indigo-600 text-white border border-indigo-700',
-  anatomy: 'bg-rose-600 text-white border border-rose-700',
-  place: 'bg-teal-600 text-white border border-teal-700',
-  person: 'bg-sky-600 text-white border border-sky-700',
-  general: 'bg-stone-600 text-white border border-stone-700',
-}
-
-export const CATEGORY_BADGE_HOVER: Record<string, string> = {
-  animal: 'bg-amber-500 text-white border border-amber-600',
-  behavior: 'bg-indigo-500 text-white border border-indigo-600',
-  anatomy: 'bg-rose-500 text-white border border-rose-600',
-  place: 'bg-teal-500 text-white border border-teal-600',
-  person: 'bg-sky-500 text-white border border-sky-600',
-  general: 'bg-stone-500 text-white border border-stone-600',
-}
-
 export const CATEGORY_TOC_PINNED: Record<string, string> = {
   animal: 'bg-amber-300 text-amber-950 border border-amber-500 shadow-xs ring-1 ring-amber-500',
   behavior: 'bg-indigo-300 text-indigo-950 border border-indigo-500 shadow-xs ring-1 ring-indigo-500',

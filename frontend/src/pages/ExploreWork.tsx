@@ -22,7 +22,13 @@ import {
 } from '../types'
 import { useI18n } from '../i18n'
 import { fill } from '../features/contributions/lib/fill'
-import { LoadError, ReferenceAnnotationCard, TextSizeToggle } from '../features/reading'
+import {
+  LoadError,
+  PinnedConceptBanner,
+  ReadingParagraphCard,
+  ReferenceAnnotationCard,
+  TextSizeToggle,
+} from '../features/reading'
 import {
   PendingSavedNotice,
   PendingToggle,
@@ -44,12 +50,7 @@ import {
   User,
 } from 'lucide-react'
 import { ConceptCategoryBadge, CATEGORY_TOC_PINNED, CATEGORY_TOC_HOVER } from '../components/ConceptCategoryBadge'
-import {
-  ReadingParagraphCard,
-  PinnedConceptBanner,
-  MultiParagraphLinks,
-  useConceptInspection,
-} from '../components/reading'
+import { MultiParagraphLinks, useConceptInspection } from '../components/reading'
 
 /**
  * Recherche récursive du nœud de section le plus précis dans l'arborescence du sommaire
@@ -963,7 +964,6 @@ export const ExploreWork: React.FC = () => {
                     <ReadingParagraphCard
                       key={p.uri || idx}
                       p={p}
-                      idx={idx}
                       isCurrentPara={activeParagraphUri === p.uri}
                       referenceMap={referenceAnnotations[p.uri]}
                       stagedList={stagedAnnotations}
@@ -971,13 +971,10 @@ export const ExploreWork: React.FC = () => {
                       textSize={textSize}
                       showTranslation={showTranslation}
                       translationP={translationParagraphs[idx]}
-                      onClick={() => setActiveParagraphUri(p.uri)}
+                      onActivate={() => setActiveParagraphUri(p.uri)}
                       onTextSelection={handleFreeTextSelection}
                       selectedSnippet={activeParagraphUri === p.uri ? selectedSnippet : null}
                       onAnnotateSnippet={() => setIsAnnotModalOpen(true)}
-                      translationTagText={t.work.translationTag}
-                      activeParagraphText={t.work.activeParagraph}
-                      annotateButtonText={t.work.annotatePassage}
                     />
                   ))}
                 </div>

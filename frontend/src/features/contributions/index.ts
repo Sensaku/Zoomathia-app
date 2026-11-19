@@ -14,7 +14,7 @@ export { isContributionConflict } from './lib/conflict'
 export { CONTRIBUTION_STATUSES, isContributionStatus } from './lib/status'
 export { usePendingFilter } from './hooks/usePendingFilter'
 export { useSavedNotice } from './hooks/useSavedNotice'
-export { StatusBadge } from './components/StatusBadge'
+export { StatusBadge, StatusIcon } from './components/StatusBadge'
 export { ContributorLine, formatAuthor, type ContributorFields } from './components/ContributorLine'
 export {
   ContributionActions,

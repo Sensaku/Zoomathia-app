@@ -96,4 +96,62 @@ test.describe('Annotations in the reader', () => {
 
     await visitor.context.close()
   })
+
+  test('a visitor follows a concept across paragraphs with the keyboard', async ({ browser }) => {
+    const label = unique('Bestia')
+    const bestia = concept(301, label)
+    const author = await openPerson(browser, 'alice')
+    const reviewer = await openPerson(browser, 'bruno')
+    for (const [paragraph, word] of [
+      [0, 'silva'],
+      [2, 'Aquila'],
+    ] as const) {
+      const created = await createAnnotation(author.context.request, author.csrf, { paragraph, word, concept: bestia })
+      await reviewContribution(reviewer.context.request, reviewer.csrf, 'annotations', created, {
+        decision: 'validated',
+      })
+    }
+
+    const visitor = await openPerson(browser)
+    const { page } = visitor
+    await page.goto(readerParagraphUrl(corpus.paragraphs[0].iri))
+    const follow = cardOf(page, label).getByRole('button', { name: label })
+    // Measure before the panel toggle takes focus: focus already previews the concept.
+    const mark = page.locator('mark', { hasText: corpus.referenceAnnotation.word })
+    await expect(mark).toBeVisible()
+    // A web font that swaps in later changes the width of the text, so measure once the fonts are loaded.
+    await page.evaluate(async () => {
+      await document.fonts.ready
+    })
+    const before = await mark.boundingBox()
+    await follow.focus()
+    await page.keyboard.press('Enter')
+
+    // The banner is a named region; the table of contents also has "§ N" buttons, so search inside it.
+    const banner = page.getByRole('region', { name: /^Annotation épinglée/ })
+    await expect(banner).toContainText('Présent dans 2 paragraphe(s)')
+    await expect(banner.getByRole('button', { name: '§ 1' })).toHaveAttribute('aria-current', 'true')
+    const third = banner.getByRole('button', { name: '§ 3' })
+    await expect(third).toBeVisible()
+    // Paragraph 0 is active: its reference mark is dimmed (other concept pinned): no colour, and no
+    // width change, or the text would move and re-wrap on every hover.
+    await expect(mark).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    const after = await mark.boundingBox()
+    expect(before).not.toBeNull()
+    expect(after).not.toBeNull()
+    expect(after?.width).toBeCloseTo(before?.width ?? -1, 0) // within 0.5 px
+    await expectNoAxeViolations(page)
+
+    await third.focus()
+    await page.keyboard.press('Enter')
+    await expect(third).toHaveAttribute('aria-current', 'true')
+
+    await banner.getByRole('button', { name: "Désépingler l'annotation" }).focus()
+    await page.keyboard.press('Enter')
+    await expect(banner).toHaveCount(0)
+
+    await author.context.close()
+    await reviewer.context.close()
+    await visitor.context.close()
+  })
 })

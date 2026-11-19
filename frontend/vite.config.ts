@@ -87,18 +87,12 @@ export default defineConfig({
           'src/components/AnnotationLegendModal.tsx',
           'src/components/ConceptCriteriaCard.tsx',
           'src/components/Navbar.tsx',
-          'src/components/reading/ReadingParagraphCard.tsx',
           'src/pages/ExploreCorpus.tsx',
         ],
         rules: { 'eslint/no-unused-vars': 'warn' },
       },
       {
-        files: [
-          'src/components/MultiSelectCombobox.tsx',
-          'src/components/reading/AnnotatedAncientText.tsx',
-          'src/components/reading/ReadingParagraphCard.tsx',
-          'src/pages/ExploreCorpus.tsx',
-        ],
+        files: ['src/components/MultiSelectCombobox.tsx', 'src/pages/ExploreCorpus.tsx'],
         rules: { 'jsx-a11y/click-events-have-key-events': 'warn' },
       },
       {
@@ -110,24 +104,11 @@ export default defineConfig({
         rules: { 'jsx-a11y/no-autofocus': 'warn' },
       },
       {
-        files: ['src/components/reading/AnnotatedAncientText.tsx', 'src/components/reading/ReadingParagraphCard.tsx'],
-        rules: { 'jsx-a11y/no-noninteractive-element-interactions': 'warn' },
-      },
-      {
-        files: ['src/components/reading/ReadingParagraphCard.tsx'],
-        rules: { 'jsx-a11y/no-noninteractive-tabindex': 'warn' },
-      },
-      {
-        files: [
-          'src/components/MultiSelectCombobox.tsx',
-          'src/components/reading/AnnotatedAncientText.tsx',
-          'src/components/reading/ReadingParagraphCard.tsx',
-          'src/pages/ExploreCorpus.tsx',
-        ],
+        files: ['src/components/MultiSelectCombobox.tsx', 'src/pages/ExploreCorpus.tsx'],
         rules: { 'jsx-a11y/no-static-element-interactions': 'warn' },
       },
       {
-        files: ['src/components/reading/AnnotatedAncientText.tsx', 'src/pages/ExploreCorpus.tsx'],
+        files: ['src/pages/ExploreCorpus.tsx'],
         rules: { 'react/exhaustive-deps': 'warn' },
       },
       {
